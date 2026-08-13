@@ -570,19 +570,10 @@ async function importFromSheets(n){
   }
 }
 
-const DEFAULT_SPREADSHEET_ID = '1nr0-mVj9CnRhBVzT_RUoTgfTrWlZpB920LPvVjOyPDY';
-const DEFAULT_SHEET_TABS = {
-  1: 'Vakcinacija (Bruceloza)',
-  2: 'Potvrda o Stanju Životinja'
-};
-function defaultSheetLink(n){
-  return `https://docs.google.com/spreadsheets/d/${DEFAULT_SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(DEFAULT_SHEET_TABS[n])}`;
-}
-
 function restoreSheetLinks(){
   for(const n of [1,2]){
     const saved = localStorage.getItem(SHEET_LINK_PREFIX + n);
-    document.getElementById('sheetLink'+n).value = saved || defaultSheetLink(n);
+    if(saved) document.getElementById('sheetLink'+n).value = saved;
   }
 }
 
