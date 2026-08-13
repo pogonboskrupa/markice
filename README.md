@@ -1,10 +1,37 @@
 # Usporedba spiskova markica — Poljoprivredni zavod USK — PWA
 
 ## Šta je unutra
-- `index.html` — sama aplikacija (radi i offline, čuva sačuvane liste lokalno na uređaju preko localStorage)
+- `index.html` — sama aplikacija (radi i offline, čuva podatke lokalno na uređaju preko localStorage)
 - `manifest.json` — omogućava instalaciju kao aplikacija (desktop i mobitel)
 - `sw.js` — service worker, keširа fajlove za offline rad
 - `icons/` — ikone aplikacije
+- `vendor/` — Leaflet (biblioteka za kartu, BSD-2 licenca, uključena lokalno da radi i bez interneta)
+
+## Tabovi u aplikaciji
+1. **Usporedba markica** — poređenje dva spiska ušnih markica (uvoz iz Excela ili Google Sheetsa, izvoz i štampa)
+2. **Gazdinstva** — evidencija farmi i pčelara (podtabovi **Farme** i **Pčelari**)
+3. **Karta korisnika usluga** — sva gazdinstva na mapi, obojena po statusu posjete
+
+## Gazdinstva (Farme / Pčelari)
+Za svako gazdinstvo se unosi: gazdinstvo, vlasnik, grad, adresa, dan posjete, dan iduće posjete i napomena. Unosi se čuvaju odvojeno po vrsti (farma / pčelar) i mogu se uređivati, brisati, izvesti u CSV i štampati.
+
+**Svaki sačuvani unos automatski završava na Karti** — aplikacija u pozadini potraži koordinate za unesenu adresu (preko OpenStreetMap Nominatim servisa) i postavi gazdinstvo na mapu.
+
+## Karta korisnika usluga
+Boje markera se računaju automatski iz datuma:
+- 🟢 **Obavljen pregled** — iduća posjeta je više od 14 dana daleko (ili je posjeta obavljena, a nova nije zakazana)
+- 🟡 **Pregled uskoro** — iduća posjeta je u narednih 14 dana
+- 🔴 **Treba otići u pregled** — iduća posjeta je prošla, ili gazdinstvo još nije posjećeno
+
+Slovo u markeru: **F** = farma, **P** = pčelar. Filter iznad karte prikazuje samo farme ili samo pčelare.
+
+Ako adresa nije pronađena, gazdinstvo se izlistava ispod karte pod "Bez lokacije" — tada:
+- klikni **"Pronađi lokacije koje nedostaju"** da se pokuša ponovo, ili
+- dopuni precizniju adresu u tabu Gazdinstva.
+
+**Marker se može uhvatiti i prevući** na tačnu lokaciju — ta pozicija se pamti i ostaje čak i ako kasnije izmijeniš adresu.
+
+Napomena: karta i traženje adresa zahtijevaju internet (učitavaju se mape sa OpenStreetMapa). Sve ostalo — unos, tabela, izvoz, štampa — radi i offline; već pronađene lokacije se pamte na uređaju.
 
 ## Deploy na Netlify (najbrže)
 1. Idi na https://app.netlify.com/drop

@@ -12,6 +12,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Markice USK">
+<link rel="stylesheet" href="vendor/leaflet.css">
+<script src="vendor/leaflet.js" defer></script>
 <style>
   :root{
     --paper:#f7f3e8;
@@ -212,6 +214,7 @@
     padding:2px 10px;
     color:var(--ink-soft);
   }
+  .count-pill:empty{display:none;}
   button{
     font-family:'Helvetica Neue',Arial,sans-serif;
     font-size:13px;
@@ -314,15 +317,145 @@
     .tag.red{animation:none;}
   }
 
+  /* ---------- tab navigation ---------- */
+  .tabs{
+    display:flex;gap:2px;margin-bottom:0;flex-wrap:wrap;
+    border-bottom:1px solid var(--line-strong);
+  }
+  .tabs button{
+    font-family:'Helvetica Neue',Arial,sans-serif;
+    font-size:12px;font-weight:600;
+    letter-spacing:.04em;
+    background:transparent;color:var(--ink-soft);
+    border:1px solid transparent;border-bottom:none;
+    border-radius:3px 3px 0 0;
+    padding:9px 15px;margin-bottom:-1px;
+    cursor:pointer;
+  }
+  .tabs button:hover{color:var(--ink);}
+  .tabs button[aria-selected="true"]{
+    background:var(--paper-raised);
+    border-color:var(--line-strong);
+    color:var(--ink);
+  }
+  .subtabs{display:flex;gap:8px;margin:18px 0 16px;flex-wrap:wrap;}
+  .subtabs button{
+    font-size:12px;padding:6px 14px;border-radius:20px;
+    background:transparent;color:var(--ink-soft);border:1px solid var(--line);
+  }
+  .subtabs button[aria-selected="true"]{
+    background:var(--ink);color:var(--paper);border-color:var(--ink);
+  }
+  .tab-panel{display:none;padding-top:22px;}
+  .tab-panel.active{display:block;}
+
+  /* ---------- gazdinstva form + table ---------- */
+  .form-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(190px,1fr));
+    gap:12px;
+  }
+  .field{display:flex;flex-direction:column;gap:4px;min-width:0;}
+  .field label{
+    font-family:'Helvetica Neue',Arial,sans-serif;
+    font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;
+    color:var(--ink-soft);font-weight:700;
+  }
+  .field input, .field textarea{
+    font-family:'Helvetica Neue',Arial,sans-serif;
+    font-size:13px;padding:8px 9px;
+    border:1px solid var(--line);background:#fff;border-radius:2px;color:var(--ink);
+    width:100%;
+  }
+  .field textarea{min-height:0;height:38px;resize:vertical;font-size:12.5px;}
+  .field input:focus, .field textarea:focus{outline:2px solid var(--gold);outline-offset:1px;}
+  .field.wide{grid-column:1/-1;}
+
+  .table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:3px;background:var(--paper-raised);}
+  table{border-collapse:collapse;width:100%;font-family:'Helvetica Neue',Arial,sans-serif;font-size:12.5px;}
+  thead th{
+    text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;
+    color:var(--ink-soft);font-weight:700;
+    padding:10px 12px;border-bottom:1px solid var(--line);white-space:nowrap;
+  }
+  tbody td{padding:9px 12px;border-bottom:1px solid var(--paper-dim);vertical-align:top;}
+  tbody tr:last-child td{border-bottom:none;}
+  tbody tr:hover{background:var(--paper);}
+  td.actions{white-space:nowrap;}
+  td.actions button{padding:4px 9px;font-size:11px;margin-right:4px;}
+
+  .badge{
+    display:inline-block;
+    font-size:10.5px;font-weight:700;letter-spacing:.04em;
+    padding:3px 9px;border-radius:20px;border:1px solid transparent;white-space:nowrap;
+  }
+  .badge.ok{background:var(--green-bg);color:var(--green);border-color:var(--green-line);}
+  .badge.soon{background:#fbf0d8;color:#8a6516;border-color:#e6cf9c;}
+  .badge.due{background:var(--red-bg);color:var(--red);border-color:var(--red-line);}
+
+  /* ---------- map ---------- */
+  #map{
+    height:520px;
+    border:1px solid var(--line);
+    border-radius:3px;
+    background:var(--paper-dim);
+  }
+  @media (max-width:600px){ #map{height:400px;} }
+  .map-legend{
+    display:flex;gap:16px;flex-wrap:wrap;align-items:center;
+    font-family:'Helvetica Neue',Arial,sans-serif;font-size:11.5px;color:var(--ink-soft);
+    margin:12px 0 0;
+  }
+  .map-legend span.key{display:inline-flex;align-items:center;gap:6px;}
+  .swatch{width:12px;height:12px;border-radius:50%;border:1.5px solid rgba(0,0,0,.25);}
+  .swatch.ok{background:#2e6b3e;}
+  .swatch.soon{background:#d3a02a;}
+  .swatch.due{background:#b23a2e;}
+
+  .pin{
+    width:24px;height:24px;border-radius:50% 50% 50% 2px;
+    transform:rotate(45deg);
+    border:2px solid rgba(255,255,255,.9);
+    box-shadow:0 1px 4px rgba(0,0,0,.4);
+    display:flex;align-items:center;justify-content:center;
+  }
+  .pin b{
+    transform:rotate(-45deg);
+    font-family:'Helvetica Neue',Arial,sans-serif;
+    font-size:11px;color:#fff;font-weight:700;line-height:1;
+  }
+  .pin.ok{background:#2e6b3e;}
+  .pin.soon{background:#d3a02a;}
+  .pin.due{background:#b23a2e;}
+
+  .leaflet-popup-content{
+    font-family:'Helvetica Neue',Arial,sans-serif;font-size:12.5px;
+    line-height:1.55;margin:12px 14px;
+  }
+  .leaflet-popup-content b{font-size:13px;}
+  .leaflet-popup-content .pop-row{color:var(--ink-soft);font-size:11.5px;}
+
+  .empty-note{
+    padding:22px 16px;text-align:center;color:var(--ink-soft);
+    font-family:'Helvetica Neue',Arial,sans-serif;font-size:13px;
+    border:1px dashed var(--line);border-radius:3px;background:var(--paper-raised);
+  }
+
   .print-meta{display:none;}
 
   @media print{
     body{background:#fff;}
-    .install-bar, .file-import, .cards, .actions-main, .status, .footer-note, .sheet-hint{display:none !important;}
+    .install-bar, .file-import, .cards, .actions-main, .status, .footer-note, .sheet-hint,
+    .tabs, .subtabs, .gazd-form, .map-toolbar, .row-actions, td.actions, th.actions,
+    .leaflet-control-container{display:none !important;}
     .wrap{max-width:100%;padding:0;}
     .seal{transform:none;}
     .tag.red{animation:none;}
     .results{break-inside:avoid;}
+    .tab-panel{padding-top:0;}
+    .table-wrap{overflow:visible;}
+    tbody tr{break-inside:avoid;}
+    #map{height:420px;break-inside:avoid;}
     .print-meta{
       display:block;
       font-family:'Helvetica Neue',Arial,sans-serif;
@@ -346,8 +479,8 @@
   <div class="letterhead">
     <div class="letterhead-left">
       <p class="eyebrow">Poljoprivredni zavod Unsko-sanskog kantona</p>
-      <h1>Usporedba spiskova ušnih markica</h1>
-      <p class="sub">Zalijepi brojeve markica iz oba dokumenta — Popis identifikacionih oznaka i Potvrda o stanju životinja — da vidiš gdje se evidencije podudaraju.</p>
+      <h1 id="pageTitle">Usporedba spiskova ušnih markica</h1>
+      <p class="sub" id="pageSub">Zalijepi brojeve markica iz oba dokumenta — Popis identifikacionih oznaka i Potvrda o stanju životinja — da vidiš gdje se evidencije podudaraju.</p>
     </div>
     <div class="seal" aria-hidden="true">
       <div class="seal-inner">
@@ -357,6 +490,16 @@
     </div>
   </div>
   <div class="double-rule"></div>
+
+  <nav class="tabs" role="tablist">
+    <button role="tab" aria-selected="true" data-tab="usporedba" onclick="showTab('usporedba')">Usporedba markica</button>
+    <button role="tab" aria-selected="false" data-tab="gazdinstva" onclick="showTab('gazdinstva')">Gazdinstva</button>
+    <button role="tab" aria-selected="false" data-tab="karta" onclick="showTab('karta')">Karta korisnika usluga</button>
+  </nav>
+
+  <div class="print-meta" id="printMeta"></div>
+
+  <section id="tab-usporedba" class="tab-panel active" role="tabpanel">
 
   <div class="file-import">
     <div class="file-import-text">
@@ -408,11 +551,106 @@
   </div>
   <div class="status" id="status"></div>
 
-  <div class="print-meta" id="printMeta"></div>
   <div id="summaryWrap"></div>
   <div id="resultsWrap"></div>
 
   <p class="footer-note">Zeleno = markica postoji u obje liste · Crveno (treperi) = markica postoji samo u jednoj listi<br>Sačuvane liste ostaju dostupne na ovom uređaju i bez interneta.</p>
+
+  </section>
+
+  <section id="tab-gazdinstva" class="tab-panel" role="tabpanel">
+
+    <div class="subtabs" role="tablist">
+      <button role="tab" aria-selected="true" data-vrsta="farma" onclick="showVrsta('farma')">Farme</button>
+      <button role="tab" aria-selected="false" data-vrsta="pcelar" onclick="showVrsta('pcelar')">Pčelari</button>
+    </div>
+
+    <div class="card gazd-form">
+      <h2 id="formNaslov">Novo gazdinstvo — farma</h2>
+      <p class="hint">Popuni podatke i sačuvaj — unos se odmah pojavljuje i na Karti korisnika usluga.</p>
+      <form onsubmit="submitGazdinstvo(event)">
+        <input type="hidden" id="gazdId">
+        <div class="form-grid">
+          <div class="field">
+            <label for="gNaziv">Gazdinstvo</label>
+            <input id="gNaziv" required placeholder="npr. Gazdinstvo Dizdarević">
+          </div>
+          <div class="field">
+            <label for="gVlasnik">Vlasnik</label>
+            <input id="gVlasnik" required placeholder="Ime i prezime">
+          </div>
+          <div class="field">
+            <label for="gGrad">Grad / mjesto</label>
+            <input id="gGrad" required placeholder="npr. Bosanska Krupa" list="gradoviList">
+            <datalist id="gradoviList">
+              <option value="Bosanska Krupa"></option>
+              <option value="Bihać"></option>
+              <option value="Cazin"></option>
+              <option value="Velika Kladuša"></option>
+              <option value="Bužim"></option>
+              <option value="Sanski Most"></option>
+              <option value="Ključ"></option>
+            </datalist>
+          </div>
+          <div class="field">
+            <label for="gAdresa">Adresa</label>
+            <input id="gAdresa" placeholder="Ulica i broj / zaselak">
+          </div>
+          <div class="field">
+            <label for="gPosjeta">Dan posjete</label>
+            <input type="date" id="gPosjeta">
+          </div>
+          <div class="field">
+            <label for="gIduca">Dan iduće posjete</label>
+            <input type="date" id="gIduca">
+          </div>
+          <div class="field wide">
+            <label for="gNapomena">Napomena</label>
+            <textarea id="gNapomena" placeholder="Kratka bilješka o gazdinstvu, broju grla, zapažanjima..."></textarea>
+          </div>
+        </div>
+        <div class="row-actions" style="margin-top:14px;">
+          <button type="submit" id="gSubmitBtn">Sačuvaj gazdinstvo</button>
+          <button type="button" class="secondary" onclick="resetGazdForm()">Poništi</button>
+          <span class="count-pill" id="gazdStatus"></span>
+        </div>
+      </form>
+    </div>
+
+    <div class="row-actions" style="margin:20px 0 10px;">
+      <span class="count-pill" id="gazdCount">0 unosa</span>
+      <button class="small secondary" onclick="exportGazdinstva()">Izvezi (CSV)</button>
+      <button class="small secondary" onclick="window.print()">Štampaj spisak</button>
+    </div>
+
+    <div id="gazdTableWrap"></div>
+
+  </section>
+
+  <section id="tab-karta" class="tab-panel" role="tabpanel">
+
+    <div class="row-actions map-toolbar" style="margin-bottom:14px;">
+      <select id="mapFilter" onchange="renderMap()">
+        <option value="sve">Sva gazdinstva</option>
+        <option value="farma">Samo farme</option>
+        <option value="pcelar">Samo pčelari</option>
+      </select>
+      <button class="small secondary" onclick="lociranjeSvih()" id="lociranjeBtn">Pronađi lokacije koje nedostaju</button>
+      <span class="count-pill" id="mapStatus"></span>
+    </div>
+
+    <div id="map"></div>
+
+    <div class="map-legend">
+      <span class="key"><span class="swatch ok"></span> Obavljen pregled</span>
+      <span class="key"><span class="swatch soon"></span> Pregled uskoro (do 14 dana)</span>
+      <span class="key"><span class="swatch due"></span> Treba otići u pregled</span>
+      <span class="key"><b>F</b> = farma · <b>P</b> = pčelar</span>
+    </div>
+
+    <div id="bezLokacije"></div>
+
+  </section>
 </div>
 
 <script>
@@ -526,11 +764,18 @@ function saveLists(){
   }
 }
 
+// Settings share the "markice:" prefix with saved comparisons, so they have to be
+// skipped here or they show up in the dropdown as comparisons named "sheet-link:1".
+const INTERNAL_KEY_PREFIXES = ['markice:sheet-link:', 'markice:app:'];
+function isInternalKey(key){
+  return INTERNAL_KEY_PREFIXES.some(p => key.startsWith(p));
+}
+
 function refreshSavedOptions(){
   const names = [];
   for(let i=0;i<localStorage.length;i++){
     const key = localStorage.key(i);
-    if(key && key.startsWith(STORAGE_PREFIX)) names.push(key.slice(STORAGE_PREFIX.length));
+    if(key && key.startsWith(STORAGE_PREFIX) && !isInternalKey(key)) names.push(key.slice(STORAGE_PREFIX.length));
   }
   names.sort();
   for(const sel of [document.getElementById('saved1'), document.getElementById('saved2')]){
@@ -775,13 +1020,437 @@ function printReport(){
 }
 window.addEventListener('beforeprint', () => {
   const meta = document.getElementById('printMeta');
-  if(!lastCompare){ meta.textContent = ''; return; }
-  meta.textContent = 'Izvještaj generisan: ' + new Date().toLocaleString('bs-BA');
+  const kada = 'Izvještaj generisan: ' + new Date().toLocaleString('bs-BA');
+
+  if(aktivniTab === 'gazdinstva'){
+    const n = loadGazdinstva().filter(g => g.vrsta === aktivnaVrsta).length;
+    meta.textContent = (aktivnaVrsta === 'farma' ? 'Farme' : 'Pčelari') + ' — ukupno ' + n + ' · ' + kada;
+    return;
+  }
+  if(aktivniTab === 'karta'){
+    meta.textContent = 'Karta korisnika usluga · ' + kada;
+    return;
+  }
+  meta.textContent = lastCompare ? kada : '';
 });
 
 restoreSheetLinks();
 refreshSavedOptions();
 updateCounts();
+
+// ============================================================
+//  Gazdinstva (farme i pčelari) + Karta korisnika usluga
+// ============================================================
+const GAZD_KEY = 'markice:app:gazdinstva';
+const GEOCACHE_KEY = 'markice:app:geocache';
+
+const TAB_HEADINGS = {
+  usporedba: {
+    title: 'Usporedba spiskova ušnih markica',
+    sub: 'Zalijepi brojeve markica iz oba dokumenta — Popis identifikacionih oznaka i Potvrda o stanju životinja — da vidiš gdje se evidencije podudaraju.'
+  },
+  gazdinstva: {
+    title: 'Evidencija gazdinstava',
+    sub: 'Spisak farmi i pčelara sa podacima o vlasniku, adresi i terminima posjeta. Svaki unos se automatski prikazuje i na Karti korisnika usluga.'
+  },
+  karta: {
+    title: 'Karta korisnika usluga',
+    sub: 'Pregled svih gazdinstava na mapi — zeleno je obavljeno, crveno čeka pregled.'
+  }
+};
+
+let aktivniTab = 'usporedba';
+let aktivnaVrsta = 'farma';
+
+function showTab(name){
+  aktivniTab = name;
+  for(const btn of document.querySelectorAll('.tabs button')){
+    btn.setAttribute('aria-selected', String(btn.dataset.tab === name));
+  }
+  for(const panel of document.querySelectorAll('.tab-panel')){
+    panel.classList.toggle('active', panel.id === 'tab-' + name);
+  }
+  document.getElementById('pageTitle').textContent = TAB_HEADINGS[name].title;
+  document.getElementById('pageSub').textContent = TAB_HEADINGS[name].sub;
+  if(name === 'karta') initMap();
+}
+
+function showVrsta(v){
+  aktivnaVrsta = v;
+  for(const btn of document.querySelectorAll('.subtabs button')){
+    btn.setAttribute('aria-selected', String(btn.dataset.vrsta === v));
+  }
+  document.getElementById('formNaslov').textContent =
+    'Novo gazdinstvo — ' + (v === 'farma' ? 'farma' : 'pčelar');
+  resetGazdForm();
+  renderGazdTable();
+}
+
+// ---------- storage ----------
+function loadGazdinstva(){
+  try{
+    const raw = localStorage.getItem(GAZD_KEY);
+    return raw ? JSON.parse(raw) : [];
+  }catch(e){
+    console.error('Neispravni podaci o gazdinstvima', e);
+    return [];
+  }
+}
+function saveGazdinstva(list){
+  localStorage.setItem(GAZD_KEY, JSON.stringify(list));
+}
+
+// ---------- status ----------
+function parseDatum(s){
+  if(!s) return null;
+  const d = new Date(s + 'T00:00:00');
+  return isNaN(d.getTime()) ? null : d;
+}
+
+function statusOf(g){
+  const danas = new Date();
+  danas.setHours(0,0,0,0);
+  const iduca = parseDatum(g.danIducePosjete);
+  if(iduca){
+    const dana = Math.round((iduca - danas) / 86400000);
+    if(dana < 0) return 'due';
+    if(dana <= 14) return 'soon';
+    return 'ok';
+  }
+  return g.danPosjete ? 'ok' : 'due';
+}
+
+const STATUS_LABEL = {
+  ok: 'Obavljeno',
+  soon: 'Uskoro',
+  due: 'Treba u pregled'
+};
+
+function formatDatum(s){
+  const d = parseDatum(s);
+  return d ? d.toLocaleDateString('bs-BA') : '—';
+}
+
+function escapeHtml(s){
+  return String(s == null ? '' : s).replace(/[&<>"']/g, ch => (
+    {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]
+  ));
+}
+
+// ---------- form ----------
+function resetGazdForm(){
+  document.getElementById('gazdId').value = '';
+  for(const id of ['gNaziv','gVlasnik','gGrad','gAdresa','gPosjeta','gIduca','gNapomena']){
+    document.getElementById(id).value = '';
+  }
+  document.getElementById('gSubmitBtn').textContent = 'Sačuvaj gazdinstvo';
+  document.getElementById('gazdStatus').textContent = '';
+}
+
+function submitGazdinstvo(event){
+  event.preventDefault();
+  const id = document.getElementById('gazdId').value;
+  const list = loadGazdinstva();
+
+  const podaci = {
+    vrsta: aktivnaVrsta,
+    gazdinstvo: document.getElementById('gNaziv').value.trim(),
+    vlasnik: document.getElementById('gVlasnik').value.trim(),
+    grad: document.getElementById('gGrad').value.trim(),
+    adresa: document.getElementById('gAdresa').value.trim(),
+    danPosjete: document.getElementById('gPosjeta').value,
+    danIducePosjete: document.getElementById('gIduca').value,
+    napomena: document.getElementById('gNapomena').value.trim()
+  };
+
+  let unos;
+  if(id){
+    unos = list.find(g => g.id === id);
+    if(!unos) return;
+    const adresaPromijenjena = unos.adresa !== podaci.adresa || unos.grad !== podaci.grad;
+    Object.assign(unos, podaci);
+    if(adresaPromijenjena && !unos.rucnoPomjeren){ unos.lat = null; unos.lng = null; }
+  }else{
+    unos = Object.assign({
+      id: 'g' + Date.now() + Math.random().toString(36).slice(2,7),
+      lat: null, lng: null, rucnoPomjeren: false
+    }, podaci);
+    list.push(unos);
+  }
+
+  saveGazdinstva(list);
+  renderGazdTable();
+  renderMap();
+
+  const status = document.getElementById('gazdStatus');
+  status.textContent = id ? 'Izmjene sačuvane.' : 'Gazdinstvo dodano.';
+  resetGazdForm();
+
+  // Every saved holding lands on the map on its own — look up its coordinates
+  // in the background unless we already have them.
+  if(!unos.lat && (unos.adresa || unos.grad)){
+    status.textContent = 'Tražim lokaciju na karti...';
+    geocodeUnos(unos.id).then(uspjeh => {
+      status.textContent = uspjeh
+        ? 'Sačuvano i locirano na karti.'
+        : 'Sačuvano. Lokacija nije pronađena — postavi je ručno na Karti.';
+      renderGazdTable();
+      renderMap();
+    });
+  }
+}
+
+function editGazdinstvo(id){
+  const g = loadGazdinstva().find(x => x.id === id);
+  if(!g) return;
+  if(g.vrsta !== aktivnaVrsta) showVrsta(g.vrsta);
+  document.getElementById('gazdId').value = g.id;
+  document.getElementById('gNaziv').value = g.gazdinstvo || '';
+  document.getElementById('gVlasnik').value = g.vlasnik || '';
+  document.getElementById('gGrad').value = g.grad || '';
+  document.getElementById('gAdresa').value = g.adresa || '';
+  document.getElementById('gPosjeta').value = g.danPosjete || '';
+  document.getElementById('gIduca').value = g.danIducePosjete || '';
+  document.getElementById('gNapomena').value = g.napomena || '';
+  document.getElementById('gSubmitBtn').textContent = 'Sačuvaj izmjene';
+  document.getElementById('gazdStatus').textContent = 'Uređuješ: ' + (g.gazdinstvo || g.vlasnik);
+  document.getElementById('gNaziv').focus();
+}
+
+function deleteGazdinstvo(id){
+  const list = loadGazdinstva();
+  const g = list.find(x => x.id === id);
+  if(!g) return;
+  if(!confirm('Obrisati gazdinstvo "' + (g.gazdinstvo || g.vlasnik) + '"?')) return;
+  saveGazdinstva(list.filter(x => x.id !== id));
+  renderGazdTable();
+  renderMap();
+}
+
+// ---------- table ----------
+function renderGazdTable(){
+  const svi = loadGazdinstva();
+  const list = svi.filter(g => g.vrsta === aktivnaVrsta);
+  const naziv = aktivnaVrsta === 'farma' ? 'farmi' : 'pčelara';
+  document.getElementById('gazdCount').textContent = list.length + ' ' + (list.length === 1 ? 'unos' : 'unosa');
+
+  const wrap = document.getElementById('gazdTableWrap');
+  if(!list.length){
+    wrap.innerHTML = '<div class="empty-note">Još nema unesenih ' + naziv + '. Popuni obrazac iznad da dodaš prvo gazdinstvo.</div>';
+    return;
+  }
+
+  const redovi = list.map(g => {
+    const st = statusOf(g);
+    return `<tr>
+      <td><b>${escapeHtml(g.gazdinstvo)}</b>${g.napomena ? '<br><span style="font-size:11px;color:var(--ink-soft);">' + escapeHtml(g.napomena) + '</span>' : ''}</td>
+      <td>${escapeHtml(g.vlasnik)}</td>
+      <td>${escapeHtml(g.grad)}${g.adresa ? '<br><span style="font-size:11px;color:var(--ink-soft);">' + escapeHtml(g.adresa) + '</span>' : ''}</td>
+      <td>${formatDatum(g.danPosjete)}</td>
+      <td>${formatDatum(g.danIducePosjete)}</td>
+      <td><span class="badge ${st}">${STATUS_LABEL[st]}</span>${g.lat ? '' : '<br><span style="font-size:10.5px;color:var(--ink-soft);">bez lokacije</span>'}</td>
+      <td class="actions">
+        <button class="small secondary" onclick="editGazdinstvo('${g.id}')">Uredi</button>
+        <button class="small secondary" onclick="deleteGazdinstvo('${g.id}')">Obriši</button>
+      </td>
+    </tr>`;
+  }).join('');
+
+  wrap.innerHTML = `<div class="table-wrap"><table>
+    <thead><tr>
+      <th>Gazdinstvo</th><th>Vlasnik</th><th>Grad / adresa</th>
+      <th>Dan posjete</th><th>Iduća posjeta</th><th>Status</th><th class="actions">Radnje</th>
+    </tr></thead>
+    <tbody>${redovi}</tbody>
+  </table></div>`;
+}
+
+function exportGazdinstva(){
+  const list = loadGazdinstva();
+  if(!list.length){
+    document.getElementById('gazdStatus').textContent = 'Nema unosa za izvoz.';
+    return;
+  }
+  const rows = [['Vrsta','Gazdinstvo','Vlasnik','Grad','Adresa','Dan posjete','Iduća posjeta','Status','Napomena']];
+  for(const g of list){
+    rows.push([
+      g.vrsta === 'farma' ? 'Farma' : 'Pčelar',
+      g.gazdinstvo, g.vlasnik, g.grad, g.adresa,
+      g.danPosjete || '', g.danIducePosjete || '',
+      STATUS_LABEL[statusOf(g)], (g.napomena || '').replace(/[\r\n;]+/g,' ')
+    ]);
+  }
+  const csv = rows.map(r => r.join(';')).join('\n');
+  const blob = new Blob(['﻿' + csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'gazdinstva.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ---------- geocoding (OpenStreetMap Nominatim) ----------
+function loadGeocache(){
+  try{ return JSON.parse(localStorage.getItem(GEOCACHE_KEY) || '{}'); }
+  catch(e){ return {}; }
+}
+function saveGeocache(cache){
+  localStorage.setItem(GEOCACHE_KEY, JSON.stringify(cache));
+}
+
+function upitZaLokaciju(g){
+  return [g.adresa, g.grad, 'Bosna i Hercegovina'].filter(Boolean).join(', ');
+}
+
+async function geocodeUnos(id){
+  const list = loadGazdinstva();
+  const g = list.find(x => x.id === id);
+  if(!g) return false;
+
+  const upit = upitZaLokaciju(g);
+  if(!upit) return false;
+
+  const cache = loadGeocache();
+  if(cache[upit]){
+    g.lat = cache[upit].lat;
+    g.lng = cache[upit].lng;
+    saveGazdinstva(list);
+    return true;
+  }
+
+  try{
+    const url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(upit);
+    const res = await fetch(url, {headers:{'Accept':'application/json'}});
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    if(!data.length) return false;
+
+    const lat = parseFloat(data[0].lat);
+    const lng = parseFloat(data[0].lon);
+    cache[upit] = {lat, lng};
+    saveGeocache(cache);
+
+    // Re-read the list: the user may have edited something while we waited.
+    const svjezaLista = loadGazdinstva();
+    const meta = svjezaLista.find(x => x.id === id);
+    if(meta){ meta.lat = lat; meta.lng = lng; saveGazdinstva(svjezaLista); }
+    return true;
+  }catch(e){
+    console.warn('Geokodiranje nije uspjelo', e);
+    return false;
+  }
+}
+
+async function lociranjeSvih(){
+  const status = document.getElementById('mapStatus');
+  const btn = document.getElementById('lociranjeBtn');
+  const bez = loadGazdinstva().filter(g => !g.lat && (g.adresa || g.grad));
+  if(!bez.length){ status.textContent = 'Sva gazdinstva već imaju lokaciju.'; return; }
+
+  btn.disabled = true;
+  let nadjeno = 0;
+  for(let i = 0; i < bez.length; i++){
+    status.textContent = 'Tražim lokacije... (' + (i+1) + '/' + bez.length + ')';
+    if(await geocodeUnos(bez[i].id)) nadjeno++;
+    // Nominatim's usage policy allows at most one request per second.
+    if(i < bez.length - 1) await new Promise(r => setTimeout(r, 1100));
+  }
+  btn.disabled = false;
+  status.textContent = 'Pronađeno ' + nadjeno + ' od ' + bez.length + ' lokacija.';
+  renderGazdTable();
+  renderMap();
+}
+
+// ---------- map ----------
+let mapa = null;
+let slojMarkera = null;
+
+function initMap(){
+  if(typeof L === 'undefined'){
+    document.getElementById('map').innerHTML =
+      '<div class="empty-note" style="border:none;">Biblioteka za kartu nije učitana.</div>';
+    return;
+  }
+  if(!mapa){
+    mapa = L.map('map').setView([44.85, 16.15], 9);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 18,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+    }).addTo(mapa);
+    slojMarkera = L.layerGroup().addTo(mapa);
+  }
+  // The container had no size while its tab was hidden, so Leaflet needs a nudge.
+  setTimeout(() => mapa.invalidateSize(), 0);
+  renderMap();
+}
+
+function popupHtml(g){
+  const st = statusOf(g);
+  return `<b>${escapeHtml(g.gazdinstvo)}</b><br>
+    <span class="pop-row">${g.vrsta === 'farma' ? 'Farma' : 'Pčelar'} · ${escapeHtml(g.vlasnik)}</span><br>
+    <span class="pop-row">${escapeHtml([g.adresa, g.grad].filter(Boolean).join(', '))}</span><br>
+    <span class="pop-row">Posjeta: ${formatDatum(g.danPosjete)} · Iduća: ${formatDatum(g.danIducePosjete)}</span><br>
+    ${g.napomena ? '<span class="pop-row">' + escapeHtml(g.napomena) + '</span><br>' : ''}
+    <span class="badge ${st}" style="margin-top:6px;">${STATUS_LABEL[st]}</span>`;
+}
+
+function renderMap(){
+  if(!mapa || !slojMarkera) return;
+  slojMarkera.clearLayers();
+
+  const filter = document.getElementById('mapFilter').value;
+  const svi = loadGazdinstva();
+  const vidljivi = svi.filter(g => filter === 'sve' || g.vrsta === filter);
+  const saLokacijom = vidljivi.filter(g => g.lat && g.lng);
+
+  for(const g of saLokacijom){
+    const st = statusOf(g);
+    const oznaka = g.vrsta === 'farma' ? 'F' : 'P';
+    const icon = L.divIcon({
+      className: '',
+      html: `<div class="pin ${st}"><b>${oznaka}</b></div>`,
+      iconSize: [24, 24],
+      iconAnchor: [12, 24],
+      popupAnchor: [0, -22]
+    });
+    L.marker([g.lat, g.lng], {icon, draggable:true, title: g.gazdinstvo})
+      .bindPopup(popupHtml(g))
+      .on('dragend', ev => {
+        const pos = ev.target.getLatLng();
+        const list = loadGazdinstva();
+        const meta = list.find(x => x.id === g.id);
+        if(meta){
+          meta.lat = pos.lat;
+          meta.lng = pos.lng;
+          meta.rucnoPomjeren = true;   // keep this spot even if the address is edited later
+          saveGazdinstva(list);
+          document.getElementById('mapStatus').textContent = 'Lokacija za "' + meta.gazdinstvo + '" je pomjerena.';
+        }
+      })
+      .addTo(slojMarkera);
+  }
+
+  if(saLokacijom.length){
+    mapa.fitBounds(L.latLngBounds(saLokacijom.map(g => [g.lat, g.lng])).pad(0.2), {maxZoom: 13});
+  }
+
+  const bezLok = vidljivi.filter(g => !g.lat || !g.lng);
+  document.getElementById('bezLokacije').innerHTML = bezLok.length
+    ? `<div class="empty-note" style="margin-top:14px;text-align:left;">
+         <b>Bez lokacije na karti (${bezLok.length}):</b><br>
+         ${bezLok.map(g => escapeHtml(g.gazdinstvo + ' — ' + [g.adresa, g.grad].filter(Boolean).join(', '))).join('<br>')}
+         <br><br>Klikni "Pronađi lokacije koje nedostaju", ili dopuni adresu u tabu Gazdinstva.
+       </div>`
+    : '';
+
+  const status = document.getElementById('mapStatus');
+  if(!status.textContent || status.textContent.startsWith('Prikazano')){
+    status.textContent = 'Prikazano ' + saLokacijom.length + ' od ' + vidljivi.length;
+  }
+}
+
+showVrsta('farma');
 
 // ---------- PWA install prompt ----------
 let deferredPrompt;
