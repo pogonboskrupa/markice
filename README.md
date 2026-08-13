@@ -27,3 +27,15 @@ Kasnije, ako želiš stalniji domen, možeš napraviti besplatan Netlify nalog i
 
 ## Napomena o podacima
 Sačuvane liste (dugme "Sačuvaj obje liste") čuvaju se u localStorage **tog konkretnog browsera na tom uređaju** — ne sinhronizuju se automatski između mobitela i desktopa. Za to bi trebao pravi backend (npr. malu bazu), što mogu dodati naknadno ako zatrebaš.
+
+## Povezivanje sa Google Sheets
+Svaka lista ima polje "Link ka Google Sheets dokumentu" + dugme "Uvezi" — nalijepi link i aplikacija povuče sadržaj direktno iz dokumenta (prepoznaje brojeve markica isto kao i kod ručnog kopiranja).
+
+Uslov: dokument mora biti dijeljen kao **"Bilo ko sa linkom — može pregledati"** (Share → General access → Anyone with the link → Viewer). Radi i običan link iz adresne trake (npr. `.../edit?gid=123...`) — aplikacija ga sama pretvori u ispravan format za čitanje. Ako lista ima više tabova (sheets), uvozi se onaj tab koji je otvoren u linku (prema `gid` parametru).
+
+Zadnji korišteni link se pamti po listi (localStorage), pa je sljedeći put dovoljno samo kliknuti "Uvezi" ponovo za osvježavanje.
+
+Ako uvoz ne uspije, provjeri dijeljenje dokumenta ili prekopiraj podatke ručno u polje.
+
+## Štampanje izvještaja
+Nakon "Uporedi liste", dugme "Štampaj izvještaj" otvara standardni dijalog za štampu (ili "Save as PDF") sa čistim izgledom: samo zaglavlje, sažetak i liste podudarnih/neusklađenih markica — bez tekstualnih polja i dugmadi.

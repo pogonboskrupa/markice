@@ -1,4 +1,4 @@
-const CACHE_NAME = 'markice-cache-v1';
+const CACHE_NAME = 'markice-cache-v2';
 const ASSETS = [
   './',
   './index.html',
@@ -24,6 +24,10 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
+  const url = new URL(event.request.url);
+  if (url.origin !== self.location.origin) {
+    return; // cross-origin requests (e.g. Google Sheets import) go straight to network, never cached
+  }
   event.respondWith(
     caches.match(event.request).then((cached) => {
       if (cached) return cached;
