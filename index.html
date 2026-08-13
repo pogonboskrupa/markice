@@ -319,6 +319,57 @@
     .tag.red{animation:none;}
   }
 
+  /* ---------- login ---------- */
+  .login-screen{
+    position:fixed;inset:0;z-index:2000;
+    display:flex;align-items:center;justify-content:center;padding:20px;
+    background:
+      radial-gradient(900px 500px at 20% 0%, #fffef9 0%, transparent 60%),
+      var(--paper);
+  }
+  .login-screen[hidden]{display:none;}
+  .login-card{
+    width:100%;max-width:340px;
+    background:var(--paper-raised);
+    border:1px solid var(--line);
+    border-top:3px solid var(--ink);
+    border-radius:3px;
+    padding:26px 24px;
+    box-shadow:0 2px 12px rgba(31,42,31,.07);
+  }
+  .login-card h2{
+    font-family:'Iowan Old Style','Palatino Linotype','Georgia',serif;
+    font-size:22px;font-weight:600;margin:0 0 18px;
+  }
+  .login-card .field{margin-bottom:12px;}
+  .login-card select, .login-card input{
+    font-family:'Helvetica Neue',Arial,sans-serif;font-size:14px;
+    padding:9px 10px;border:1px solid var(--line);background:#fff;
+    border-radius:2px;color:var(--ink);width:100%;
+  }
+  .login-card input{letter-spacing:.3em;}
+  .login-card select:focus, .login-card input:focus{outline:2px solid var(--gold);outline-offset:1px;}
+  .login-greska{
+    font-family:'Helvetica Neue',Arial,sans-serif;font-size:12px;
+    color:var(--red);margin:12px 0 0;min-height:16px;
+  }
+  .login-nota{
+    font-family:'Helvetica Neue',Arial,sans-serif;font-size:10.5px;
+    color:var(--ink-soft);line-height:1.5;margin:14px 0 0;
+    border-top:1px solid var(--paper-dim);padding-top:12px;
+  }
+
+  .korisnik-traka{
+    display:flex;align-items:center;justify-content:flex-end;gap:10px;
+    font-family:'Helvetica Neue',Arial,sans-serif;font-size:11.5px;
+    color:var(--ink-soft);margin-bottom:10px;
+  }
+  .uloga-znak{
+    font-size:9.5px;text-transform:uppercase;letter-spacing:.08em;
+    background:var(--paper-dim);border:1px solid var(--line);
+    border-radius:20px;padding:2px 8px;margin-left:4px;
+  }
+
   /* ---------- tab navigation ---------- */
   .tabs{
     display:flex;gap:2px;margin-bottom:0;flex-wrap:wrap;
@@ -477,7 +528,7 @@
     body{background:#fff;}
     .install-bar, .file-import, .cards, .actions-main, .status, .footer-note, .sheet-hint,
     .tabs, .subtabs, .gazd-form, .filter-bar, .map-toolbar, .row-actions, td.actions, th.actions,
-    .leaflet-control-container{display:none !important;}
+    .korisnik-traka, .login-screen, .leaflet-control-container{display:none !important;}
     .wrap{max-width:100%;padding:0;}
     .seal{transform:none;}
     .tag.red{animation:none;}
@@ -499,7 +550,34 @@
 </style>
 </head>
 <body>
-<div class="wrap">
+
+<div class="login-screen" id="loginScreen">
+  <div class="login-card">
+    <p class="eyebrow">Poljoprivredni zavod Unsko-sanskog kantona</p>
+    <h2>Prijava</h2>
+    <form onsubmit="prijava(event)">
+      <div class="field">
+        <label for="loginKorisnik">Korisnik</label>
+        <select id="loginKorisnik"></select>
+      </div>
+      <div class="field">
+        <label for="loginPin">PIN</label>
+        <input type="password" id="loginPin" inputmode="numeric" autocomplete="current-password"
+               pattern="[0-9]*" placeholder="••••" required>
+      </div>
+      <button type="submit" id="loginBtn" style="width:100%;margin-top:14px;">Prijavi se</button>
+    </form>
+    <p class="login-greska" id="loginGreska"></p>
+    <p class="login-nota">Prijava služi da se zna ko je unio ili izmijenio koji podatak. Podaci ostaju na ovom uređaju.</p>
+  </div>
+</div>
+
+<div class="wrap" id="appWrap" hidden>
+
+  <div class="korisnik-traka" id="korisnikTraka">
+    <span>Prijavljen: <b id="korisnikIme">—</b> <span class="uloga-znak" id="korisnikUloga"></span></span>
+    <button class="small secondary" onclick="odjava()">Odjava</button>
+  </div>
 
   <div class="install-bar" id="installBar">
     <span>Instaliraj ovu aplikaciju na svoj uređaj za brži pristup.</span>
@@ -525,6 +603,8 @@
     <button role="tab" aria-selected="true" data-tab="usporedba" onclick="showTab('usporedba')">Usporedba markica</button>
     <button role="tab" aria-selected="false" data-tab="gazdinstva" onclick="showTab('gazdinstva')">Gazdinstva</button>
     <button role="tab" aria-selected="false" data-tab="karta" onclick="showTab('karta')">Karta korisnika usluga</button>
+    <button role="tab" aria-selected="false" data-tab="dnevnik" onclick="showTab('dnevnik')">Dnevnik izmjena</button>
+    <button role="tab" aria-selected="false" data-tab="korisnici" onclick="showTab('korisnici')" id="tabKorisnici" hidden>Korisnici</button>
   </nav>
 
   <div class="print-meta" id="printMeta"></div>
@@ -725,6 +805,64 @@
     </div>
 
     <div id="bezLokacije"></div>
+
+  </section>
+
+  <section id="tab-dnevnik" class="tab-panel" role="tabpanel">
+
+    <div class="filter-bar">
+      <input type="search" id="dnevnikPretraga" placeholder="Pretraži dnevnik po korisniku, gazdinstvu ili radnji..." oninput="renderDnevnik()">
+      <select id="dnevnikKorisnik" onchange="renderDnevnik()">
+        <option value="">Svi korisnici</option>
+      </select>
+      <button class="small secondary" onclick="document.getElementById('dnevnikPretraga').value='';document.getElementById('dnevnikKorisnik').value='';renderDnevnik();">Očisti</button>
+    </div>
+
+    <div class="row-actions" style="margin:14px 0 10px;">
+      <span class="count-pill" id="dnevnikCount"></span>
+      <button class="small secondary" onclick="exportDnevnik()">Izvezi (CSV)</button>
+      <button class="small secondary" onclick="window.print()">Štampaj dnevnik</button>
+    </div>
+
+    <div id="dnevnikWrap"></div>
+
+  </section>
+
+  <section id="tab-korisnici" class="tab-panel" role="tabpanel">
+
+    <div class="card gazd-form">
+      <h2>Novi korisnik</h2>
+      <p class="hint">Samo administrator može dodavati korisnike i dodjeljivati PIN.</p>
+      <form onsubmit="dodajKorisnika(event)">
+        <div class="form-grid">
+          <div class="field">
+            <label for="kIme">Ime korisnika</label>
+            <input id="kIme" required placeholder="npr. Amela">
+          </div>
+          <div class="field">
+            <label for="kPin">PIN (najmanje 4 cifre)</label>
+            <input id="kPin" type="text" inputmode="numeric" pattern="[0-9]{4,10}" required placeholder="npr. 4821">
+          </div>
+          <div class="field">
+            <label for="kUloga">Uloga</label>
+            <select id="kUloga">
+              <option value="korisnik">Korisnik — unosi i mijenja podatke</option>
+              <option value="admin">Administrator — može i dodavati korisnike</option>
+            </select>
+          </div>
+        </div>
+        <div class="row-actions" style="margin-top:14px;">
+          <button type="submit">Dodaj korisnika</button>
+          <span class="count-pill" id="korisnikStatus"></span>
+        </div>
+      </form>
+    </div>
+
+    <div class="row-actions" style="margin:20px 0 10px;">
+      <span class="count-pill" id="korisniciCount"></span>
+    </div>
+
+    <div id="korisniciWrap"></div>
 
   </section>
 </div>
@@ -1115,6 +1253,349 @@ refreshSavedOptions();
 updateCounts();
 
 // ============================================================
+//  Korisnici, prijava i dnevnik izmjena
+// ============================================================
+// NAPOMENA O SIGURNOSTI: ovo je evidencija odgovornosti, a ne zaštita podataka.
+// Cijela aplikacija radi u browseru i svi podaci su u localStorage ovog uređaja,
+// pa ih tehnički vješt korisnik može pročitati ili izmijeniti mimo prijave.
+// Prijava služi da se zna KO je šta unio i mijenjao među kolegama koji dijele
+// uređaj — ne štiti od nekoga ko namjerno pokušava zaobići aplikaciju.
+const KORISNICI_KEY = 'markice:app:korisnici';
+const SESIJA_KEY = 'markice:app:sesija';
+const DNEVNIK_KEY = 'markice:app:dnevnik';
+const POKUSAJI_KEY = 'markice:app:pokusaji';
+
+const PRVI_KORISNIK = { ime: 'Nedžad', pin: '2201', uloga: 'admin' };
+const MAX_POKUSAJA = 5;
+const ZAKLJUCANO_MS = 60000;
+
+let trenutniKorisnik = null;
+
+function loadJson(key, fallback){
+  try{
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : fallback;
+  }catch(e){
+    console.error('Neispravni podaci:', key, e);
+    return fallback;
+  }
+}
+const loadKorisnici = () => loadJson(KORISNICI_KEY, []);
+const saveKorisnici = list => localStorage.setItem(KORISNICI_KEY, JSON.stringify(list));
+const loadDnevnik = () => loadJson(DNEVNIK_KEY, []);
+const saveDnevnik = list => localStorage.setItem(DNEVNIK_KEY, JSON.stringify(list));
+
+// ---------- PIN hashing ----------
+// PBKDF2 preko WebCrypto; PIN se nikad ne pamti u čitljivom obliku.
+function nasumicniSalt(){
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  return [...bytes].map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+async function hashPin(pin, salt){
+  const enc = new TextEncoder();
+  const kljuc = await crypto.subtle.importKey('raw', enc.encode(pin), 'PBKDF2', false, ['deriveBits']);
+  const bits = await crypto.subtle.deriveBits(
+    { name:'PBKDF2', salt: enc.encode(salt), iterations: 150000, hash:'SHA-256' },
+    kljuc, 256
+  );
+  return [...new Uint8Array(bits)].map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+function kriptoDostupan(){
+  return typeof crypto !== 'undefined' && crypto.subtle && typeof crypto.subtle.deriveBits === 'function';
+}
+
+// ---------- audit log ----------
+function zabiljezi(akcija, entitet, naziv, detalji){
+  const dnevnik = loadDnevnik();
+  dnevnik.push({
+    vrijeme: new Date().toISOString(),
+    korisnik: trenutniKorisnik ? trenutniKorisnik.ime : 'nepoznat',
+    akcija, entitet,
+    naziv: naziv || '',
+    detalji: detalji || ''
+  });
+  // Drži dnevnik na razumnoj veličini da localStorage ne pukne s vremenom.
+  if(dnevnik.length > 2000) dnevnik.splice(0, dnevnik.length - 2000);
+  saveDnevnik(dnevnik);
+}
+
+// Uporedi staro i novo stanje i ispiši šta se tačno promijenilo.
+const POLJA_NAZIVI = {
+  vrsta:'Vrsta', gazdinstvo:'Gazdinstvo', vlasnik:'Vlasnik', telefon:'Telefon',
+  grad:'Grad', adresa:'Adresa', idGazdinstva:'ID gazdinstva', broj:'Broj grla/košnica',
+  pasmina:'Vrsta i pasmina', danPosjete:'Dan posjete', danIducePosjete:'Iduća posjeta',
+  napomena:'Napomena'
+};
+
+function opisIzmjena(staro, novo){
+  const promjene = [];
+  for(const [polje, naziv] of Object.entries(POLJA_NAZIVI)){
+    const a = staro[polje] || '', b = novo[polje] || '';
+    if(a !== b) promjene.push(`${naziv}: "${a}" → "${b}"`);
+  }
+  const staraDodatna = JSON.stringify(staro.dodatna || []);
+  const novaDodatna = JSON.stringify(novo.dodatna || []);
+  if(staraDodatna !== novaDodatna) promjene.push('Ostale činjenice izmijenjene');
+  return promjene.join('; ');
+}
+
+// ---------- login ----------
+async function pripremiKorisnike(){
+  let korisnici = loadKorisnici();
+  if(!korisnici.length){
+    const salt = nasumicniSalt();
+    korisnici = [{
+      id: 'k' + Date.now(),
+      ime: PRVI_KORISNIK.ime,
+      uloga: PRVI_KORISNIK.uloga,
+      salt,
+      pinHash: await hashPin(PRVI_KORISNIK.pin, salt),
+      kreiran: new Date().toISOString(),
+      kreiraoIme: 'sistem'
+    }];
+    saveKorisnici(korisnici);
+  }
+  return korisnici;
+}
+
+function popuniKorisnikeUPrijavi(korisnici){
+  const sel = document.getElementById('loginKorisnik');
+  sel.innerHTML = korisnici
+    .slice()
+    .sort((a,b) => a.ime.localeCompare(b.ime,'bs'))
+    .map(k => `<option value="${k.id}">${escapeHtml(k.ime)}</option>`)
+    .join('');
+}
+
+function stanjeZakljucavanja(){
+  return loadJson(POKUSAJI_KEY, {broj:0, do:0});
+}
+
+async function prijava(event){
+  event.preventDefault();
+  const greska = document.getElementById('loginGreska');
+  const zakljucano = stanjeZakljucavanja();
+
+  if(zakljucano.do > Date.now()){
+    const sekundi = Math.ceil((zakljucano.do - Date.now())/1000);
+    greska.textContent = `Previše pogrešnih pokušaja. Pokušaj ponovo za ${sekundi} s.`;
+    return;
+  }
+
+  const id = document.getElementById('loginKorisnik').value;
+  const pin = document.getElementById('loginPin').value;
+  const korisnik = loadKorisnici().find(k => k.id === id);
+  if(!korisnik){ greska.textContent = 'Korisnik nije pronađen.'; return; }
+
+  const btn = document.getElementById('loginBtn');
+  btn.disabled = true;
+  btn.textContent = 'Provjeravam...';
+  try{
+    const hash = await hashPin(pin, korisnik.salt);
+    if(hash !== korisnik.pinHash){
+      const broj = zakljucano.broj + 1;
+      const novo = broj >= MAX_POKUSAJA
+        ? {broj:0, do: Date.now() + ZAKLJUCANO_MS}
+        : {broj, do:0};
+      localStorage.setItem(POKUSAJI_KEY, JSON.stringify(novo));
+      greska.textContent = broj >= MAX_POKUSAJA
+        ? 'Previše pogrešnih pokušaja. Sačekaj minutu.'
+        : `Pogrešan PIN. Preostalo pokušaja: ${MAX_POKUSAJA - broj}.`;
+      document.getElementById('loginPin').value = '';
+      return;
+    }
+    localStorage.removeItem(POKUSAJI_KEY);
+    localStorage.setItem(SESIJA_KEY, JSON.stringify({id: korisnik.id, ime: korisnik.ime, uloga: korisnik.uloga}));
+    trenutniKorisnik = {id: korisnik.id, ime: korisnik.ime, uloga: korisnik.uloga};
+    greska.textContent = '';
+    document.getElementById('loginPin').value = '';
+    zabiljezi('prijava', 'sesija', korisnik.ime, '');
+    pokreniAplikaciju();
+  }finally{
+    btn.disabled = false;
+    btn.textContent = 'Prijavi se';
+  }
+}
+
+function odjava(){
+  if(trenutniKorisnik) zabiljezi('odjava', 'sesija', trenutniKorisnik.ime, '');
+  localStorage.removeItem(SESIJA_KEY);
+  trenutniKorisnik = null;
+  document.getElementById('appWrap').hidden = true;
+  document.getElementById('loginScreen').hidden = false;
+  popuniKorisnikeUPrijavi(loadKorisnici());
+}
+
+function jeAdmin(){
+  return trenutniKorisnik && trenutniKorisnik.uloga === 'admin';
+}
+
+function pokreniAplikaciju(){
+  document.getElementById('loginScreen').hidden = true;
+  document.getElementById('appWrap').hidden = false;
+  document.getElementById('korisnikIme').textContent = trenutniKorisnik.ime;
+  document.getElementById('korisnikUloga').textContent = jeAdmin() ? 'administrator' : 'korisnik';
+  document.getElementById('tabKorisnici').hidden = !jeAdmin();
+  showVrsta('farma');
+  renderDnevnik();
+  renderKorisnike();
+}
+
+// ---------- upravljanje korisnicima ----------
+async function dodajKorisnika(event){
+  event.preventDefault();
+  const status = document.getElementById('korisnikStatus');
+  if(!jeAdmin()){ status.textContent = 'Samo administrator može dodavati korisnike.'; return; }
+
+  const ime = document.getElementById('kIme').value.trim();
+  const pin = document.getElementById('kPin').value.trim();
+  const uloga = document.getElementById('kUloga').value;
+
+  if(!/^\d{4,10}$/.test(pin)){ status.textContent = 'PIN mora imati 4 do 10 cifara.'; return; }
+
+  const korisnici = loadKorisnici();
+  if(korisnici.some(k => k.ime.toLowerCase() === ime.toLowerCase())){
+    status.textContent = 'Korisnik s tim imenom već postoji.';
+    return;
+  }
+
+  const salt = nasumicniSalt();
+  korisnici.push({
+    id: 'k' + Date.now() + Math.random().toString(36).slice(2,6),
+    ime, uloga, salt,
+    pinHash: await hashPin(pin, salt),
+    kreiran: new Date().toISOString(),
+    kreiraoIme: trenutniKorisnik.ime
+  });
+  saveKorisnici(korisnici);
+  zabiljezi('dodao korisnika', 'korisnik', ime, 'uloga: ' + uloga);
+
+  document.getElementById('kIme').value = '';
+  document.getElementById('kPin').value = '';
+  document.getElementById('kUloga').value = 'korisnik';
+  status.textContent = 'Korisnik "' + ime + '" je dodan.';
+  renderKorisnike();
+  renderDnevnik();
+}
+
+async function promijeniPin(id){
+  if(!jeAdmin()) return;
+  const korisnici = loadKorisnici();
+  const k = korisnici.find(x => x.id === id);
+  if(!k) return;
+  const pin = prompt('Novi PIN za korisnika "' + k.ime + '" (4–10 cifara):');
+  if(pin === null) return;
+  if(!/^\d{4,10}$/.test(pin.trim())){ alert('PIN mora imati 4 do 10 cifara.'); return; }
+  k.salt = nasumicniSalt();
+  k.pinHash = await hashPin(pin.trim(), k.salt);
+  saveKorisnici(korisnici);
+  zabiljezi('promijenio PIN', 'korisnik', k.ime, '');
+  document.getElementById('korisnikStatus').textContent = 'PIN za "' + k.ime + '" je promijenjen.';
+  renderDnevnik();
+}
+
+function obrisiKorisnika(id){
+  if(!jeAdmin()) return;
+  const korisnici = loadKorisnici();
+  const k = korisnici.find(x => x.id === id);
+  if(!k) return;
+  if(k.id === trenutniKorisnik.id){ alert('Ne možeš obrisati korisnika pod kojim si prijavljen.'); return; }
+  if(k.uloga === 'admin' && korisnici.filter(x => x.uloga === 'admin').length <= 1){
+    alert('Mora postojati barem jedan administrator.');
+    return;
+  }
+  if(!confirm('Obrisati korisnika "' + k.ime + '"? Njegov trag u dnevniku ostaje sačuvan.')) return;
+  saveKorisnici(korisnici.filter(x => x.id !== id));
+  zabiljezi('obrisao korisnika', 'korisnik', k.ime, '');
+  renderKorisnike();
+  renderDnevnik();
+}
+
+function renderKorisnike(){
+  const wrap = document.getElementById('korisniciWrap');
+  if(!wrap || !jeAdmin()) return;
+  const korisnici = loadKorisnici().slice().sort((a,b) => a.ime.localeCompare(b.ime,'bs'));
+  document.getElementById('korisniciCount').textContent =
+    korisnici.length + (korisnici.length === 1 ? ' korisnik' : ' korisnika');
+
+  wrap.innerHTML = `<div class="table-wrap"><table>
+    <thead><tr><th>Ime</th><th>Uloga</th><th>Dodan</th><th>Dodao</th><th class="actions">Radnje</th></tr></thead>
+    <tbody>${korisnici.map(k => `<tr>
+      <td><b>${escapeHtml(k.ime)}</b>${k.id === trenutniKorisnik.id ? ' <span class="cell-sub">(ti)</span>' : ''}</td>
+      <td>${k.uloga === 'admin' ? 'Administrator' : 'Korisnik'}</td>
+      <td>${new Date(k.kreiran).toLocaleDateString('bs-BA')}</td>
+      <td>${escapeHtml(k.kreiraoIme || '—')}</td>
+      <td class="actions">
+        <button class="small secondary" onclick="promijeniPin('${k.id}')">Promijeni PIN</button>
+        <button class="small secondary" onclick="obrisiKorisnika('${k.id}')">Obriši</button>
+      </td>
+    </tr>`).join('')}</tbody>
+  </table></div>`;
+}
+
+// ---------- dnevnik ----------
+function renderDnevnik(){
+  const wrap = document.getElementById('dnevnikWrap');
+  if(!wrap) return;
+
+  const sviUnosi = loadDnevnik();
+  const imena = [...new Set(sviUnosi.map(z => z.korisnik))].sort((a,b) => a.localeCompare(b,'bs'));
+  const selKorisnik = document.getElementById('dnevnikKorisnik');
+  const trenutni = selKorisnik.value;
+  selKorisnik.innerHTML = '<option value="">Svi korisnici</option>' +
+    imena.map(i => `<option value="${escapeHtml(i)}">${escapeHtml(i)}</option>`).join('');
+  selKorisnik.value = imena.includes(trenutni) ? trenutni : '';
+
+  const pojam = document.getElementById('dnevnikPretraga').value.trim().toLowerCase();
+  const filtrirani = sviUnosi.filter(z => {
+    if(selKorisnik.value && z.korisnik !== selKorisnik.value) return false;
+    if(pojam){
+      const tekst = [z.korisnik, z.akcija, z.entitet, z.naziv, z.detalji].join(' ').toLowerCase();
+      if(!tekst.includes(pojam)) return false;
+    }
+    return true;
+  }).reverse();   // najnovije prvo
+
+  document.getElementById('dnevnikCount').textContent =
+    filtrirani.length + (filtrirani.length === 1 ? ' zapis' : ' zapisa');
+
+  if(!filtrirani.length){
+    wrap.innerHTML = '<div class="empty-note">Nema zapisa u dnevniku.</div>';
+    return;
+  }
+
+  wrap.innerHTML = `<div class="table-wrap"><table>
+    <thead><tr><th>Vrijeme</th><th>Korisnik</th><th>Radnja</th><th>Stavka</th><th>Detalji</th></tr></thead>
+    <tbody>${filtrirani.map(z => `<tr>
+      <td style="white-space:nowrap;">${new Date(z.vrijeme).toLocaleString('bs-BA')}</td>
+      <td><b>${escapeHtml(z.korisnik)}</b></td>
+      <td>${escapeHtml(z.akcija)}</td>
+      <td>${escapeHtml(z.naziv)}</td>
+      <td><span class="cell-sub">${escapeHtml(z.detalji)}</span></td>
+    </tr>`).join('')}</tbody>
+  </table></div>`;
+}
+
+function exportDnevnik(){
+  const zapisi = loadDnevnik().slice().reverse();
+  if(!zapisi.length){ document.getElementById('dnevnikCount').textContent = 'Nema zapisa za izvoz.'; return; }
+  const cisto = s => String(s == null ? '' : s).replace(/[\r\n;]+/g,' ').trim();
+  const rows = [['Vrijeme','Korisnik','Radnja','Vrsta stavke','Stavka','Detalji']];
+  for(const z of zapisi){
+    rows.push([new Date(z.vrijeme).toLocaleString('bs-BA'), cisto(z.korisnik),
+               cisto(z.akcija), cisto(z.entitet), cisto(z.naziv), cisto(z.detalji)]);
+  }
+  const blob = new Blob(['﻿' + rows.map(r => r.join(';')).join('\n')], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'dnevnik-izmjena.csv'; a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ============================================================
 //  Gazdinstva (farme i pčelari) + Karta korisnika usluga
 // ============================================================
 const GAZD_KEY = 'markice:app:gazdinstva';
@@ -1132,6 +1613,14 @@ const TAB_HEADINGS = {
   karta: {
     title: 'Karta korisnika usluga',
     sub: 'Pregled svih gazdinstava na mapi — zeleno je obavljeno, crveno čeka pregled.'
+  },
+  dnevnik: {
+    title: 'Dnevnik izmjena',
+    sub: 'Ko je šta unio, izmijenio ili obrisao — hronološki, najnovije prvo.'
+  },
+  korisnici: {
+    title: 'Korisnici',
+    sub: 'Dodavanje korisnika i dodjela PIN-a. Vidljivo samo administratoru.'
   }
 };
 
@@ -1150,6 +1639,8 @@ function showTab(name){
   document.getElementById('pageSub').textContent = TAB_HEADINGS[name].sub;
   document.body.classList.toggle('wide', name !== 'usporedba');
   if(name === 'karta') initMap();
+  if(name === 'dnevnik') renderDnevnik();
+  if(name === 'korisnici') renderKorisnike();
 }
 
 function showVrsta(v){
@@ -1309,22 +1800,34 @@ function submitGazdinstvo(event){
     dodatna: procitajDodatna()
   };
 
+  const sada = new Date().toISOString();
+  const ko = trenutniKorisnik ? trenutniKorisnik.ime : 'nepoznat';
+
   let unos;
   if(id){
     unos = list.find(g => g.id === id);
     if(!unos) return;
     const adresaPromijenjena = unos.adresa !== podaci.adresa || unos.grad !== podaci.grad;
+    const promjene = opisIzmjena(unos, podaci);
     Object.assign(unos, podaci);
     if(adresaPromijenjena && !unos.rucnoPomjeren){ unos.lat = null; unos.lng = null; }
+    unos.izmijenioIme = ko;
+    unos.izmijenjeno = sada;
+    zabiljezi('izmijenio', 'gazdinstvo', unos.gazdinstvo, promjene || 'bez izmjena u poljima');
   }else{
     unos = Object.assign({
       id: 'g' + Date.now() + Math.random().toString(36).slice(2,7),
-      lat: null, lng: null, rucnoPomjeren: false
+      lat: null, lng: null, rucnoPomjeren: false,
+      kreiraoIme: ko, kreirano: sada,
+      izmijenioIme: ko, izmijenjeno: sada
     }, podaci);
     list.push(unos);
+    zabiljezi('dodao', 'gazdinstvo', unos.gazdinstvo,
+      [VRSTA_LABEL[unos.vrsta], unos.vlasnik, unos.grad].filter(Boolean).join(', '));
   }
 
   saveGazdinstva(list);
+  renderDnevnik();
 
   // Follow the entry to its own subtab, otherwise saving from the wrong tab
   // looks like nothing happened.
@@ -1384,11 +1887,29 @@ function deleteGazdinstvo(id){
   if(!g) return;
   if(!confirm('Obrisati gazdinstvo "' + (g.gazdinstvo || g.vlasnik) + '"?')) return;
   saveGazdinstva(list.filter(x => x.id !== id));
+  zabiljezi('obrisao', 'gazdinstvo', g.gazdinstvo,
+    [VRSTA_LABEL[g.vrsta], g.vlasnik, g.grad].filter(Boolean).join(', '));
   renderGazdTable();
   renderMap();
+  renderDnevnik();
 }
 
 // ---------- table ----------
+// Who entered the record, and who last touched it (only shown when it differs).
+function tragHtml(g){
+  if(!g.kreiraoIme && !g.izmijenioIme) return '—';
+  const dijelovi = [];
+  if(g.kreiraoIme){
+    dijelovi.push('Unio: ' + escapeHtml(g.kreiraoIme) +
+      (g.kreirano ? ' (' + new Date(g.kreirano).toLocaleDateString('bs-BA') + ')' : ''));
+  }
+  if(g.izmijenioIme && (g.izmijenioIme !== g.kreiraoIme || g.izmijenjeno !== g.kreirano)){
+    dijelovi.push('Izmijenio: ' + escapeHtml(g.izmijenioIme) +
+      (g.izmijenjeno ? ' (' + new Date(g.izmijenjeno).toLocaleDateString('bs-BA') + ')' : ''));
+  }
+  return dijelovi.join('<br>');
+}
+
 // Everything typed into an entry is searchable, custom fields included.
 function tekstZaPretragu(g){
   return [
@@ -1460,6 +1981,7 @@ function renderGazdTable(){
       <td>${formatDatum(g.danPosjete)}</td>
       <td>${formatDatum(g.danIducePosjete)}</td>
       <td><span class="badge ${st}">${STATUS_LABEL[st]}</span>${g.lat ? '' : '<br><span class="cell-sub">bez lokacije</span>'}</td>
+      <td><span class="cell-sub">${tragHtml(g)}</span></td>
       <td class="actions">
         <button class="small secondary" onclick="editGazdinstvo('${g.id}')">Uredi</button>
         <button class="small secondary" onclick="deleteGazdinstvo('${g.id}')">Obriši</button>
@@ -1472,7 +1994,7 @@ function renderGazdTable(){
       ${prikaziVrstu ? '<th>Vrsta</th>' : ''}
       <th>Gazdinstvo</th><th>Vlasnik</th><th>Grad / adresa</th>
       <th>${aktivnaVrsta === 'pcelar' ? 'Košnice' : aktivnaVrsta === 'farma' ? 'Grla' : 'Grla / košnice'}</th>
-      <th>Dan posjete</th><th>Iduća posjeta</th><th>Status</th><th class="actions">Radnje</th>
+      <th>Dan posjete</th><th>Iduća posjeta</th><th>Status</th><th>Unio / izmijenio</th><th class="actions">Radnje</th>
     </tr></thead>
     <tbody>${redovi}</tbody>
   </table></div>`;
@@ -1488,7 +2010,7 @@ function exportGazdinstva(){
   const cisto = s => String(s == null ? '' : s).replace(/[\r\n;]+/g,' ').trim();
   const rows = [['Vrsta','Gazdinstvo','ID gazdinstva','Vlasnik','Telefon','Grad','Adresa',
                  'Broj grla/košnica','Vrsta i pasmina','Dan posjete','Iduća posjeta',
-                 'Status','Napomena','Ostale činjenice']];
+                 'Status','Napomena','Ostale činjenice','Unio','Izmijenio']];
   for(const g of list){
     rows.push([
       VRSTA_LABEL[g.vrsta] || '',
@@ -1496,7 +2018,8 @@ function exportGazdinstva(){
       cisto(g.grad), cisto(g.adresa), cisto(g.broj), cisto(g.pasmina),
       g.danPosjete || '', g.danIducePosjete || '',
       STATUS_LABEL[statusOf(g)], cisto(g.napomena),
-      (g.dodatna || []).map(p => p.naziv + ': ' + p.vrijednost).map(cisto).join(' | ')
+      (g.dodatna || []).map(p => p.naziv + ': ' + p.vrijednost).map(cisto).join(' | '),
+      cisto(g.kreiraoIme), cisto(g.izmijenioIme)
     ]);
   }
   const csv = rows.map(r => r.join(';')).join('\n');
@@ -1615,7 +2138,8 @@ function popupHtml(g){
     <span class="pop-row">Posjeta: ${formatDatum(g.danPosjete)} · Iduća: ${formatDatum(g.danIducePosjete)}</span><br>
     ${g.napomena ? '<span class="pop-row">' + escapeHtml(g.napomena) + '</span><br>' : ''}
     ${dodatna.length ? '<span class="pop-row">' + dodatna.map(p => escapeHtml(p.naziv + ': ' + p.vrijednost)).join(' · ') + '</span><br>' : ''}
-    <span class="badge ${st}" style="margin-top:6px;">${STATUS_LABEL[st]}</span>`;
+    <span class="badge ${st}" style="margin-top:6px;">${STATUS_LABEL[st]}</span>
+    <br><span class="pop-row" style="font-size:10.5px;">${tragHtml(g)}</span>`;
 }
 
 function renderMap(){
@@ -1649,8 +2173,14 @@ function renderMap(){
           meta.lat = pos.lat;
           meta.lng = pos.lng;
           meta.rucnoPomjeren = true;   // keep this spot even if the address is edited later
+          meta.izmijenioIme = trenutniKorisnik ? trenutniKorisnik.ime : 'nepoznat';
+          meta.izmijenjeno = new Date().toISOString();
           saveGazdinstva(list);
+          zabiljezi('pomjerio lokaciju', 'gazdinstvo', meta.gazdinstvo,
+            pos.lat.toFixed(5) + ', ' + pos.lng.toFixed(5));
           document.getElementById('mapStatus').textContent = 'Lokacija za "' + meta.gazdinstvo + '" je pomjerena.';
+          renderGazdTable();
+          renderDnevnik();
         }
       })
       .addTo(slojMarkera);
@@ -1675,7 +2205,33 @@ function renderMap(){
   }
 }
 
-showVrsta('farma');
+// ---------- start: login first ----------
+async function pokreniPrijavu(){
+  const greska = document.getElementById('loginGreska');
+
+  if(!kriptoDostupan()){
+    // PBKDF2 traži siguran kontekst (https ili localhost) — bez njega nema prijave.
+    greska.textContent = 'Prijava zahtijeva sigurnu vezu (https). Otvori aplikaciju preko https adrese, ne kao lokalni fajl.';
+    document.getElementById('loginBtn').disabled = true;
+    return;
+  }
+
+  const korisnici = await pripremiKorisnike();
+  popuniKorisnikeUPrijavi(korisnici);
+
+  const sesija = loadJson(SESIJA_KEY, null);
+  const josPostoji = sesija && korisnici.find(k => k.id === sesija.id);
+  if(josPostoji){
+    // Uloga se čita iz liste korisnika, ne iz sesije — da izmjena uloge odmah vrijedi.
+    trenutniKorisnik = {id: josPostoji.id, ime: josPostoji.ime, uloga: josPostoji.uloga};
+    pokreniAplikaciju();
+  }else{
+    localStorage.removeItem(SESIJA_KEY);
+    document.getElementById('loginPin').focus();
+  }
+}
+
+pokreniPrijavu();
 
 // ---------- PWA install prompt ----------
 let deferredPrompt;

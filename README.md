@@ -7,10 +7,32 @@
 - `icons/` — ikone aplikacije
 - `vendor/` — Leaflet (biblioteka za kartu, BSD-2 licenca, uključena lokalno da radi i bez interneta)
 
+## Prijava i korisnici
+Aplikacija traži prijavu pri otvaranju. Prvi korisnik je već ugrađen:
+
+| Korisnik | PIN | Uloga |
+|---|---|---|
+| **Nedžad** | **2201** | administrator |
+
+Administrator u tabu **Korisnici** dodaje nove korisnike, dodjeljuje im PIN (4–10 cifara), mijenja PIN i briše korisnike. Obični korisnici unose i mijenjaju podatke, ali ne vide tab Korisnici.
+
+Zaštite: PIN se nikad ne čuva u čitljivom obliku (PBKDF2, 150.000 iteracija, sa nasumičnim saltom po korisniku), nakon 5 pogrešnih pokušaja prijava se zaključava na minutu, ne može se obrisati korisnik pod kojim si prijavljen niti zadnji administrator.
+
+> ⚠️ **Šta ova prijava jeste, a šta nije.** Cijela aplikacija radi u browseru i svi podaci su u `localStorage` samog uređaja. Prijava služi da se **zna ko je šta unio i izmijenio** među kolegama koji dijele uređaj — to je evidencija odgovornosti, a ne zaštita podataka. Nekome ko namjerno želi zaobići aplikaciju (kroz razvojne alate browsera) podaci su i dalje dostupni, a PIN od 4 cifre ima samo 10.000 kombinacija. Ako podaci trebaju stvarnu zaštitu, potreban je server sa pravim nalozima — to mogu dodati ako zatreba.
+
+Zaključaj i sam uređaj (PIN/otisak na telefonu ili laptopu) — to je u ovoj postavci najjača stvarna zaštita.
+
+## Dnevnik izmjena
+Tab **Dnevnik izmjena** hronološki bilježi svaku radnju: ko se prijavio/odjavio, ko je dodao, izmijenio ili obrisao gazdinstvo, ko je pomjerio lokaciju na karti i ko je dodao ili obrisao korisnika. Kod izmjena se vidi i **tačno koje polje je promijenjeno i iz čega u šta** (npr. `Broj grla/košnica: "520" → "545"`).
+
+Dnevnik se može pretraživati, filtrirati po korisniku, izvesti u CSV i odštampati. Uz to, svaki red u spisku gazdinstava i svaki marker na karti pokazuju „Unio: … / Izmijenio: …". Dnevnik čuva zadnjih 2000 zapisa.
+
 ## Tabovi u aplikaciji
 1. **Usporedba markica** — poređenje dva spiska ušnih markica (uvoz iz Excela ili Google Sheetsa, izvoz i štampa)
-2. **Gazdinstva** — evidencija farmi i pčelara (podtabovi **Farme** i **Pčelari**)
+2. **Gazdinstva** — evidencija farmi i pčelara (podtabovi **Farme**, **Pčelari**, **Sve**)
 3. **Karta korisnika usluga** — sva gazdinstva na mapi, obojena po statusu posjete
+4. **Dnevnik izmjena** — ko je šta unio, izmijenio ili obrisao
+5. **Korisnici** — dodavanje korisnika i PIN-ova (vidljivo samo administratoru)
 
 ## Gazdinstva (Farme / Pčelari / Sve)
 Za svako gazdinstvo se unosi:
