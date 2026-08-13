@@ -12,8 +12,25 @@
 2. **Gazdinstva** — evidencija farmi i pčelara (podtabovi **Farme** i **Pčelari**)
 3. **Karta korisnika usluga** — sva gazdinstva na mapi, obojena po statusu posjete
 
-## Gazdinstva (Farme / Pčelari)
-Za svako gazdinstvo se unosi: gazdinstvo, vlasnik, grad, adresa, dan posjete, dan iduće posjete i napomena. Unosi se čuvaju odvojeno po vrsti (farma / pčelar) i mogu se uređivati, brisati, izvesti u CSV i štampati.
+## Gazdinstva (Farme / Pčelari / Sve)
+Za svako gazdinstvo se unosi:
+- vrsta (farma / pčelar), gazdinstvo, vlasnik, telefon
+- grad, adresa, ID gazdinstva (JIB)
+- **broj grla** (za farme) odnosno **broj košnica** (za pčelare) — polje samo mijenja naziv prema vrsti
+- vrsta i pasmina životinja (za pčelare: vrsta pčela / tip košnica)
+- dan posjete, dan iduće posjete, napomena
+- **ostale činjenice** — vlastita polja gdje sam upišeš naziv i vrijednost (npr. "Nadmorska visina: 640 m"), koliko god ih treba po gazdinstvu
+
+Podtabovi **Farme**, **Pčelari** i **Sve** filtriraju spisak po vrsti; u pogledu "Sve" tabela dobija i kolonu Vrsta. Unosi se mogu uređivati, brisati, izvesti u CSV i štampati. Telefon je klikabilan — na mobitelu pokreće poziv.
+
+### Pretraga i filteri
+Iznad tabele su:
+- **pretraga** — traži kroz sve podatke unosa, uključujući telefon, ID, pasminu, napomenu i vlastita polja
+- **filter po gradu** — lista se sama puni gradovima koji postoje u podacima
+- **filter po statusu** — treba u pregled / uskoro / obavljeno
+- **Očisti** — poništava sve odjednom
+
+Izvoz u CSV izvozi tačno ono što je trenutno prikazano, pa filtrirani spisak daje filtriran fajl.
 
 **Svaki sačuvani unos automatski završava na Karti** — aplikacija u pozadini potraži koordinate za unesenu adresu (preko OpenStreetMap Nominatim servisa) i postavi gazdinstvo na mapu.
 
@@ -23,7 +40,7 @@ Boje markera se računaju automatski iz datuma:
 - 🟡 **Pregled uskoro** — iduća posjeta je u narednih 14 dana
 - 🔴 **Treba otići u pregled** — iduća posjeta je prošla, ili gazdinstvo još nije posjećeno
 
-Slovo u markeru: **F** = farma, **P** = pčelar. Filter iznad karte prikazuje samo farme ili samo pčelare.
+Slovo u markeru: **F** = farma, **P** = pčelar. Filteri iznad karte prikazuju samo farme / samo pčelare, i samo odabrani grad. Klik na marker otvara sve podatke gazdinstva (kontakt, broj grla ili košnica, termine, ostale činjenice).
 
 Ako adresa nije pronađena, gazdinstvo se izlistava ispod karte pod "Bez lokacije" — tada:
 - klikni **"Pronađi lokacije koje nedostaju"** da se pokuša ponovo, ili

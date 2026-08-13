@@ -44,6 +44,8 @@
       var(--paper);
   }
   .wrap{max-width:1020px;margin:0 auto;padding:20px 18px 60px;}
+  /* The registry and map are data-dense — give them more room than the reading-width comparison tab. */
+  body.wide .wrap{max-width:1340px;}
 
   /* ---------- letterhead ---------- */
   .letterhead{
@@ -371,8 +373,36 @@
   .field input:focus, .field textarea:focus{outline:2px solid var(--gold);outline-offset:1px;}
   .field.wide{grid-column:1/-1;}
 
+  .filter-bar{
+    display:flex;gap:8px;flex-wrap:wrap;align-items:center;
+    margin-top:20px;
+  }
+  .filter-bar input[type=search]{
+    flex:1 1 260px;min-width:0;
+    font-family:'Helvetica Neue',Arial,sans-serif;font-size:12.5px;
+    padding:8px 10px;border:1px solid var(--line);background:#fff;
+    border-radius:2px;color:var(--ink);
+  }
+  .filter-bar input[type=search]:focus{outline:2px solid var(--gold);outline-offset:1px;}
+
+  .dodatno-red{display:flex;gap:6px;margin-bottom:6px;}
+  .dodatno-red input{
+    font-family:'Helvetica Neue',Arial,sans-serif;font-size:12.5px;
+    padding:7px 9px;border:1px solid var(--line);background:#fff;
+    border-radius:2px;color:var(--ink);min-width:0;
+  }
+  .dodatno-red input.naziv{flex:0 1 200px;}
+  .dodatno-red input.vrijednost{flex:1 1 auto;}
+  .dodatno-red button{padding:4px 10px;font-size:12px;}
+
+  .cell-sub{font-size:11px;color:var(--ink-soft);}
+  .cell-sub a{color:var(--ink-soft);}
+  td .num{font-variant-numeric:tabular-nums;font-weight:700;}
+
   .table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:3px;background:var(--paper-raised);}
   table{border-collapse:collapse;width:100%;font-family:'Helvetica Neue',Arial,sans-serif;font-size:12.5px;}
+  /* Let the wrapper scroll instead of crushing columns; print gets the natural width. */
+  @media screen{ #gazdTableWrap table{min-width:920px;} }
   thead th{
     text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;
     color:var(--ink-soft);font-weight:700;
@@ -446,7 +476,7 @@
   @media print{
     body{background:#fff;}
     .install-bar, .file-import, .cards, .actions-main, .status, .footer-note, .sheet-hint,
-    .tabs, .subtabs, .gazd-form, .map-toolbar, .row-actions, td.actions, th.actions,
+    .tabs, .subtabs, .gazd-form, .filter-bar, .map-toolbar, .row-actions, td.actions, th.actions,
     .leaflet-control-container{display:none !important;}
     .wrap{max-width:100%;padding:0;}
     .seal{transform:none;}
@@ -563,6 +593,7 @@
     <div class="subtabs" role="tablist">
       <button role="tab" aria-selected="true" data-vrsta="farma" onclick="showVrsta('farma')">Farme</button>
       <button role="tab" aria-selected="false" data-vrsta="pcelar" onclick="showVrsta('pcelar')">Pčelari</button>
+      <button role="tab" aria-selected="false" data-vrsta="sve" onclick="showVrsta('sve')">Sve</button>
     </div>
 
     <div class="card gazd-form">
@@ -572,12 +603,23 @@
         <input type="hidden" id="gazdId">
         <div class="form-grid">
           <div class="field">
+            <label for="gVrsta">Vrsta</label>
+            <select id="gVrsta" onchange="osvjeziVrstuPolja()">
+              <option value="farma">Farma</option>
+              <option value="pcelar">Pčelar</option>
+            </select>
+          </div>
+          <div class="field">
             <label for="gNaziv">Gazdinstvo</label>
             <input id="gNaziv" required placeholder="npr. Gazdinstvo Dizdarević">
           </div>
           <div class="field">
             <label for="gVlasnik">Vlasnik</label>
             <input id="gVlasnik" required placeholder="Ime i prezime">
+          </div>
+          <div class="field">
+            <label for="gTelefon">Telefon</label>
+            <input type="tel" id="gTelefon" placeholder="npr. 061 123 456">
           </div>
           <div class="field">
             <label for="gGrad">Grad / mjesto</label>
@@ -597,6 +639,18 @@
             <input id="gAdresa" placeholder="Ulica i broj / zaselak">
           </div>
           <div class="field">
+            <label for="gIdGazdinstva">ID gazdinstva (JIB)</label>
+            <input id="gIdGazdinstva" placeholder="Registarski broj">
+          </div>
+          <div class="field">
+            <label for="gBroj" id="gBrojLabel">Broj grla</label>
+            <input type="number" id="gBroj" min="0" step="1" placeholder="npr. 520">
+          </div>
+          <div class="field">
+            <label for="gPasmina" id="gPasminaLabel">Vrsta i pasmina životinja</label>
+            <input id="gPasmina" placeholder="npr. Ovce — travnička pramenka">
+          </div>
+          <div class="field">
             <label for="gPosjeta">Dan posjete</label>
             <input type="date" id="gPosjeta">
           </div>
@@ -606,7 +660,12 @@
           </div>
           <div class="field wide">
             <label for="gNapomena">Napomena</label>
-            <textarea id="gNapomena" placeholder="Kratka bilješka o gazdinstvu, broju grla, zapažanjima..."></textarea>
+            <textarea id="gNapomena" placeholder="Kratka bilješka o gazdinstvu, zapažanjima sa terena..."></textarea>
+          </div>
+          <div class="field wide">
+            <label>Ostale činjenice</label>
+            <div id="dodatnaPolja"></div>
+            <button type="button" class="small secondary" style="align-self:flex-start;margin-top:6px;" onclick="dodajPolje()">+ Dodaj polje</button>
           </div>
         </div>
         <div class="row-actions" style="margin-top:14px;">
@@ -617,7 +676,21 @@
       </form>
     </div>
 
-    <div class="row-actions" style="margin:20px 0 10px;">
+    <div class="filter-bar">
+      <input type="search" id="gPretraga" placeholder="Pretraži po gazdinstvu, vlasniku, telefonu, adresi, napomeni..." oninput="renderGazdTable()">
+      <select id="gGradFilter" onchange="renderGazdTable()">
+        <option value="">Svi gradovi</option>
+      </select>
+      <select id="gStatusFilter" onchange="renderGazdTable()">
+        <option value="">Svi statusi</option>
+        <option value="due">Treba u pregled</option>
+        <option value="soon">Pregled uskoro</option>
+        <option value="ok">Obavljeno</option>
+      </select>
+      <button class="small secondary" onclick="ocistiFiltere()">Očisti</button>
+    </div>
+
+    <div class="row-actions" style="margin:14px 0 10px;">
       <span class="count-pill" id="gazdCount">0 unosa</span>
       <button class="small secondary" onclick="exportGazdinstva()">Izvezi (CSV)</button>
       <button class="small secondary" onclick="window.print()">Štampaj spisak</button>
@@ -634,6 +707,9 @@
         <option value="sve">Sva gazdinstva</option>
         <option value="farma">Samo farme</option>
         <option value="pcelar">Samo pčelari</option>
+      </select>
+      <select id="mapGradFilter" onchange="renderMap()">
+        <option value="">Svi gradovi</option>
       </select>
       <button class="small secondary" onclick="lociranjeSvih()" id="lociranjeBtn">Pronađi lokacije koje nedostaju</button>
       <span class="count-pill" id="mapStatus"></span>
@@ -1072,6 +1148,7 @@ function showTab(name){
   }
   document.getElementById('pageTitle').textContent = TAB_HEADINGS[name].title;
   document.getElementById('pageSub').textContent = TAB_HEADINGS[name].sub;
+  document.body.classList.toggle('wide', name !== 'usporedba');
   if(name === 'karta') initMap();
 }
 
@@ -1080,10 +1157,70 @@ function showVrsta(v){
   for(const btn of document.querySelectorAll('.subtabs button')){
     btn.setAttribute('aria-selected', String(btn.dataset.vrsta === v));
   }
-  document.getElementById('formNaslov').textContent =
-    'Novo gazdinstvo — ' + (v === 'farma' ? 'farma' : 'pčelar');
+  document.getElementById('formNaslov').textContent = v === 'sve'
+    ? 'Novo gazdinstvo'
+    : 'Novo gazdinstvo — ' + (v === 'farma' ? 'farma' : 'pčelar');
   resetGazdForm();
   renderGazdTable();
+}
+
+const VRSTA_LABEL = { farma: 'Farma', pcelar: 'Pčelar' };
+
+// Farms count animals, beekeepers count hives — one field, label follows the type.
+function brojLabel(vrsta){ return vrsta === 'pcelar' ? 'Broj košnica' : 'Broj grla'; }
+
+function osvjeziVrstuPolja(){
+  const vrsta = document.getElementById('gVrsta').value;
+  document.getElementById('gBrojLabel').textContent = brojLabel(vrsta);
+  document.getElementById('gBroj').placeholder = vrsta === 'pcelar' ? 'npr. 48' : 'npr. 520';
+  document.getElementById('gPasminaLabel').textContent =
+    vrsta === 'pcelar' ? 'Vrsta pčela / tip košnica' : 'Vrsta i pasmina životinja';
+  document.getElementById('gPasmina').placeholder =
+    vrsta === 'pcelar' ? 'npr. Kranjska pčela — LR košnice' : 'npr. Ovce — travnička pramenka';
+}
+
+// ---------- custom fields ("ostale činjenice") ----------
+function dodajPolje(naziv = '', vrijednost = ''){
+  const red = document.createElement('div');
+  red.className = 'dodatno-red';
+  red.innerHTML = `
+    <input class="naziv" placeholder="Naziv (npr. Nadmorska visina)">
+    <input class="vrijednost" placeholder="Vrijednost (npr. 640 m)">
+    <button type="button" class="small secondary" title="Ukloni ovo polje">×</button>`;
+  red.querySelector('.naziv').value = naziv;
+  red.querySelector('.vrijednost').value = vrijednost;
+  red.querySelector('button').onclick = () => red.remove();
+  document.getElementById('dodatnaPolja').appendChild(red);
+}
+
+function procitajDodatna(){
+  return [...document.querySelectorAll('#dodatnaPolja .dodatno-red')]
+    .map(red => ({
+      naziv: red.querySelector('.naziv').value.trim(),
+      vrijednost: red.querySelector('.vrijednost').value.trim()
+    }))
+    .filter(p => p.naziv || p.vrijednost);
+}
+
+function ocistiFiltere(){
+  document.getElementById('gPretraga').value = '';
+  document.getElementById('gGradFilter').value = '';
+  document.getElementById('gStatusFilter').value = '';
+  renderGazdTable();
+}
+
+// Keep every city dropdown in step with whatever cities the data actually has.
+function osvjeziGradove(){
+  const gradovi = [...new Set(loadGazdinstva().map(g => g.grad).filter(Boolean))]
+    .sort((a,b) => a.localeCompare(b,'bs'));
+  for(const id of ['gGradFilter','mapGradFilter']){
+    const sel = document.getElementById(id);
+    if(!sel) continue;
+    const trenutni = sel.value;
+    sel.innerHTML = '<option value="">Svi gradovi</option>' +
+      gradovi.map(g => `<option value="${escapeHtml(g)}">${escapeHtml(g)}</option>`).join('');
+    sel.value = gradovi.includes(trenutni) ? trenutni : '';
+  }
 }
 
 // ---------- storage ----------
@@ -1140,9 +1277,13 @@ function escapeHtml(s){
 // ---------- form ----------
 function resetGazdForm(){
   document.getElementById('gazdId').value = '';
-  for(const id of ['gNaziv','gVlasnik','gGrad','gAdresa','gPosjeta','gIduca','gNapomena']){
+  for(const id of ['gNaziv','gVlasnik','gTelefon','gGrad','gAdresa','gIdGazdinstva',
+                   'gBroj','gPasmina','gPosjeta','gIduca','gNapomena']){
     document.getElementById(id).value = '';
   }
+  document.getElementById('dodatnaPolja').innerHTML = '';
+  document.getElementById('gVrsta').value = aktivnaVrsta === 'sve' ? 'farma' : aktivnaVrsta;
+  osvjeziVrstuPolja();
   document.getElementById('gSubmitBtn').textContent = 'Sačuvaj gazdinstvo';
   document.getElementById('gazdStatus').textContent = '';
 }
@@ -1153,14 +1294,19 @@ function submitGazdinstvo(event){
   const list = loadGazdinstva();
 
   const podaci = {
-    vrsta: aktivnaVrsta,
+    vrsta: document.getElementById('gVrsta').value,
     gazdinstvo: document.getElementById('gNaziv').value.trim(),
     vlasnik: document.getElementById('gVlasnik').value.trim(),
+    telefon: document.getElementById('gTelefon').value.trim(),
     grad: document.getElementById('gGrad').value.trim(),
     adresa: document.getElementById('gAdresa').value.trim(),
+    idGazdinstva: document.getElementById('gIdGazdinstva').value.trim(),
+    broj: document.getElementById('gBroj').value.trim(),
+    pasmina: document.getElementById('gPasmina').value.trim(),
     danPosjete: document.getElementById('gPosjeta').value,
     danIducePosjete: document.getElementById('gIduca').value,
-    napomena: document.getElementById('gNapomena').value.trim()
+    napomena: document.getElementById('gNapomena').value.trim(),
+    dodatna: procitajDodatna()
   };
 
   let unos;
@@ -1179,12 +1325,19 @@ function submitGazdinstvo(event){
   }
 
   saveGazdinstva(list);
-  renderGazdTable();
+
+  // Follow the entry to its own subtab, otherwise saving from the wrong tab
+  // looks like nothing happened.
+  if(aktivnaVrsta !== 'sve' && unos.vrsta !== aktivnaVrsta){
+    showVrsta(unos.vrsta);
+  }else{
+    resetGazdForm();
+    renderGazdTable();
+  }
   renderMap();
 
   const status = document.getElementById('gazdStatus');
   status.textContent = id ? 'Izmjene sačuvane.' : 'Gazdinstvo dodano.';
-  resetGazdForm();
 
   // Every saved holding lands on the map on its own — look up its coordinates
   // in the background unless we already have them.
@@ -1203,17 +1356,25 @@ function submitGazdinstvo(event){
 function editGazdinstvo(id){
   const g = loadGazdinstva().find(x => x.id === id);
   if(!g) return;
-  if(g.vrsta !== aktivnaVrsta) showVrsta(g.vrsta);
+  resetGazdForm();
   document.getElementById('gazdId').value = g.id;
+  document.getElementById('gVrsta').value = g.vrsta || 'farma';
+  osvjeziVrstuPolja();
   document.getElementById('gNaziv').value = g.gazdinstvo || '';
   document.getElementById('gVlasnik').value = g.vlasnik || '';
+  document.getElementById('gTelefon').value = g.telefon || '';
   document.getElementById('gGrad').value = g.grad || '';
   document.getElementById('gAdresa').value = g.adresa || '';
+  document.getElementById('gIdGazdinstva').value = g.idGazdinstva || '';
+  document.getElementById('gBroj').value = g.broj || '';
+  document.getElementById('gPasmina').value = g.pasmina || '';
   document.getElementById('gPosjeta').value = g.danPosjete || '';
   document.getElementById('gIduca').value = g.danIducePosjete || '';
   document.getElementById('gNapomena').value = g.napomena || '';
+  for(const p of (g.dodatna || [])) dodajPolje(p.naziv, p.vrijednost);
   document.getElementById('gSubmitBtn').textContent = 'Sačuvaj izmjene';
   document.getElementById('gazdStatus').textContent = 'Uređuješ: ' + (g.gazdinstvo || g.vlasnik);
+  document.getElementById('gNaziv').scrollIntoView({block:'center', behavior:'smooth'});
   document.getElementById('gNaziv').focus();
 }
 
@@ -1228,27 +1389,77 @@ function deleteGazdinstvo(id){
 }
 
 // ---------- table ----------
+// Everything typed into an entry is searchable, custom fields included.
+function tekstZaPretragu(g){
+  return [
+    g.gazdinstvo, g.vlasnik, g.telefon, g.grad, g.adresa,
+    g.idGazdinstva, g.broj, g.pasmina, g.napomena,
+    VRSTA_LABEL[g.vrsta],
+    ...(g.dodatna || []).flatMap(p => [p.naziv, p.vrijednost])
+  ].filter(Boolean).join(' ').toLowerCase();
+}
+
+function filtriranaGazdinstva(){
+  const pojam = document.getElementById('gPretraga').value.trim().toLowerCase();
+  const grad = document.getElementById('gGradFilter').value;
+  const status = document.getElementById('gStatusFilter').value;
+
+  return loadGazdinstva().filter(g => {
+    if(aktivnaVrsta !== 'sve' && g.vrsta !== aktivnaVrsta) return false;
+    if(grad && g.grad !== grad) return false;
+    if(status && statusOf(g) !== status) return false;
+    if(pojam && !tekstZaPretragu(g).includes(pojam)) return false;
+    return true;
+  });
+}
+
 function renderGazdTable(){
-  const svi = loadGazdinstva();
-  const list = svi.filter(g => g.vrsta === aktivnaVrsta);
-  const naziv = aktivnaVrsta === 'farma' ? 'farmi' : 'pčelara';
-  document.getElementById('gazdCount').textContent = list.length + ' ' + (list.length === 1 ? 'unos' : 'unosa');
+  osvjeziGradove();
+  const list = filtriranaGazdinstva();
+  const ukupno = loadGazdinstva().filter(g => aktivnaVrsta === 'sve' || g.vrsta === aktivnaVrsta).length;
+  const filtrirano = list.length !== ukupno;
+
+  document.getElementById('gazdCount').textContent =
+    (filtrirano ? list.length + ' od ' + ukupno : String(ukupno)) +
+    (ukupno === 1 && !filtrirano ? ' unos' : ' unosa');
 
   const wrap = document.getElementById('gazdTableWrap');
   if(!list.length){
-    wrap.innerHTML = '<div class="empty-note">Još nema unesenih ' + naziv + '. Popuni obrazac iznad da dodaš prvo gazdinstvo.</div>';
+    const naziv = aktivnaVrsta === 'farma' ? 'farmi' : aktivnaVrsta === 'pcelar' ? 'pčelara' : 'gazdinstava';
+    wrap.innerHTML = '<div class="empty-note">' + (ukupno
+      ? 'Nijedno gazdinstvo ne odgovara pretrazi ili filterima.'
+      : 'Još nema unesenih ' + naziv + '. Popuni obrazac iznad da dodaš prvo gazdinstvo.') + '</div>';
     return;
   }
 
+  const prikaziVrstu = aktivnaVrsta === 'sve';
+
   const redovi = list.map(g => {
     const st = statusOf(g);
+    const dodatna = (g.dodatna || []).filter(p => p.naziv || p.vrijednost);
     return `<tr>
-      <td><b>${escapeHtml(g.gazdinstvo)}</b>${g.napomena ? '<br><span style="font-size:11px;color:var(--ink-soft);">' + escapeHtml(g.napomena) + '</span>' : ''}</td>
-      <td>${escapeHtml(g.vlasnik)}</td>
-      <td>${escapeHtml(g.grad)}${g.adresa ? '<br><span style="font-size:11px;color:var(--ink-soft);">' + escapeHtml(g.adresa) + '</span>' : ''}</td>
+      ${prikaziVrstu ? `<td>${VRSTA_LABEL[g.vrsta] || ''}</td>` : ''}
+      <td>
+        <b>${escapeHtml(g.gazdinstvo)}</b>
+        ${g.idGazdinstva ? '<br><span class="cell-sub">ID: ' + escapeHtml(g.idGazdinstva) + '</span>' : ''}
+        ${g.napomena ? '<br><span class="cell-sub">' + escapeHtml(g.napomena) + '</span>' : ''}
+        ${dodatna.length ? '<br><span class="cell-sub">' + dodatna.map(p => escapeHtml(p.naziv + ': ' + p.vrijednost)).join(' · ') + '</span>' : ''}
+      </td>
+      <td>
+        ${escapeHtml(g.vlasnik)}
+        ${g.telefon ? '<br><span class="cell-sub"><a href="tel:' + escapeHtml(g.telefon.replace(/\s+/g,'')) + '">' + escapeHtml(g.telefon) + '</a></span>' : ''}
+      </td>
+      <td>
+        ${escapeHtml(g.grad)}
+        ${g.adresa ? '<br><span class="cell-sub">' + escapeHtml(g.adresa) + '</span>' : ''}
+      </td>
+      <td>
+        ${g.broj ? '<span class="num">' + escapeHtml(g.broj) + '</span>' : '—'}
+        ${g.pasmina ? '<br><span class="cell-sub">' + escapeHtml(g.pasmina) + '</span>' : ''}
+      </td>
       <td>${formatDatum(g.danPosjete)}</td>
       <td>${formatDatum(g.danIducePosjete)}</td>
-      <td><span class="badge ${st}">${STATUS_LABEL[st]}</span>${g.lat ? '' : '<br><span style="font-size:10.5px;color:var(--ink-soft);">bez lokacije</span>'}</td>
+      <td><span class="badge ${st}">${STATUS_LABEL[st]}</span>${g.lat ? '' : '<br><span class="cell-sub">bez lokacije</span>'}</td>
       <td class="actions">
         <button class="small secondary" onclick="editGazdinstvo('${g.id}')">Uredi</button>
         <button class="small secondary" onclick="deleteGazdinstvo('${g.id}')">Obriši</button>
@@ -1258,7 +1469,9 @@ function renderGazdTable(){
 
   wrap.innerHTML = `<div class="table-wrap"><table>
     <thead><tr>
+      ${prikaziVrstu ? '<th>Vrsta</th>' : ''}
       <th>Gazdinstvo</th><th>Vlasnik</th><th>Grad / adresa</th>
+      <th>${aktivnaVrsta === 'pcelar' ? 'Košnice' : aktivnaVrsta === 'farma' ? 'Grla' : 'Grla / košnice'}</th>
       <th>Dan posjete</th><th>Iduća posjeta</th><th>Status</th><th class="actions">Radnje</th>
     </tr></thead>
     <tbody>${redovi}</tbody>
@@ -1266,18 +1479,24 @@ function renderGazdTable(){
 }
 
 function exportGazdinstva(){
-  const list = loadGazdinstva();
+  // Export exactly what's on screen, so a filtered view exports as a filtered list.
+  const list = filtriranaGazdinstva();
   if(!list.length){
     document.getElementById('gazdStatus').textContent = 'Nema unosa za izvoz.';
     return;
   }
-  const rows = [['Vrsta','Gazdinstvo','Vlasnik','Grad','Adresa','Dan posjete','Iduća posjeta','Status','Napomena']];
+  const cisto = s => String(s == null ? '' : s).replace(/[\r\n;]+/g,' ').trim();
+  const rows = [['Vrsta','Gazdinstvo','ID gazdinstva','Vlasnik','Telefon','Grad','Adresa',
+                 'Broj grla/košnica','Vrsta i pasmina','Dan posjete','Iduća posjeta',
+                 'Status','Napomena','Ostale činjenice']];
   for(const g of list){
     rows.push([
-      g.vrsta === 'farma' ? 'Farma' : 'Pčelar',
-      g.gazdinstvo, g.vlasnik, g.grad, g.adresa,
+      VRSTA_LABEL[g.vrsta] || '',
+      cisto(g.gazdinstvo), cisto(g.idGazdinstva), cisto(g.vlasnik), cisto(g.telefon),
+      cisto(g.grad), cisto(g.adresa), cisto(g.broj), cisto(g.pasmina),
       g.danPosjete || '', g.danIducePosjete || '',
-      STATUS_LABEL[statusOf(g)], (g.napomena || '').replace(/[\r\n;]+/g,' ')
+      STATUS_LABEL[statusOf(g)], cisto(g.napomena),
+      (g.dodatna || []).map(p => p.naziv + ': ' + p.vrijednost).map(cisto).join(' | ')
     ]);
   }
   const csv = rows.map(r => r.join(';')).join('\n');
@@ -1387,21 +1606,27 @@ function initMap(){
 
 function popupHtml(g){
   const st = statusOf(g);
+  const dodatna = (g.dodatna || []).filter(p => p.naziv || p.vrijednost);
   return `<b>${escapeHtml(g.gazdinstvo)}</b><br>
-    <span class="pop-row">${g.vrsta === 'farma' ? 'Farma' : 'Pčelar'} · ${escapeHtml(g.vlasnik)}</span><br>
+    <span class="pop-row">${VRSTA_LABEL[g.vrsta] || ''} · ${escapeHtml(g.vlasnik)}</span><br>
+    ${g.telefon ? '<span class="pop-row"><a href="tel:' + escapeHtml(g.telefon.replace(/\s+/g,'')) + '">' + escapeHtml(g.telefon) + '</a></span><br>' : ''}
     <span class="pop-row">${escapeHtml([g.adresa, g.grad].filter(Boolean).join(', '))}</span><br>
+    ${g.broj ? '<span class="pop-row">' + brojLabel(g.vrsta) + ': <b>' + escapeHtml(g.broj) + '</b>' + (g.pasmina ? ' · ' + escapeHtml(g.pasmina) : '') + '</span><br>' : ''}
     <span class="pop-row">Posjeta: ${formatDatum(g.danPosjete)} · Iduća: ${formatDatum(g.danIducePosjete)}</span><br>
     ${g.napomena ? '<span class="pop-row">' + escapeHtml(g.napomena) + '</span><br>' : ''}
+    ${dodatna.length ? '<span class="pop-row">' + dodatna.map(p => escapeHtml(p.naziv + ': ' + p.vrijednost)).join(' · ') + '</span><br>' : ''}
     <span class="badge ${st}" style="margin-top:6px;">${STATUS_LABEL[st]}</span>`;
 }
 
 function renderMap(){
   if(!mapa || !slojMarkera) return;
+  osvjeziGradove();
   slojMarkera.clearLayers();
 
   const filter = document.getElementById('mapFilter').value;
-  const svi = loadGazdinstva();
-  const vidljivi = svi.filter(g => filter === 'sve' || g.vrsta === filter);
+  const grad = document.getElementById('mapGradFilter').value;
+  const vidljivi = loadGazdinstva().filter(g =>
+    (filter === 'sve' || g.vrsta === filter) && (!grad || g.grad === grad));
   const saLokacijom = vidljivi.filter(g => g.lat && g.lng);
 
   for(const g of saLokacijom){
