@@ -28,11 +28,13 @@ Tab **Dnevnik izmjena** hronološki bilježi svaku radnju: ko se prijavio/odjavi
 Dnevnik se može pretraživati, filtrirati po korisniku, izvesti u CSV i odštampati. Uz to, svaki red u spisku gazdinstava i svaki marker na karti pokazuju „Unio: … / Izmijenio: …". Dnevnik čuva zadnjih 2000 zapisa.
 
 ## Tabovi u aplikaciji
-1. **Usporedba markica** — poređenje dva spiska ušnih markica (uvoz iz Excela ili Google Sheetsa, izvoz i štampa)
-2. **Gazdinstva** — evidencija farmi i pčelara (podtabovi **Farme**, **Pčelari**, **Sve**)
-3. **Karta korisnika usluga** — sva gazdinstva na mapi, obojena po statusu posjete
-4. **Dnevnik izmjena** — ko je šta unio, izmijenio ili obrisao
-5. **Korisnici** — dodavanje korisnika i PIN-ova (vidljivo samo administratoru)
+1. **Pregled** — prvi ekran nakon prijave: gazdinstva kojima je pregled istekao ili predstoji, po danima i gradovima
+2. **Markice** — poređenje dva spiska ušnih markica (uvoz iz Excela ili Google Sheetsa, izvoz i štampa)
+3. **Gazdinstva** — evidencija farmi i pčelara (podtabovi **Farme**, **Pčelari**, **Sve**)
+4. **Karta** — sva gazdinstva na mapi, obojena po statusu posjete
+5. **Posjete** — registar obavljenih posjeta po mjesecima i po korisniku
+6. **Dnevnik** — ko je šta unio, izmijenio ili obrisao
+7. **Postavke** — sigurnosna kopija podataka (svima), upravljanje korisnicima (samo administratoru)
 
 ## Gazdinstva (Farme / Pčelari / Sve)
 Za svako gazdinstvo se unosi:
@@ -40,7 +42,8 @@ Za svako gazdinstvo se unosi:
 - grad, adresa, ID gazdinstva (JIB)
 - **broj grla** (za farme) odnosno **broj košnica** (za pčelare) — polje samo mijenja naziv prema vrsti
 - vrsta i pasmina životinja (za pčelare: vrsta pčela / tip košnica)
-- dan posjete, dan iduće posjete, napomena
+- dan iduće posjete, napomena
+- **obavljene posjete** — dugme "Zabilježi posjetu" dodaje red sa datumom, kolegom koji je bio na terenu (opciono) i nalazom; gazdinstvo može imati koliko god posjeta, sve ostaju u historiji (ništa se ne briše/prepisuje)
 - **ostale činjenice** — vlastita polja gdje sam upišeš naziv i vrijednost (npr. "Nadmorska visina: 640 m"), koliko god ih treba po gazdinstvu
 
 Podtabovi **Farme**, **Pčelari** i **Sve** filtriraju spisak po vrsti; u pogledu "Sve" tabela dobija i kolonu Vrsta. Unosi se mogu uređivati, brisati, izvesti u CSV i štampati. Telefon je klikabilan — na mobitelu pokreće poziv.
@@ -71,6 +74,32 @@ Ako adresa nije pronađena, gazdinstvo se izlistava ispod karte pod "Bez lokacij
 **Marker se može uhvatiti i prevući** na tačnu lokaciju — ta pozicija se pamti i ostaje čak i ako kasnije izmijeniš adresu.
 
 Napomena: karta i traženje adresa zahtijevaju internet (učitavaju se mape sa OpenStreetMapa). Sve ostalo — unos, tabela, izvoz, štampa — radi i offline; već pronađene lokacije se pamte na uređaju.
+
+## Pregled (plan obilaska)
+Prvi tab nakon prijave. Grupiše gazdinstva u:
+- **Kasni** — rok za iduću posjetu je prošao
+- **Ove sedmice** — iduća posjeta u narednih 7 dana
+- **Naredne dvije sedmice** — u narednih 8–14 dana
+- **Bez zakazane posjete** — nikad posjećeno i ništa zakazano
+
+Dugme "Otvori" na svakom redu vodi pravo na uređivanje tog gazdinstva. "Štampaj plan obilaska" daje čist spisak za poneti na teren.
+
+## Posjete (registar po mjesecima)
+Sve posjete iz svih gazdinstava, sabrane na jedno mjesto i grupisane po mjesecu (najnoviji mjesec prvi). Za svaku posjetu se vidi gazdinstvo (kod koga), korisnik koji je bio, kolega (ako je bio s nekim), i nalaz.
+
+Filter po korisniku se **pri otvaranju tabа sam postavi na tebe** — svako prvo vidi svoj registar, a filter lako prebaciš na kolegu ili na "Svi korisnici" da vidiš sve zajedno. Ima i filter po mjesecu i pretragu kroz sve podatke. Izvoz u CSV i štampa poštuju trenutne filtere.
+
+## Postavke i sigurnosna kopija
+> ⚠️ **Najvažnije poglavlje ovog README-a.** Svi podaci (gazdinstva, posjete, korisnici, dnevnik) žive **samo u ovom pregledniku, na ovom uređaju**. Nema servera, nema sinhronizacije. Ako se uređaj pokvari, izgubi, ili neko obriše podatke preglednika (ili instalira aplikaciju iznova) — **sve nestaje bez mogućnosti povrata**, osim ako postoji kopija.
+
+Tab **Postavke** je dostupan svim korisnicima i sadrži:
+- **"Izvezi sve podatke"** — preuzima jedan `.json` fajl sa svime (gazdinstva, korisnici, dnevnik, liste, sačuvane lokacije). Radi ovo redovno — poslije svakog dana rada na terenu je razumno.
+- **"Uvezi iz kopije"** — vraća stanje iz takvog fajla. Traži potvrdu jer **briše sve trenutno na uređaju** prije nego što vrati podatke iz kopije. Ako se tvoj trenutni korisnik (po imenu) ne nalazi u vraćenoj kopiji, tražit će se ponovna prijava.
+- Ispod dugmadi piše koliko prostora podaci trenutno zauzimaju.
+
+Upravljanje korisnicima (dodavanje, PIN) ostaje u istom tabu, ali vidljivo samo administratoru — vidi poglavlje "Prijava i korisnici" gore.
+
+**Preporuka:** kopiju s vremena na vrijeme pošalji sebi mailom ili je sačuvaj na Google Drive / OneDrive, van samog uređaja. Ako više korisnika treba da dijeli iste podatke uživo (ne preko kopije), sljedeći korak je prava zajednička baza (npr. Supabase) — to je veći zahvat i radi se posebno, kad zatreba.
 
 ## Deploy na Netlify (najbrže)
 1. Idi na https://app.netlify.com/drop
