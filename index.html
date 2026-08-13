@@ -127,6 +127,23 @@
   }
   .install-bar button{background:var(--paper);color:var(--ink);border:none;}
 
+  .file-import{
+    display:flex;align-items:center;justify-content:space-between;gap:14px;
+    flex-wrap:wrap;
+    background:var(--paper-dim);
+    border:1px solid var(--line);
+    border-radius:3px;
+    padding:12px 16px;
+    margin-bottom:16px;
+  }
+  .file-import-text{
+    font-family:'Helvetica Neue',Arial,sans-serif;
+    display:flex;flex-direction:column;gap:2px;min-width:0;flex:1 1 260px;
+  }
+  .file-import-text strong{font-size:12.5px;color:var(--ink);}
+  .file-import-text span{font-size:11px;color:var(--ink-soft);line-height:1.5;}
+  input[type=file]#xlsxFile{display:none;}
+
   .cards{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
   @media (max-width:720px){ .cards{grid-template-columns:1fr;} }
 
@@ -301,7 +318,7 @@
 
   @media print{
     body{background:#fff;}
-    .install-bar, .cards, .actions-main, .status, .footer-note, .sheet-hint{display:none !important;}
+    .install-bar, .file-import, .cards, .actions-main, .status, .footer-note, .sheet-hint{display:none !important;}
     .wrap{max-width:100%;padding:0;}
     .seal{transform:none;}
     .tag.red{animation:none;}
@@ -340,6 +357,15 @@
     </div>
   </div>
   <div class="double-rule"></div>
+
+  <div class="file-import">
+    <div class="file-import-text">
+      <strong>Uvoz iz Excel fajla</strong>
+      <span>Učita obje liste odjednom iz tabova "Vakcinacija (Bruceloza)" i "Potvrda o Stanju Životinja" — ništa se ne šalje na internet, čita se direktno na uređaju.</span>
+    </div>
+    <input type="file" id="xlsxFile" accept=".xlsx" onchange="importFromXlsxFile(event)">
+    <button class="small" onclick="document.getElementById('xlsxFile').click()">Odaberi .xlsx fajl</button>
+  </div>
 
   <div class="cards">
     <div class="card">
@@ -530,6 +556,168 @@ function loadSaved(n){
     }
   }catch(e){
     document.getElementById('status').textContent = 'Nije moguće učitati.';
+  }
+}
+
+// ---------- Excel (.xlsx) local file import ----------
+// Minimal, dependency-free reader: unzips the .xlsx (a ZIP of XML parts) using
+// the browser's native DecompressionStream, then reads the OOXML spreadsheet
+// XML directly. Everything happens on-device; the file is never uploaded.
+const XLSX_SHEET_TARGETS = {
+  1: 'Vakcinacija (Bruceloza)',
+  2: 'Potvrda o Stanju Životinja'
+};
+
+async function readZipEntries(buffer){
+  const view = new DataView(buffer);
+  const bytes = new Uint8Array(buffer);
+  const maxCommentLen = 65557; // 22-byte EOCD record + max 65535-byte comment
+  const searchStart = Math.max(0, bytes.length - maxCommentLen);
+  let eocdOffset = -1;
+  for(let i = bytes.length - 22; i >= searchStart; i--){
+    if(view.getUint32(i, true) === 0x06054b50){ eocdOffset = i; break; }
+  }
+  if(eocdOffset === -1) throw new Error('Nije prepoznat ZIP/XLSX format.');
+
+  const cdEntryCount = view.getUint16(eocdOffset + 10, true);
+  const cdOffset = view.getUint32(eocdOffset + 16, true);
+
+  const entries = {};
+  let ptr = cdOffset;
+  for(let i = 0; i < cdEntryCount; i++){
+    if(view.getUint32(ptr, true) !== 0x02014b50) throw new Error('Neispravan ZIP zapis.');
+    const compMethod = view.getUint16(ptr + 10, true);
+    const compSize = view.getUint32(ptr + 20, true);
+    const nameLen = view.getUint16(ptr + 28, true);
+    const extraLen = view.getUint16(ptr + 30, true);
+    const commentLen = view.getUint16(ptr + 32, true);
+    const localHeaderOffset = view.getUint32(ptr + 42, true);
+    const name = new TextDecoder('utf-8').decode(bytes.subarray(ptr + 46, ptr + 46 + nameLen));
+    entries[name] = { compMethod, compSize, localHeaderOffset };
+    ptr += 46 + nameLen + extraLen + commentLen;
+  }
+
+  async function extract(name){
+    const entry = entries[name];
+    if(!entry) return null;
+    const lh = entry.localHeaderOffset;
+    if(view.getUint32(lh, true) !== 0x04034b50) throw new Error('Neispravno zaglavlje fajla u ZIP-u.');
+    const lNameLen = view.getUint16(lh + 26, true);
+    const lExtraLen = view.getUint16(lh + 28, true);
+    const dataStart = lh + 30 + lNameLen + lExtraLen;
+    const compData = bytes.subarray(dataStart, dataStart + entry.compSize);
+    if(entry.compMethod === 0) return compData;
+    if(entry.compMethod === 8){
+      const stream = new Blob([compData]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+      return new Uint8Array(await new Response(stream).arrayBuffer());
+    }
+    throw new Error('Nepodržana kompresija u ZIP fajlu.');
+  }
+
+  return { extract };
+}
+
+function bytesToXmlDoc(bytes){
+  if(!bytes) return null;
+  const text = new TextDecoder('utf-8').decode(bytes);
+  return new DOMParser().parseFromString(text, 'application/xml');
+}
+
+function parseSharedStrings(doc){
+  if(!doc) return [];
+  return [...doc.getElementsByTagName('si')].map(si =>
+    [...si.getElementsByTagName('t')].map(t => t.textContent).join('')
+  );
+}
+
+function parseWorkbookSheetList(doc){
+  return [...doc.getElementsByTagName('sheet')].map(s => ({
+    name: s.getAttribute('name'),
+    rId: s.getAttribute('r:id')
+  }));
+}
+
+function parseWorkbookRels(doc){
+  const map = {};
+  for(const r of doc.getElementsByTagName('Relationship')){
+    map[r.getAttribute('Id')] = r.getAttribute('Target');
+  }
+  return map;
+}
+
+function parseColumnBValues(doc, sharedStrings){
+  const out = [];
+  for(const c of doc.getElementsByTagName('c')){
+    const ref = c.getAttribute('r') || '';
+    if(!/^B\d+$/.test(ref)) continue;
+    const t = c.getAttribute('t');
+    const vNode = c.getElementsByTagName('v')[0];
+    let value = '';
+    if(t === 's' && vNode){
+      value = sharedStrings[parseInt(vNode.textContent, 10)] || '';
+    }else if(t === 'inlineStr'){
+      const isNode = c.getElementsByTagName('is')[0];
+      value = isNode ? [...isNode.getElementsByTagName('t')].map(t => t.textContent).join('') : '';
+    }else if(vNode){
+      value = vNode.textContent;
+    }
+    if(value) out.push(value);
+  }
+  return out;
+}
+
+async function extractSheetColumnB(zip, sheetName){
+  const workbookDoc = bytesToXmlDoc(await zip.extract('xl/workbook.xml'));
+  const relsDoc = bytesToXmlDoc(await zip.extract('xl/_rels/workbook.xml.rels'));
+  if(!workbookDoc || !relsDoc) throw new Error('Fajl ne izgleda kao ispravan .xlsx dokument.');
+
+  const target = parseWorkbookSheetList(workbookDoc)
+    .find(s => (s.name || '').trim().toLowerCase() === sheetName.trim().toLowerCase());
+  if(!target) return null;
+
+  const relTarget = parseWorkbookRels(relsDoc)[target.rId];
+  if(!relTarget) return null;
+  const sheetPath = 'xl/' + relTarget.replace(/^\.?\//, '');
+
+  const sheetDoc = bytesToXmlDoc(await zip.extract(sheetPath));
+  if(!sheetDoc) return null;
+
+  const sharedStrings = parseSharedStrings(bytesToXmlDoc(await zip.extract('xl/sharedStrings.xml')));
+  return parseColumnBValues(sheetDoc, sharedStrings);
+}
+
+async function importFromXlsxFile(event){
+  const status = document.getElementById('status');
+  const file = event.target.files[0];
+  event.target.value = '';
+  if(!file) return;
+
+  if(typeof DecompressionStream === 'undefined'){
+    status.textContent = 'Ovaj browser ne podržava direktno čitanje Excel fajla. Koristi noviju verziju Chrome/Edge/Safari, ili prekopiraj podatke ručno.';
+    return;
+  }
+
+  status.textContent = 'Učitavam iz ' + file.name + '...';
+  try{
+    const zip = await readZipEntries(await file.arrayBuffer());
+    const loaded = [];
+    for(const n of [1, 2]){
+      const values = await extractSheetColumnB(zip, XLSX_SHEET_TARGETS[n]);
+      if(values){
+        // normalize() is applied per cell (not on the joined blob) so a stray
+        // footer value on the next line can never merge into a real tag.
+        const tags = uniqueList(values.flatMap(v => normalize(v)));
+        document.getElementById('list' + n).value = tags.join('\n');
+        loaded.push('Lista ' + n);
+      }
+    }
+    updateCounts();
+    status.textContent = loaded.length
+      ? 'Učitano iz ' + file.name + ': ' + loaded.join(' i ') + '.'
+      : 'Nije pronađen nijedan od očekivanih tabova ("Vakcinacija (Bruceloza)", "Potvrda o Stanju Životinja") u fajlu ' + file.name + '.';
+  }catch(e){
+    console.error(e);
+    status.textContent = 'Nije uspjelo čitanje fajla ' + file.name + '. Provjeri da je ispravan .xlsx dokument.';
   }
 }
 

@@ -28,7 +28,16 @@ Kasnije, ako želiš stalniji domen, možeš napraviti besplatan Netlify nalog i
 ## Napomena o podacima
 Sačuvane liste (dugme "Sačuvaj obje liste") čuvaju se u localStorage **tog konkretnog browsera na tom uređaju** — ne sinhronizuju se automatski između mobitela i desktopa. Za to bi trebao pravi backend (npr. malu bazu), što mogu dodati naknadno ako zatrebaš.
 
-## Povezivanje sa Google Sheets
+## Uvoz iz Excel fajla (preporučeno)
+Dugme "Odaberi .xlsx fajl" (odmah ispod naslova) učitava obje liste odjednom iz jednog Excel dokumenta — direktno na uređaju, bez ikakvog slanja na internet ili servera.
+
+Aplikacija očekuje dokument sa dva taba tačno ovako nazvana:
+- **Vakcinacija (Bruceloza)** → Lista 1 (Popis identifikacionih oznaka)
+- **Potvrda o Stanju Životinja** → Lista 2 (Potvrda o stanju životinja)
+
+Iz svakog taba čita se kolona B (šifra/identifikacijski broj životinje); naslovni i "Ukupno evidencija" redovi se automatski ignorišu. Ako fajl ima drugačija imena tabova, uvoz za tu listu neće raditi — javi ako treba dodati još naziva ili prilagoditi kolonu.
+
+## Povezivanje sa Google Sheets (alternativa)
 Svaka lista ima polje "Link ka Google Sheets dokumentu" + dugme "Uvezi" — nalijepi link i aplikacija povuče sadržaj direktno iz dokumenta (prepoznaje brojeve markica isto kao i kod ručnog kopiranja).
 
 Uslov: dokument mora biti dijeljen kao **"Bilo ko sa linkom — može pregledati"** (Share → General access → Anyone with the link → Viewer). Radi i običan link iz adresne trake (npr. `.../edit?gid=123...`) — aplikacija ga sama pretvori u ispravan format za čitanje. Ako lista ima više tabova (sheets), uvozi se onaj tab koji je otvoren u linku (prema `gid` parametru).
