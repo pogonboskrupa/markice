@@ -698,7 +698,8 @@
   <div class="file-import">
     <input type="file" id="xlsxFile" accept=".xlsx" onchange="importFromXlsxFile(event)">
     <button class="small" onclick="document.getElementById('xlsxFile').click()">Uvezi .xlsx</button>
-    <span class="file-import-note">Učita obje liste iz jednog Excel fajla — čita se na uređaju, ništa se ne šalje na internet.</span>
+    <button class="small secondary" onclick="vratiUgradjeniFajl()">Vrati ugrađeni fajl</button>
+    <span class="file-import-note" id="izvorPodataka">Učita obje liste iz jednog Excel fajla — čita se na uređaju, ništa se ne šalje na internet.</span>
   </div>
 
   <div class="cards">
@@ -1232,6 +1233,24 @@ async function extractSheetColumnB(zip, sheetName){
   return parseColumnBValues(sheetDoc, sharedStrings);
 }
 
+// Popuni obje liste iz .xlsx sadržaja; vraća imena popunjenih listi.
+async function popuniListeIzXlsx(buffer){
+  const zip = await readZipEntries(buffer);
+  const loaded = [];
+  for(const n of [1, 2]){
+    const values = await extractSheetColumnB(zip, XLSX_SHEET_TARGETS[n]);
+    if(values){
+      // normalize() is applied per cell (not on the joined blob) so a stray
+      // footer value on the next line can never merge into a real tag.
+      const tags = uniqueList(values.flatMap(v => normalize(v)));
+      document.getElementById('list' + n).value = tags.join('\n');
+      loaded.push('Lista ' + n);
+    }
+  }
+  updateCounts();
+  return loaded;
+}
+
 async function importFromXlsxFile(event){
   const status = document.getElementById('status');
   const file = event.target.files[0];
@@ -1245,19 +1264,8 @@ async function importFromXlsxFile(event){
 
   status.textContent = 'Učitavam iz ' + file.name + '...';
   try{
-    const zip = await readZipEntries(await file.arrayBuffer());
-    const loaded = [];
-    for(const n of [1, 2]){
-      const values = await extractSheetColumnB(zip, XLSX_SHEET_TARGETS[n]);
-      if(values){
-        // normalize() is applied per cell (not on the joined blob) so a stray
-        // footer value on the next line can never merge into a real tag.
-        const tags = uniqueList(values.flatMap(v => normalize(v)));
-        document.getElementById('list' + n).value = tags.join('\n');
-        loaded.push('Lista ' + n);
-      }
-    }
-    updateCounts();
+    const loaded = await popuniListeIzXlsx(await file.arrayBuffer());
+    if(loaded.length) spremiListe(file.name, 'rucno');
     status.textContent = loaded.length
       ? 'Učitano iz ' + file.name + ': ' + loaded.join(' i ') + '.'
       : 'Nije pronađen nijedan od očekivanih tabova ("Vakcinacija (Bruceloza)", "Potvrda o Stanju Životinja") u fajlu ' + file.name + '.';
@@ -1309,6 +1317,86 @@ function restoreSheetLinks(){
     const saved = localStorage.getItem(SHEET_LINK_PREFIX + n);
     if(saved) document.getElementById('sheetLink'+n).value = saved;
   }
+}
+
+// ---------- automatsko učitavanje fajla iz aplikacije ----------
+// Fajl stoji uz aplikaciju (isti folder kao index.html), pa se učitava sam
+// pri pokretanju — sve dok korisnik ne uveze vlastiti fajl ili sam ne upiše
+// podatke. Tada se pamti njegov unos i on ima prednost pri sljedećem otvaranju.
+const UGRADJENI_XLSX = 'Potvrda o stanju grla.xlsx';
+const LISTE_KEY = 'markice:app:liste';
+
+// vrsta: 'auto' = fajl uz aplikaciju, 'rucno' = korisnikov unos ili njegov fajl.
+// Prati se odvojeno od imena, jer korisnik može uvesti fajl istog naziva.
+function spremiListe(izvor, vrsta){
+  localStorage.setItem(LISTE_KEY, JSON.stringify({
+    list1: document.getElementById('list1').value,
+    list2: document.getElementById('list2').value,
+    izvor,
+    vrsta: vrsta || 'rucno',
+    vrijeme: new Date().toISOString()
+  }));
+  prikaziIzvor();
+}
+
+function prikaziIzvor(){
+  const el = document.getElementById('izvorPodataka');
+  if(!el) return;
+  const spremljeno = loadJson(LISTE_KEY, null);
+  if(!spremljeno || !spremljeno.izvor){
+    el.textContent = 'Učita obje liste iz jednog Excel fajla — čita se na uređaju, ništa se ne šalje na internet.';
+    return;
+  }
+  const kada = new Date(spremljeno.vrijeme).toLocaleString('bs-BA');
+  el.textContent = spremljeno.vrsta === 'auto'
+    ? 'Automatski učitano iz "' + UGRADJENI_XLSX + '" (' + kada + ').'
+    : 'Izvor: ' + spremljeno.izvor + ' (' + kada + '). Dugme "Vrati ugrađeni fajl" vraća fajl koji dolazi uz aplikaciju.';
+}
+
+async function ucitajUgradjeniFajl(rucno){
+  const status = document.getElementById('status');
+  if(typeof DecompressionStream === 'undefined') return false;
+  if(rucno) status.textContent = 'Učitavam "' + UGRADJENI_XLSX + '"...';
+  try{
+    const res = await fetch(encodeURI('./' + UGRADJENI_XLSX));
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    const loaded = await popuniListeIzXlsx(await res.arrayBuffer());
+    if(!loaded.length) throw new Error('Očekivani tabovi nisu pronađeni.');
+    spremiListe(UGRADJENI_XLSX, 'auto');
+    status.textContent = 'Automatski učitano iz "' + UGRADJENI_XLSX + '": ' + loaded.join(' i ') + '.';
+    return true;
+  }catch(e){
+    console.warn('Ugrađeni fajl nije učitan:', e);
+    if(rucno) status.textContent = 'Nije moguće učitati "' + UGRADJENI_XLSX + '". Provjeri da je fajl uz aplikaciju.';
+    return false;
+  }
+}
+
+async function vratiUgradjeniFajl(){
+  if(!confirm('Vratiti podatke iz fajla "' + UGRADJENI_XLSX + '"? Trenutni sadržaj obje liste bit će zamijenjen.')) return;
+  localStorage.removeItem(LISTE_KEY);
+  await ucitajUgradjeniFajl(true);
+}
+
+// Ručno kucanje/lijepljenje takođe je "vlastiti unos" i pamti se.
+let spremiTajmer = null;
+function zapamtiRucniUnos(){
+  clearTimeout(spremiTajmer);
+  spremiTajmer = setTimeout(() => spremiListe('ručni unos', 'rucno'), 600);
+}
+document.getElementById('list1').addEventListener('input', zapamtiRucniUnos);
+document.getElementById('list2').addEventListener('input', zapamtiRucniUnos);
+
+async function pripremiListe(){
+  const spremljeno = loadJson(LISTE_KEY, null);
+  if(spremljeno && (spremljeno.list1 || spremljeno.list2)){
+    document.getElementById('list1').value = spremljeno.list1 || '';
+    document.getElementById('list2').value = spremljeno.list2 || '';
+    updateCounts();
+    prikaziIzvor();
+    return;
+  }
+  await ucitajUgradjeniFajl(false);
 }
 
 // ---------- print ----------
@@ -1529,6 +1617,7 @@ function pokreniAplikaciju(){
   showVrsta('farma');
   renderDnevnik();
   renderKorisnike();
+  pripremiListe();
 }
 
 // ---------- upravljanje korisnicima ----------

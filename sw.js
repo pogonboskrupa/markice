@@ -1,4 +1,4 @@
-const CACHE_NAME = 'markice-cache-v3';
+const CACHE_NAME = 'markice-cache-v4';
 const ASSETS = [
   './',
   './index.html',
@@ -6,7 +6,9 @@ const ASSETS = [
   './icons/icon-192.png',
   './icons/icon-512.png',
   './vendor/leaflet.js',
-  './vendor/leaflet.css'
+  './vendor/leaflet.css',
+  // Spisak koji se učitava sam pri pokretanju — keširan da radi i offline.
+  './Potvrda o stanju grla.xlsx'
 ];
 
 self.addEventListener('install', (event) => {

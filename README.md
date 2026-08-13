@@ -94,8 +94,17 @@ Kasnije, ako želiš stalniji domen, možeš napraviti besplatan Netlify nalog i
 ## Napomena o podacima
 Sačuvane liste (dugme "Sačuvaj obje liste") čuvaju se u localStorage **tog konkretnog browsera na tom uređaju** — ne sinhronizuju se automatski između mobitela i desktopa. Za to bi trebao pravi backend (npr. malu bazu), što mogu dodati naknadno ako zatrebaš.
 
-## Uvoz iz Excel fajla (preporučeno)
-Dugme "Odaberi .xlsx fajl" (odmah ispod naslova) učitava obje liste odjednom iz jednog Excel dokumenta — direktno na uređaju, bez ikakvog slanja na internet ili servera.
+## Automatsko učitavanje spiska
+Fajl **`Potvrda o stanju grla.xlsx`** stoji uz aplikaciju i **učitava se sam pri svakom pokretanju** — obje liste su popunjene čim se prijaviš, bez ijednog klika.
+
+Čim uvezeš vlastiti fajl ili sam nešto upišeš u liste, tvoj unos ima prednost: pamti se na uređaju i vraća se pri sljedećem otvaranju, a ugrađeni fajl ga više ne prepisuje. Dugme **"Vrati ugrađeni fajl"** vraća na fajl koji dolazi uz aplikaciju (traži potvrdu, jer briše trenutni sadržaj obje liste).
+
+Ispod dugmadi uvijek piše odakle su trenutni podaci i kada su učitani.
+
+Da ažuriraš ugrađeni spisak za sve korisnike, zamijeni `Potvrda o stanju grla.xlsx` u repozitoriju novim izvozom i ponovo deployaj.
+
+## Uvoz iz Excel fajla
+Dugme "Uvezi .xlsx" učitava obje liste odjednom iz jednog Excel dokumenta — direktno na uređaju, bez ikakvog slanja na internet ili servera.
 
 Aplikacija očekuje dokument sa dva taba tačno ovako nazvana:
 - **Vakcinacija (Bruceloza)** → Lista 1 (Popis identifikacionih oznaka)
