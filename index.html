@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="bs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Usporedba spiskova markica — Poljoprivredni zavod USK</title>
+<meta name="description" content="Uporedi dva spiska ušnih markica životinja — zeleno za podudarne, crveno za neusklađene.">
+<meta name="theme-color" content="#1f2a1f">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" href="icons/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Markice USK">
+<style>
+  :root{
+    --paper:#f7f3e8;
+    --paper-raised:#fffdf7;
+    --paper-dim:#efe7d2;
+    --ink:#1f2a1f;
+    --ink-soft:#5b6b52;
+    --line:#c9c0a0;
+    --line-strong:#9c9270;
+    --green:#2e6b3e;
+    --green-bg:#dcead9;
+    --green-line:#a9cba3;
+    --red:#b23a2e;
+    --red-bg:#f5ddd6;
+    --red-line:#e1b6ac;
+    --gold:#c8912f;
+  }
+  *{box-sizing:border-box;}
+  html{-webkit-text-size-adjust:100%;}
+  body{
+    margin:0;
+    font-family:'Iowan Old Style','Palatino Linotype','Georgia',serif;
+    color:var(--ink);
+    min-height:100vh;
+    background:
+      repeating-linear-gradient(0deg, rgba(31,42,31,0.025) 0px, rgba(31,42,31,0.025) 1px, transparent 1px, transparent 26px),
+      radial-gradient(1000px 500px at 8% -10%, #fffef9 0%, transparent 55%),
+      var(--paper);
+  }
+  .wrap{max-width:1020px;margin:0 auto;padding:20px 18px 60px;}
+
+  /* ---------- letterhead ---------- */
+  .letterhead{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:16px;
+    padding-bottom:14px;
+    margin-bottom:6px;
+    flex-wrap:wrap;
+  }
+  .letterhead-left{flex:1 1 320px;min-width:0;}
+  .eyebrow{
+    font-family:'Helvetica Neue',Arial,sans-serif;
+    font-size:10.5px;
+    letter-spacing:.22em;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+    font-weight:700;
+    margin:0 0 6px;
+  }
+  h1{
+    font-size:26px;
+    margin:0;
+    font-weight:600;
+    letter-spacing:-.01em;
+    line-height:1.15;
+  }
+  .sub{
+    font-family:'Helvetica Neue',Arial,sans-serif;
+    font-size:12.5px;
+    color:var(--ink-soft);
+    max-width:460px;
+    line-height:1.55;
+    margin:8px 0 0;
+  }
+  .seal{
+    flex:0 0 auto;
+    width:74px;
+    height:74px;
+    border-radius:50%;
+    border:1.5px dashed var(--gold);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    transform:rotate(-6deg);
+    position:relative;
+  }
+  .seal-inner{
+    width:58px;
+    height:58px;
+    border-radius:50%;
+    border:1px solid var(--gold);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    font-family:'Helvetica Neue',Arial,sans-serif;
+    color:var(--gold);
+  }
+  .seal-inner .k1{font-size:15px;font-weight:800;letter-spacing:.03em;line-height:1;}
+  .seal-inner .k2{font-size:6.5px;letter-spacing:.12em;margin-top:3px;text-transform:uppercase;}
+
+  .double-rule{
+    height:5px;
+    border-top:2px solid var(--ink);
+    border-bottom:1px solid var(--ink);
+    margin-bottom:22px;
+  }
+
+  .install-bar{
+    display:none;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    background:var(--ink);
+    color:var(--paper);
+    padding:10px 14px;
+    border-radius:2px;
+    margin-bottom:18px;
+    font-family:'Helvetica Neue',Arial,sans-serif;
+    font-size:13px;
+  }
+  .install-bar button{background:var(--paper);color:var(--ink);border:none;}
+
+  .cards{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  @media (max-width:720px){ .cards{grid-template-columns:1fr;} }
+
+  .card{
+    background:var(--paper-raised);
+    border:1px solid var(--line);
+    border-radius:3px;
+    padding:16px;
+    position:relative;
+    box-shadow:0 1px 0 rgba(31,42,31,0.04);
+  }
+  .card h2{
+    font-family:'Helvetica Neue',Arial,sans-serif;
+    font-size:12.5px;
+    text-transform:uppercase;
+    letter-spacing:.09em;
+    margin:0 0 4px;
+    color:var(--ink);
+    font-weight:700;
+  }
+  .card p.hint{
+    font-family:'Helvetica Neue',Arial,sans-serif;
+    font-size:11.5px;
+    color:var(--ink-soft);
+    margin:0 0 10px;
+  }
+  textarea{
+    width:100%;
+    min-height:150px;
+    resize:vertical;
+    font-family:'SFMono-Regular',Consolas,monospace;
+    font-size:13px;
+    padding:10px;
+    border:1px solid var(--line);
+    background:#fff;
+    border-radius:2px;
+    color:var(--ink);
+  }
+  textarea:focus{outline:2px solid var(--gold);outline-offset:1px;}
+
+  .row-actions{
+    display:flex;gap:8px;margin-top:8px;
+    font-family:'Helvetica Neue',Arial,sans-serif;
+    font-size:12px;align-items:center;flex-wrap:wrap;
+  }
+  .count-pill{
+    background:var(--paper-dim);
+    border:1px solid var(--line);
+    border-radius:20px;
+    padding:2px 10px;
+    color:var(--ink-soft);
+  }
+  button{
+    font-family:'Helvetica Neue',Arial,sans-serif;
+    font-size:13px;
+    border:1px solid var(--ink);
+    background:var(--ink);
+    color:var(--paper);
+    padding:9px 16px;
+    border-radius:2px;
+    cursor:pointer;
+    letter-spacing:.02em;
+  }
+  button:focus-visible{outline:2px solid var(--gold);outline-offset:2px;}
+  button.secondary{background:transparent;color:var(--ink);}
+  button.small{padding:5px 10px;font-size:11px;}
+
+  .actions-main{display:flex;justify-content:center;gap:12px;margin:22px 0 30px;flex-wrap:wrap;}
+
+  .summary{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px;}
+  @media (max-width:600px){ .summary{grid-template-columns:1fr;} }
+  .stat{
+    border:1px solid var(--line);
+    background:var(--paper-raised);
+    padding:14px 16px;
+    border-radius:3px;
+    text-align:center;
+  }
+  .stat .n{font-size:30px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums;}
+  .stat.match{border-color:var(--green-line);}
+  .stat.match .n{color:var(--green);}
+  .stat.mismatch{border-color:var(--red-line);}
+  .stat.mismatch .n{color:var(--red);}
+  .stat .l{
+    font-family:'Helvetica Neue',Arial,sans-serif;
+    font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;
+    color:var(--ink-soft);margin-top:4px;
+  }
+
+  .results{border:1px solid var(--line);background:var(--paper-raised);border-radius:3px;overflow:hidden;}
+  .results h3{
+    font-family:'Helvetica Neue',Arial,sans-serif;
+    font-size:11.5px;text-transform:uppercase;letter-spacing:.09em;
+    color:var(--ink-soft);margin:0;padding:11px 16px;
+    border-bottom:1px solid var(--line);
+    display:flex;justify-content:space-between;align-items:center;
+  }
+  .results h3 span{
+    font-family:'SFMono-Regular',Consolas,monospace;
+    color:var(--ink);font-weight:700;
+  }
+  .grid-tags{display:flex;flex-wrap:wrap;gap:7px;padding:14px 16px;}
+
+  /* ---------- signature element: literal ear-tag chips with punch hole ---------- */
+  .tag{
+    position:relative;
+    font-family:'SFMono-Regular',Consolas,monospace;
+    font-size:12px;
+    padding:5px 10px 5px 20px;
+    border-radius:4px;
+    border:1px solid transparent;
+    line-height:1.3;
+  }
+  .tag::before{
+    content:'';
+    position:absolute;
+    left:8px;top:50%;
+    width:5px;height:5px;
+    border-radius:50%;
+    transform:translateY(-50%);
+    background:var(--paper-raised);
+    box-shadow:0 0 0 1px currentColor;
+  }
+  .tag.green{background:var(--green-bg);color:var(--green);border-color:var(--green-line);}
+  .tag.red{
+    background:var(--red-bg);color:var(--red);border-color:var(--red-line);
+    animation:pulse 1.5s ease-in-out infinite;
+  }
+  @keyframes pulse{
+    0%,100%{box-shadow:0 0 0 0 rgba(178,58,46,.35);}
+    50%{box-shadow:0 0 0 4px rgba(178,58,46,0);}
+  }
+
+  .empty{
+    padding:24px 16px;text-align:center;color:var(--ink-soft);
+    font-family:'Helvetica Neue',Arial,sans-serif;font-size:13px;
+  }
+  .footer-note{
+    text-align:center;margin-top:26px;
+    font-family:'Helvetica Neue',Arial,sans-serif;font-size:11px;color:var(--ink-soft);
+    line-height:1.6;
+  }
+  .status{
+    font-family:'Helvetica Neue',Arial,sans-serif;font-size:11px;color:var(--ink-soft);
+    text-align:center;min-height:16px;margin-top:-14px;margin-bottom:18px;
+  }
+  select{
+    font-family:'Helvetica Neue',Arial,sans-serif;font-size:12px;
+    border:1px solid var(--line);background:#fff;padding:4px 8px;border-radius:2px;
+  }
+  @media (prefers-reduced-motion: reduce){
+    .tag.red{animation:none;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="install-bar" id="installBar">
+    <span>Instaliraj ovu aplikaciju na svoj uređaj za brži pristup.</span>
+    <button class="small" id="installBtn">Instaliraj</button>
+  </div>
+
+  <div class="letterhead">
+    <div class="letterhead-left">
+      <p class="eyebrow">Poljoprivredni zavod Unsko-sanskog kantona</p>
+      <h1>Usporedba spiskova ušnih markica</h1>
+      <p class="sub">Zalijepi brojeve markica iz oba dokumenta — Popis identifikacionih oznaka i Potvrda o stanju životinja — da vidiš gdje se evidencije podudaraju.</p>
+    </div>
+    <div class="seal" aria-hidden="true">
+      <div class="seal-inner">
+        <span class="k1">USK</span>
+        <span class="k2">Evidencija</span>
+      </div>
+    </div>
+  </div>
+  <div class="double-rule"></div>
+
+  <div class="cards">
+    <div class="card">
+      <h2>Lista 1 — Popis identifikacionih oznaka</h2>
+      <p class="hint">npr. BA 4201 184333 (jedan po redu, ili zalijepi cijelu kolonu)</p>
+      <textarea id="list1" placeholder="BA 4201 184333&#10;BA 4201 184546&#10;BA 4200 856612 ..."></textarea>
+      <div class="row-actions">
+        <span class="count-pill" id="count1">0 markica</span>
+        <button class="small secondary" onclick="clearList(1)">Obriši</button>
+        <select id="saved1" onchange="loadSaved(1)"><option value="">Učitaj sačuvano...</option></select>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Lista 2 — Potvrda o stanju životinja</h2>
+      <p class="hint">npr. BA4201385109 (jedan po redu, ili zalijepi cijelu kolonu)</p>
+      <textarea id="list2" placeholder="BA4201385109&#10;BA4201385110&#10;BA4200856558 ..."></textarea>
+      <div class="row-actions">
+        <span class="count-pill" id="count2">0 markica</span>
+        <button class="small secondary" onclick="clearList(2)">Obriši</button>
+        <select id="saved2" onchange="loadSaved(2)"><option value="">Učitaj sačuvano...</option></select>
+      </div>
+    </div>
+  </div>
+
+  <div class="actions-main">
+    <button onclick="compareLists()">Uporedi liste</button>
+    <button class="secondary" onclick="saveLists()">Sačuvaj obje liste</button>
+    <button class="secondary" onclick="exportMismatches()">Izvezi neusklađene (CSV)</button>
+  </div>
+  <div class="status" id="status"></div>
+
+  <div id="summaryWrap"></div>
+  <div id="resultsWrap"></div>
+
+  <p class="footer-note">Zeleno = markica postoji u obje liste · Crveno (treperi) = markica postoji samo u jednoj listi<br>Sačuvane liste ostaju dostupne na ovom uređaju i bez interneta.</p>
+</div>
+
+<script>
+// ---------- normalize & compare ----------
+function normalize(raw){
+  const text = raw.toUpperCase();
+  const matches = text.match(/BA\s*\d[\d\s]{5,15}\d/g) || [];
+  return matches.map(m => m.replace(/\s+/g,''));
+}
+function uniqueList(arr){ return [...new Set(arr)]; }
+
+function updateCounts(){
+  const l1 = uniqueList(normalize(document.getElementById('list1').value));
+  const l2 = uniqueList(normalize(document.getElementById('list2').value));
+  document.getElementById('count1').textContent = l1.length + ' markica';
+  document.getElementById('count2').textContent = l2.length + ' markica';
+}
+document.getElementById('list1').addEventListener('input', updateCounts);
+document.getElementById('list2').addEventListener('input', updateCounts);
+
+function clearList(n){
+  document.getElementById('list'+n).value = '';
+  updateCounts();
+}
+
+let lastCompare = null;
+
+function compareLists(){
+  const l1 = uniqueList(normalize(document.getElementById('list1').value));
+  const l2 = uniqueList(normalize(document.getElementById('list2').value));
+
+  if(l1.length === 0 && l2.length === 0){
+    document.getElementById('resultsWrap').innerHTML = '<div class="results"><div class="empty">Nema unesenih markica za poređenje.</div></div>';
+    document.getElementById('summaryWrap').innerHTML = '';
+    lastCompare = null;
+    return;
+  }
+
+  const set1 = new Set(l1);
+  const set2 = new Set(l2);
+
+  const matched = l1.filter(x => set2.has(x)).sort();
+  const onlyIn1 = l1.filter(x => !set2.has(x)).sort();
+  const onlyIn2 = l2.filter(x => !set1.has(x)).sort();
+  const mismatchTotal = onlyIn1.length + onlyIn2.length;
+
+  lastCompare = { matched, onlyIn1, onlyIn2 };
+
+  document.getElementById('summaryWrap').innerHTML = `
+    <div class="summary">
+      <div class="stat match"><div class="n">${matched.length}</div><div class="l">Podudara se</div></div>
+      <div class="stat mismatch"><div class="n">${mismatchTotal}</div><div class="l">Ne podudara se</div></div>
+      <div class="stat"><div class="n">${l1.length} / ${l2.length}</div><div class="l">Lista 1 / Lista 2 ukupno</div></div>
+    </div>
+  `;
+
+  const tagsHtml = (arr, cls) => arr.length
+    ? arr.map(x => `<span class="tag ${cls}">${x}</span>`).join('')
+    : '<span style="font-family:Helvetica Neue,Arial,sans-serif;font-size:12px;color:var(--ink-soft);">— nema —</span>';
+
+  document.getElementById('resultsWrap').innerHTML = `
+    <div class="results" style="margin-bottom:16px;">
+      <h3>Podudarne markice (u obje liste) <span>${matched.length}</span></h3>
+      <div class="grid-tags">${tagsHtml(matched,'green')}</div>
+    </div>
+    <div class="results" style="margin-bottom:16px;">
+      <h3>Samo u Listi 1 (nedostaje u Listi 2) <span>${onlyIn1.length}</span></h3>
+      <div class="grid-tags">${tagsHtml(onlyIn1,'red')}</div>
+    </div>
+    <div class="results">
+      <h3>Samo u Listi 2 (nedostaje u Listi 1) <span>${onlyIn2.length}</span></h3>
+      <div class="grid-tags">${tagsHtml(onlyIn2,'red')}</div>
+    </div>
+  `;
+}
+
+function exportMismatches(){
+  if(!lastCompare){ document.getElementById('status').textContent = 'Prvo uporedi liste.'; return; }
+  const rows = [['Markica','Status']];
+  lastCompare.onlyIn1.forEach(t => rows.push([t, 'Samo u Listi 1']));
+  lastCompare.onlyIn2.forEach(t => rows.push([t, 'Samo u Listi 2']));
+  const csv = rows.map(r => r.join(';')).join('\n');
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'neuskladjene-markice.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ---------- persistence (localStorage) ----------
+const STORAGE_PREFIX = 'markice:';
+
+function saveLists(){
+  const status = document.getElementById('status');
+  const name = prompt('Naziv za ovu usporedbu (npr. datum ili GJ):', new Date().toLocaleDateString('bs-BA'));
+  if(!name) return;
+  try{
+    const payload = {
+      list1: document.getElementById('list1').value,
+      list2: document.getElementById('list2').value,
+      savedAt: new Date().toISOString()
+    };
+    localStorage.setItem(STORAGE_PREFIX + name, JSON.stringify(payload));
+    status.textContent = 'Sačuvano kao "' + name + '"';
+    refreshSavedOptions();
+  }catch(e){
+    status.textContent = 'Greška pri čuvanju.';
+    console.error(e);
+  }
+}
+
+function refreshSavedOptions(){
+  const names = [];
+  for(let i=0;i<localStorage.length;i++){
+    const key = localStorage.key(i);
+    if(key && key.startsWith(STORAGE_PREFIX)) names.push(key.slice(STORAGE_PREFIX.length));
+  }
+  names.sort();
+  for(const sel of [document.getElementById('saved1'), document.getElementById('saved2')]){
+    const current = sel.value;
+    sel.innerHTML = '<option value="">Učitaj sačuvano...</option>' +
+      names.map(n => `<option value="${n}">${n}</option>`).join('');
+    sel.value = current;
+  }
+}
+
+function loadSaved(n){
+  const sel = document.getElementById('saved'+n);
+  const name = sel.value;
+  if(!name) return;
+  try{
+    const raw = localStorage.getItem(STORAGE_PREFIX + name);
+    if(raw){
+      const data = JSON.parse(raw);
+      document.getElementById('list1').value = data.list1 || '';
+      document.getElementById('list2').value = data.list2 || '';
+      updateCounts();
+      document.getElementById('status').textContent = 'Učitano: ' + name;
+    }
+  }catch(e){
+    document.getElementById('status').textContent = 'Nije moguće učitati.';
+  }
+}
+
+refreshSavedOptions();
+updateCounts();
+
+// ---------- PWA install prompt ----------
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  document.getElementById('installBar').style.display = 'flex';
+});
+document.getElementById('installBtn').addEventListener('click', async () => {
+  if(!deferredPrompt) return;
+  deferredPrompt.prompt();
+  await deferredPrompt.userChoice;
+  deferredPrompt = null;
+  document.getElementById('installBar').style.display = 'none';
+});
+window.addEventListener('appinstalled', () => {
+  document.getElementById('installBar').style.display = 'none';
+});
+
+// ---------- register service worker ----------
+if('serviceWorker' in navigator){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(err => console.warn('SW registration failed', err));
+  });
+}
+</script>
+</body>
+</html>
