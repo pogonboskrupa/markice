@@ -570,10 +570,12 @@ async function importFromSheets(n){
   }
 }
 
+const DEFAULT_SHEET_LINK = 'https://docs.google.com/spreadsheets/d/1nr0-mVj9CnRhBVzT_RUoTgfTrWlZpB920LPvVjOyPDY/edit?usp=drivesdk';
+
 function restoreSheetLinks(){
   for(const n of [1,2]){
     const saved = localStorage.getItem(SHEET_LINK_PREFIX + n);
-    if(saved) document.getElementById('sheetLink'+n).value = saved;
+    document.getElementById('sheetLink'+n).value = saved || DEFAULT_SHEET_LINK;
   }
 }
 
