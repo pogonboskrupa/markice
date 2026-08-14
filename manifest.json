@@ -1,6 +1,7 @@
 {
   "name": "Usporedba spiskova markica — Poljoprivredni zavod USK",
   "short_name": "Markice USK",
+  "version": "1.1",
   "description": "Usporedba spiskova ušnih markica, evidencija gazdinstava (farme i pčelari) i karta korisnika usluga.",
   "start_url": "./index.html",
   "scope": "./",

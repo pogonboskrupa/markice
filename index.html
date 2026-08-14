@@ -778,6 +778,7 @@
     </form>
     <p class="login-greska" id="loginGreska"></p>
     <p class="login-nota">Prijava služi da se zna ko je unio ili izmijenio koji podatak. Podaci ostaju na ovom uređaju.</p>
+    <p id="verzijaLogin" style="font-family:'Helvetica Neue',Arial,sans-serif;font-size:10px;color:var(--ink-soft);opacity:.6;margin:6px 0 0;border:none;padding:0;"></p>
   </div>
 </div>
 
@@ -789,7 +790,7 @@
       <span class="brand-mark" aria-hidden="true">USK</span>
       <span class="brand-text">
         <b>Poljoprivredni zavod USK</b>
-        <span>Poljoprivredni zavod Unsko-sanskog kantona</span>
+        <span>Poljoprivredni zavod Unsko-sanskog kantona · <span id="verzijaTopbar"></span></span>
       </span>
     </div>
     <div class="topbar-user">
@@ -1128,6 +1129,7 @@
         <span class="count-pill" id="kopijaStatus"></span>
       </div>
       <p class="hint" id="zauzeceInfo" style="margin-top:12px;"></p>
+      <p class="hint" style="margin-top:4px;">Verzija aplikacije: <span id="verzijaPostavke"></span></p>
     </div>
 
     <div class="card" id="korisniciSekcija" hidden>
@@ -1169,6 +1171,16 @@
 </div>
 
 <script>
+// ---------- verzija aplikacije ----------
+// Jedino mjesto gdje se broj verzije mijenja — prikazuje se u topbaru,
+// na prijavi i u Postavkama, i mora biti usklađen sa CACHE_NAME u sw.js
+// (nova verzija = novi CACHE_NAME = preglednik povuče svježe fajlove).
+const APP_VERZIJA = '1.1';
+for(const id of ['verzijaTopbar', 'verzijaLogin', 'verzijaPostavke']){
+  const el = document.getElementById(id);
+  if(el) el.textContent = 'v' + APP_VERZIJA;
+}
+
 // ---------- normalize & compare ----------
 function normalize(raw){
   const text = raw.toUpperCase();
