@@ -78,6 +78,11 @@ Ako adresa nije pronađena, gazdinstvo se izlistava ispod karte pod "Bez lokacij
 
 Napomena: karta i traženje adresa zahtijevaju internet (učitavaju se mape sa OpenStreetMapa). Sve ostalo — unos, tabela, izvoz, štampa — radi i offline; već pronađene lokacije se pamte na uređaju.
 
+### Ruta obilaska
+Dugme **"Napravi rutu obilaska"** poređa trenutno prikazana gazdinstva (poštuje filtere po vrsti i gradu) po principu "najbliži sljedeći" — počevši od tvoje trenutne lokacije (ako preglednik dozvoli pristup) ili, ako ne, od prvog gazdinstva na spisku. Markeri na karti dobiju brojeve umjesto slova, poveže ih isprekidana linija, a ispod karte se ispiše spisak zaustavljanja po redoslijedu (sa klikabilnom adresom i dugmetom "Otvori" za svaki unos).
+
+Klik na "Otvori" ne prekida rutu — možeš pogledati ili urediti gazdinstvo i vratiti se na kartu, ruta ostaje. Promjena filtera po vrsti/gradu, dodavanje/brisanje gazdinstva ili traženje lokacija poništi trenutnu rutu (jer se spisak zaustavljanja promijenio) — dugme "Ukloni rutu" je isto uvijek dostupno za ručno poništavanje. "Štampaj rutu" daje čist spisak za poneti na teren.
+
 ## Pregled (plan obilaska)
 Prvi tab nakon prijave. Grupiše gazdinstva u:
 - **Kasni** — rok za iduću posjetu je prošao

@@ -2,7 +2,6 @@
 
 ## Planirano, još nije urađeno
 
-- **Ruta obilaska na karti** — numerisan/optimalan redoslijed posjeta za dati dan, direktno na karti.
 - **Zajednička baza podataka** (npr. Supabase) — trenutno svaki korisnik ima svoje odvojene podatke na svom uređaju (vidi napomenu ispod). Prava zajednička baza bi omogućila da svi vide iste podatke uživo, umjesto ručnog izvoza/uvoza sigurnosne kopije.
 
 ## Nedavno urađeno
@@ -10,6 +9,7 @@
 - **Povezivanje markica sa gazdinstvom** — pretraga markice po broju (tab Markice) i klikabilni rezultati poređenja odmah pokazuju kojem gazdinstvu markica pripada.
 - **Fotografije sa terena** — dodavanje fotografija uz gazdinstvo (automatski smanjene radi uštede prostora), sa sličicom u tabeli, na karti i u obrascu.
 - **Pravi .xlsx izvoz** — svi izvozi (gazdinstva, dnevnik, registar posjeta, neusklađene markice) sada daju pravi Excel dokument umjesto CSV-a.
+- **Ruta obilaska na karti** — dugme "Napravi rutu obilaska" poređa prikazana gazdinstva po najbližem susjedu (od tvoje lokacije ili od prvog gazdinstva), sa numerisanim markerima, linijom obilaska i spiskom zaustavljanja za štampu.
 
 ## Kako sistem radi — važno da se zna
 

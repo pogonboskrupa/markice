@@ -1053,8 +1053,11 @@
         <option value="">Svi gradovi</option>
       </select>
       <button class="small secondary" onclick="lociranjeSvih()" id="lociranjeBtn">Pronađi lokacije koje nedostaju</button>
+      <button class="small secondary" onclick="napraviRutu()" id="rutaBtn">Napravi rutu obilaska</button>
+      <button class="small secondary" onclick="ukloniRutu()" id="ukloniRutuBtn" style="display:none;">Ukloni rutu</button>
       <span class="count-pill" id="mapStatus"></span>
     </div>
+    <p class="stoka-hint" style="margin:6px 0 14px;">Ruta ređa trenutno prikazana gazdinstva po najbližem susjedu, počevši od tvoje lokacije (ako dozvoliš pristup) ili od prvog gazdinstva na spisku.</p>
 
     <div id="map"></div>
 
@@ -1062,10 +1065,11 @@
       <span class="key"><span class="swatch ok"></span> Obavljen pregled</span>
       <span class="key"><span class="swatch soon"></span> Pregled uskoro (do 14 dana)</span>
       <span class="key"><span class="swatch due"></span> Treba otići u pregled</span>
-      <span class="key"><b>F</b> = farma · <b>P</b> = pčelar</span>
+      <span class="key"><b>F</b> = farma · <b>P</b> = pčelar · brojevi = redoslijed rute</span>
     </div>
 
     <div id="bezLokacije"></div>
+    <div id="rutaWrap"></div>
 
   </section>
 
@@ -3320,6 +3324,9 @@ async function lociranjeSvih(){
 // ---------- map ----------
 let mapa = null;
 let slojMarkera = null;
+let slojRute = null;
+let rutaAktivna = false;
+let trenutniPinovi = [];
 
 function initMap(){
   if(typeof L === 'undefined'){
@@ -3337,7 +3344,10 @@ function initMap(){
   }
   // The container had no size while its tab was hidden, so Leaflet needs a nudge.
   setTimeout(() => mapa.invalidateSize(), 0);
-  renderMap();
+  // Simply revisiting the tab shouldn't throw away an active route (e.g. after
+  // tapping "Otvori" on a stop to check details and coming back) — only actual
+  // data/filter changes should invalidate it, and those call renderMap() directly.
+  if(!rutaAktivna) renderMap();
 }
 
 function popupHtml(g){
@@ -3359,12 +3369,14 @@ function renderMap(){
   if(!mapa || !slojMarkera) return;
   osvjeziGradove();
   slojMarkera.clearLayers();
+  if(rutaAktivna) resetRutaPrikaz();
 
   const filter = document.getElementById('mapFilter').value;
   const grad = document.getElementById('mapGradFilter').value;
   const vidljivi = loadGazdinstva().filter(g =>
     (filter === 'sve' || g.vrsta === filter) && (!grad || g.grad === grad));
   const saLokacijom = vidljivi.filter(g => g.lat && g.lng);
+  trenutniPinovi = saLokacijom;
 
   for(const g of saLokacijom){
     const st = statusOf(g);
@@ -3416,6 +3428,130 @@ function renderMap(){
   if(!status.textContent || status.textContent.startsWith('Prikazano')){
     status.textContent = 'Prikazano ' + saLokacijom.length + ' od ' + vidljivi.length;
   }
+}
+
+// ---------- ruta obilaska ----------
+function haversineKm(a, b){
+  const R = 6371;
+  const dLat = (b[0] - a[0]) * Math.PI / 180;
+  const dLng = (b[1] - a[1]) * Math.PI / 180;
+  const s1 = Math.sin(dLat / 2), s2 = Math.sin(dLng / 2);
+  const h = s1 * s1 + Math.cos(a[0] * Math.PI / 180) * Math.cos(b[0] * Math.PI / 180) * s2 * s2;
+  return 2 * R * Math.asin(Math.min(1, Math.sqrt(h)));
+}
+
+// Greedy nearest-neighbor ordering — good enough for a handful of daily stops,
+// no need for a true TSP solver here.
+function redoslijedRute(pocetak, tacke){
+  const preostale = tacke.slice();
+  const redoslijed = [];
+  let trenutna = pocetak;
+  while(preostale.length){
+    let najblizi = 0, najmanja = Infinity;
+    for(let i = 0; i < preostale.length; i++){
+      const d = haversineKm(trenutna, [preostale[i].lat, preostale[i].lng]);
+      if(d < najmanja){ najmanja = d; najblizi = i; }
+    }
+    const [sljedeca] = preostale.splice(najblizi, 1);
+    redoslijed.push(sljedeca);
+    trenutna = [sljedeca.lat, sljedeca.lng];
+  }
+  return redoslijed;
+}
+
+function dohvatiLokaciju(){
+  return new Promise(resolve => {
+    if(!navigator.geolocation){ resolve(null); return; }
+    navigator.geolocation.getCurrentPosition(
+      pos => resolve([pos.coords.latitude, pos.coords.longitude]),
+      () => resolve(null),
+      {timeout: 6000}
+    );
+  });
+}
+
+async function napraviRutu(){
+  const status = document.getElementById('mapStatus');
+  if(!trenutniPinovi.length){
+    status.textContent = 'Nema gazdinstava sa lokacijom za rutu — dodaj adresu ili promijeni filter.';
+    return;
+  }
+  const btn = document.getElementById('rutaBtn');
+  btn.disabled = true;
+  status.textContent = 'Tražim tvoju lokaciju...';
+
+  const mojaLokacija = await dohvatiLokaciju();
+  const pocetak = mojaLokacija || [trenutniPinovi[0].lat, trenutniPinovi[0].lng];
+  const redoslijed = redoslijedRute(pocetak, trenutniPinovi);
+
+  crtajRutu(redoslijed, pocetak);
+  status.textContent = (mojaLokacija ? 'Ruta od tvoje lokacije: ' : 'Ruta od "' + escapeHtml(trenutniPinovi[0].gazdinstvo) + '": ')
+    + redoslijed.length + (redoslijed.length === 1 ? ' stanica.' : ' stanica.');
+  btn.disabled = false;
+}
+
+function crtajRutu(redoslijed, pocetak){
+  rutaAktivna = true;
+  slojMarkera.clearLayers();
+  if(!slojRute) slojRute = L.layerGroup().addTo(mapa);
+  slojRute.clearLayers();
+
+  const linija = [pocetak, ...redoslijed.map(g => [g.lat, g.lng])];
+  L.polyline(linija, {color:'#8a6516', weight:3, dashArray:'6 6', opacity:.85}).addTo(slojRute);
+
+  redoslijed.forEach((g, i) => {
+    const st = statusOf(g);
+    const icon = L.divIcon({
+      className: '',
+      html: `<div class="pin ${st}"><b>${i + 1}</b></div>`,
+      iconSize: [24, 24],
+      iconAnchor: [12, 24],
+      popupAnchor: [0, -22]
+    });
+    L.marker([g.lat, g.lng], {icon, title: g.gazdinstvo})
+      .bindPopup(popupHtml(g))
+      .addTo(slojRute);
+  });
+
+  mapa.fitBounds(L.latLngBounds(linija).pad(0.2), {maxZoom: 13});
+  renderRutaLista(redoslijed);
+  document.getElementById('ukloniRutuBtn').style.display = '';
+}
+
+function resetRutaPrikaz(){
+  rutaAktivna = false;
+  if(slojRute) slojRute.clearLayers();
+  const wrap = document.getElementById('rutaWrap');
+  if(wrap) wrap.innerHTML = '';
+  const btn = document.getElementById('ukloniRutuBtn');
+  if(btn) btn.style.display = 'none';
+}
+
+function ukloniRutu(){
+  resetRutaPrikaz();
+  renderMap();
+}
+
+function renderRutaLista(redoslijed){
+  const wrap = document.getElementById('rutaWrap');
+  wrap.innerHTML = `
+    <div class="results" style="margin-top:14px;">
+      <h3>Redoslijed obilaska <span>${redoslijed.length}</span></h3>
+      <div class="table-wrap"><table>
+        <thead><tr><th></th><th>Gazdinstvo</th><th>Vlasnik</th><th>Grad / adresa</th><th class="actions"></th></tr></thead>
+        <tbody>${redoslijed.map((g, i) => `
+        <tr>
+          <td style="white-space:nowrap;"><b>${i + 1}.</b></td>
+          <td><b>${escapeHtml(g.gazdinstvo)}</b><br><span class="cell-sub">${VRSTA_LABEL[g.vrsta] || ''}</span></td>
+          <td>${escapeHtml(g.vlasnik)}${g.telefon ? '<br><span class="cell-sub"><a href="tel:' + escapeHtml(g.telefon.replace(/\s+/g, '')) + '">' + escapeHtml(g.telefon) + '</a></span>' : ''}</td>
+          <td>${adresaHtml(g, escapeHtml(g.grad) + (g.adresa ? '<br><span class="cell-sub">' + escapeHtml(g.adresa) + '</span>' : ''))}</td>
+          <td class="actions"><button class="small secondary" onclick="otvoriGazdinstvo('${g.id}')">Otvori</button></td>
+        </tr>`).join('')}</tbody>
+      </table></div>
+      <div class="row-actions" style="margin-top:12px;">
+        <button class="small secondary" onclick="window.print()">Štampaj rutu</button>
+      </div>
+    </div>`;
 }
 
 // ---------- start: login first ----------
