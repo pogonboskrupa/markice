@@ -140,7 +140,7 @@
     font-size:11px;color:var(--ink-soft);line-height:1.5;
     flex:1 1 220px;min-width:0;
   }
-  input[type=file]#xlsxFile{display:none;}
+  input[type=file]#xlsxFile, input[type=file]#fotoInput{display:none;}
 
   .cards{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
   @media (max-width:720px){ .cards{grid-template-columns:1fr;} }
@@ -615,6 +615,27 @@
   }
   .stoka-hint{font-size:10px;color:var(--ink-soft);margin:2px 0 0;}
 
+  .foto-galerija{
+    display:flex;flex-wrap:wrap;gap:8px;
+    margin-top:10px;
+  }
+  .foto-galerija:empty{margin-top:0;}
+  .foto-stavka{position:relative;}
+  .foto-stavka img{
+    width:76px;height:76px;object-fit:cover;
+    border:1px solid var(--line);border-radius:3px;display:block;
+  }
+  .foto-stavka button{
+    position:absolute;top:-7px;right:-7px;
+    width:20px;height:20px;padding:0;line-height:1;
+    font-size:12px;border-radius:50%;
+  }
+  .foto-mini{
+    width:26px;height:26px;object-fit:cover;
+    border:1px solid var(--line);border-radius:3px;
+    vertical-align:middle;margin-right:6px;
+  }
+
   .cell-sub{font-size:11px;color:var(--ink-soft);}
   .cell-sub a{color:var(--ink-soft);}
   a.adresa-link{color:inherit;text-decoration:none;border-bottom:1px dotted var(--line-strong);}
@@ -713,6 +734,7 @@
     .seal{transform:none;}
     .tag.red{animation:none;}
     .results, .stat, .card{box-shadow:none;}
+    .foto-mini, .foto-galerija{display:none !important;}
     .results{break-inside:avoid;}
     .tab-panel{padding-top:0;}
     .table-wrap{overflow:visible;}
@@ -972,6 +994,13 @@
           <div class="field wide">
             <label for="gNapomena">Napomena</label>
             <textarea id="gNapomena" placeholder="Kratka bilješka o gazdinstvu, zapažanjima sa terena..."></textarea>
+          </div>
+          <div class="field wide">
+            <label>Fotografije sa terena</label>
+            <input type="file" id="fotoInput" accept="image/*" multiple capture="environment" onchange="dodajFotografije(event)">
+            <button type="button" class="small secondary" style="align-self:flex-start;" onclick="document.getElementById('fotoInput').click()">+ Dodaj fotografiju</button>
+            <div id="fotoGalerija" class="foto-galerija"></div>
+            <p class="stoka-hint" id="fotoStatus"></p>
           </div>
           <div class="field wide">
             <label>Ostale činjenice</label>
@@ -1730,6 +1759,12 @@ function opisIzmjena(staro, novo){
   if(novePosjete > starePosjete) promjene.push('Zabilježena posjeta (' + novePosjete + ' ukupno)');
   else if(novePosjete < starePosjete) promjene.push('Uklonjena posjeta (' + novePosjete + ' ukupno)');
   else if(JSON.stringify(staro.posjete || []) !== JSON.stringify(novo.posjete || [])) promjene.push('Posjete izmijenjene');
+
+  // Poredi broj fotografija (ne sadržaj — data URI su preveliki za dnevnik).
+  const stareFoto = (staro.fotografije || []).length;
+  const noveFoto = (novo.fotografije || []).length;
+  if(noveFoto !== stareFoto) promjene.push('Fotografije: ' + stareFoto + ' → ' + noveFoto);
+
   return promjene.join('; ');
 }
 
@@ -2523,6 +2558,90 @@ function stokaCelijaHtml(g){
   }).join('');
 }
 
+// ---------- fotografije sa terena ----------
+// Fotografije se čuvaju kao komprimovan JPEG (data URI) direktno u localStorage
+// — nema servera, pa je bitno da svaka slika bude mala. Smanjuje se na najviše
+// 1000px po dužoj stranici prije čuvanja.
+const FOTO_MAX_DIMENZIJA = 1000;
+const FOTO_KVALITET = 0.7;
+let trenutneFotografije = [];
+
+function ucitajSliku(file){
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Neispravna slika: ' + file.name)); };
+    img.src = url;
+  });
+}
+
+async function smanjiSliku(file){
+  const img = await ucitajSliku(file);
+  let { width, height } = img;
+  if(width > FOTO_MAX_DIMENZIJA || height > FOTO_MAX_DIMENZIJA){
+    if(width >= height){ height = Math.round(height * FOTO_MAX_DIMENZIJA / width); width = FOTO_MAX_DIMENZIJA; }
+    else{ width = Math.round(width * FOTO_MAX_DIMENZIJA / height); height = FOTO_MAX_DIMENZIJA; }
+  }
+  const canvas = document.createElement('canvas');
+  canvas.width = width; canvas.height = height;
+  canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+  return canvas.toDataURL('image/jpeg', FOTO_KVALITET);
+}
+
+async function dodajFotografije(event){
+  const fajlovi = [...event.target.files];
+  event.target.value = '';
+  if(!fajlovi.length) return;
+
+  const status = document.getElementById('fotoStatus');
+  let dodano = 0;
+  for(let i = 0; i < fajlovi.length; i++){
+    const file = fajlovi[i];
+    if(!file.type.startsWith('image/')){
+      status.textContent = file.name + ' nije slika, preskočeno.';
+      continue;
+    }
+    status.textContent = 'Obrađujem fotografiju ' + (i + 1) + '/' + fajlovi.length + '...';
+    try{
+      const dataUrl = await smanjiSliku(file);
+      trenutneFotografije.push({
+        dataUrl,
+        dodao: trenutniKorisnik ? trenutniKorisnik.ime : '',
+        kada: new Date().toISOString()
+      });
+      dodano++;
+    }catch(e){
+      console.warn(e);
+      status.textContent = 'Nije uspjelo učitavanje fotografije ' + file.name + '.';
+    }
+  }
+  renderFotoGalerija();
+  if(dodano) status.textContent = 'Dodano ' + dodano + (dodano === 1 ? ' fotografija.' : ' fotografija/e.');
+}
+
+function ukloniFotografiju(index){
+  trenutneFotografije.splice(index, 1);
+  renderFotoGalerija();
+}
+
+function renderFotoGalerija(){
+  const wrap = document.getElementById('fotoGalerija');
+  wrap.innerHTML = trenutneFotografije.map((f, i) => `
+    <div class="foto-stavka">
+      <a href="${f.dataUrl}" target="_blank" rel="noopener"><img src="${f.dataUrl}" alt=""></a>
+      <button type="button" class="small secondary" title="Ukloni fotografiju" onclick="ukloniFotografiju(${i})">×</button>
+    </div>`).join('');
+}
+
+function fotoCelijaHtml(g){
+  const foto = g.fotografije || [];
+  if(!foto.length) return '';
+  return '<a href="' + foto[0].dataUrl + '" target="_blank" rel="noopener" title="' + foto.length + (foto.length === 1 ? ' fotografija' : ' fotografije/a') + ' — otvori">' +
+    '<img class="foto-mini" src="' + foto[0].dataUrl + '" alt=""></a>' +
+    (foto.length > 1 ? '<span class="cell-sub"> +' + (foto.length - 1) + '</span>' : '');
+}
+
 // ---------- custom fields ("ostale činjenice") ----------
 function dodajPolje(naziv = '', vrijednost = ''){
   const red = document.createElement('div');
@@ -2685,6 +2804,9 @@ function resetGazdForm(){
   document.getElementById('dodatnaPolja').innerHTML = '';
   document.getElementById('posjeteLista').innerHTML = '';
   document.getElementById('stokaLista').innerHTML = '';
+  trenutneFotografije = [];
+  renderFotoGalerija();
+  document.getElementById('fotoStatus').textContent = '';
   document.getElementById('gVrsta').value = aktivnaVrsta === 'sve' ? 'farma' : aktivnaVrsta;
   osvjeziVrstuPolja();
   document.getElementById('gSubmitBtn').textContent = 'Sačuvaj gazdinstvo';
@@ -2715,6 +2837,7 @@ function submitGazdinstvo(event){
     posjete: procitajPosjete(),
     danIducePosjete: document.getElementById('gIduca').value,
     napomena: document.getElementById('gNapomena').value.trim(),
+    fotografije: trenutneFotografije,
     dodatna: procitajDodatna()
   };
 
@@ -2794,6 +2917,8 @@ function editGazdinstvo(id){
     : (g.danPosjete ? [{datum: g.danPosjete, nalaz: '', ko: ''}] : []);   // migracija starih unosa
   for(const p of posjete) dodajPosjetu(p.datum, p.nalaz, p.ko, p.kolega);
   document.getElementById('gNapomena').value = g.napomena || '';
+  trenutneFotografije = (g.fotografije || []).slice();
+  renderFotoGalerija();
   for(const p of (g.dodatna || [])) dodajPolje(p.naziv, p.vrijednost);
   document.getElementById('gSubmitBtn').textContent = 'Sačuvaj izmjene';
   document.getElementById('formNaslov').textContent = 'Uređivanje: ' + (g.gazdinstvo || g.vlasnik);
@@ -2885,6 +3010,7 @@ function renderGazdTable(){
     return `<tr>
       ${prikaziVrstu ? `<td>${VRSTA_LABEL[g.vrsta] || ''}</td>` : ''}
       <td>
+        ${fotoCelijaHtml(g)}
         <b>${escapeHtml(g.gazdinstvo)}</b>
         ${g.idGazdinstva ? '<br><span class="cell-sub">ID: ' + escapeHtml(g.idGazdinstva) + '</span>' : ''}
         ${g.napomena ? '<br><span class="cell-sub">' + escapeHtml(g.napomena) + '</span>' : ''}
@@ -2929,7 +3055,7 @@ function exportGazdinstva(){
   }
   const rows = [['Vrsta','Gazdinstvo','ID gazdinstva','Vlasnik','Telefon','Grad','Adresa',
                  'Stoka','ID brojevi / markice','Zadnja posjeta','Broj posjeta','Iduća posjeta',
-                 'Status','Napomena','Ostale činjenice','Historija posjeta','Unio','Izmijenio']];
+                 'Status','Napomena','Ostale činjenice','Historija posjeta','Fotografije','Unio','Izmijenio']];
   for(const g of list){
     const stoka = stokaZaGazdinstvo(g);
     rows.push([
@@ -2942,6 +3068,7 @@ function exportGazdinstva(){
       STATUS_LABEL[statusOf(g)], csvCisto(g.napomena),
       (g.dodatna || []).map(p => p.naziv + ': ' + p.vrijednost).map(csvCisto).join(' | '),
       (g.posjete || []).map(p => p.datum + (p.nalaz ? ' — ' + p.nalaz : '')).map(csvCisto).join(' | '),
+      String((g.fotografije || []).length),
       csvCisto(g.kreiraoIme), csvCisto(g.izmijenioIme)
     ]);
   }
@@ -3055,7 +3182,7 @@ function initMap(){
 function popupHtml(g){
   const st = statusOf(g);
   const dodatna = (g.dodatna || []).filter(p => p.naziv || p.vrijednost);
-  return `<b>${escapeHtml(g.gazdinstvo)}</b><br>
+  return `${fotoCelijaHtml(g)}<b>${escapeHtml(g.gazdinstvo)}</b><br>
     <span class="pop-row">${VRSTA_LABEL[g.vrsta] || ''} · ${escapeHtml(g.vlasnik)}</span><br>
     ${g.telefon ? '<span class="pop-row"><a href="tel:' + escapeHtml(g.telefon.replace(/\s+/g,'')) + '">' + escapeHtml(g.telefon) + '</a></span><br>' : ''}
     <span class="pop-row">${adresaHtml(g, escapeHtml([g.adresa, g.grad].filter(Boolean).join(', ')))}</span><br>

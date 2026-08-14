@@ -44,6 +44,7 @@ Za svako gazdinstvo se unosi:
 - **stoka na gazdinstvu** — dugme "+ Dodaj vrstu stoke" dodaje red po vrsti životinja: goveda, ovce, koze, konji, svinje, živina, ili košnice kod pčelara (slobodan tekst uz prijedloge, može i vlastita vrsta). Za svaku vrstu se unosi broj grla i, opciono, **ID brojevi / markice** — jedan po redu. Gazdinstvo može imati koliko god vrsta stoke, svaka sa svojim brojem i markicama.
 - dan iduće posjete, napomena
 - **obavljene posjete** — dugme "Zabilježi posjetu" dodaje red sa datumom, kolegom koji je bio na terenu (opciono) i nalazom; gazdinstvo može imati koliko god posjeta, sve ostaju u historiji (ništa se ne briše/prepisuje)
+- **fotografije sa terena** — dugme "+ Dodaj fotografiju" (radi i sa kamerom na mobitelu). Slika se prije čuvanja automatski smanji (najviše 1000px, JPEG) da ne troši previše prostora — vidi napomenu o localStorage ispod. Prva fotografija se prikazuje kao mala sličica u tabeli i na karti; klik na nju otvara sliku u punoj veličini.
 - **ostale činjenice** — vlastita polja gdje sam upišeš naziv i vrijednost (npr. "Nadmorska visina: 640 m"), koliko god ih treba po gazdinstvu
 
 Podtabovi **Farme**, **Pčelari** i **Sve** filtriraju spisak po vrsti; u pogledu "Sve" tabela dobija i kolonu Vrsta. Unosi se mogu uređivati, brisati, izvesti u CSV i štampati. Telefon je klikabilan — na mobitelu pokreće poziv. Grad/adresa je klikabilna i otvara lokaciju u Google Maps (u tabeli, na Pregledu i u popup-u na karti).
