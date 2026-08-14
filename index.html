@@ -302,6 +302,34 @@
     50%{box-shadow:0 0 0 4px rgba(178,58,46,0);}
   }
 
+  /* Markica prepoznata na nekom gazdinstvu — dvoredni chip, klikabilan. */
+  .tag.tag-poznat{
+    padding-bottom:4px;cursor:pointer;
+    display:inline-flex;flex-direction:column;align-items:flex-start;gap:1px;
+    border-color:currentColor;
+  }
+  .tag-vlasnik{
+    font-family:'Helvetica Neue',Arial,sans-serif;
+    font-size:9px;font-weight:600;letter-spacing:.02em;
+    text-transform:none;opacity:.75;
+  }
+
+  .tag-lookup{
+    display:flex;gap:8px;align-items:center;flex-wrap:wrap;
+    margin-bottom:16px;
+  }
+  .tag-lookup input{
+    flex:1 1 260px;min-width:0;
+    font-family:'SFMono-Regular',Consolas,monospace;font-size:13px;
+    padding:8px 10px;border:1px solid var(--line);background:#fff;
+    border-radius:2px;color:var(--ink);
+  }
+  .tag-lookup input:focus{outline:2px solid var(--gold);outline-offset:1px;}
+  #markicaPretragaRezultat{
+    font-family:'Helvetica Neue',Arial,sans-serif;font-size:12px;
+    display:flex;gap:6px;align-items:center;flex-wrap:wrap;
+  }
+
   .empty{
     padding:24px 16px;text-align:center;color:var(--ink-soft);
     font-family:'Helvetica Neue',Arial,sans-serif;font-size:13px;
@@ -675,7 +703,7 @@
 
   @media print{
     body{background:#fff;}
-    .install-bar, .file-import, .cards, .actions-main, .status, .footer-note, .sheet-hint,
+    .install-bar, .file-import, .tag-lookup, .cards, .actions-main, .status, .footer-note, .sheet-hint,
     .topbar, .tabs, .subtabs, .gazd-form, .filter-bar, .map-toolbar, .row-actions,
     td.actions, th.actions, .login-screen, .leaflet-control-container{display:none !important;}
     /* Na papiru se vraća službeno zaglavlje sa pečatom. */
@@ -803,6 +831,12 @@
     <button class="small secondary" onclick="vratiUgradjeniFajl()">Vrati ugrađeni fajl</button>
     <span class="file-import-note" id="izvorPodataka">Učita obje liste iz jednog Excel fajla — čita se na uređaju, ništa se ne šalje na internet.</span>
   </div>
+
+  <form class="tag-lookup" onsubmit="pretraziMarkicu(event)">
+    <input type="text" id="markicaPretragaInput" placeholder="Provjeri kojem gazdinstvu pripada markica — npr. BA 4201 184333">
+    <button type="submit" class="small secondary">Provjeri</button>
+    <span id="markicaPretragaRezultat"></span>
+  </form>
 
   <div class="cards">
     <div class="card">
@@ -1160,8 +1194,17 @@ function compareLists(){
     </div>
   `;
 
+  // Markice koje su registrovane na nekom gazdinstvu (u tabu Gazdinstva) su
+  // klikabilne i pokazuju kome pripadaju — poveznica sa evidencijom gazdinstava.
+  const indeks = markicaIndeks();
   const tagsHtml = (arr, cls) => arr.length
-    ? arr.map(x => `<span class="tag ${cls}">${x}</span>`).join('')
+    ? arr.map(x => {
+        const vlasnici = indeks.get(x);
+        if(!vlasnici || !vlasnici.length) return `<span class="tag ${cls}">${x}</span>`;
+        const prvi = vlasnici[0];
+        const jos = vlasnici.length > 1 ? ' +' + (vlasnici.length - 1) : '';
+        return `<span class="tag ${cls} tag-poznat" onclick="otvoriGazdinstvo('${prvi.id}')" title="Otvori ${escapeHtml(prvi.gazdinstvo)}">${x}<b class="tag-vlasnik">${escapeHtml(prvi.gazdinstvo)}${jos}</b></span>`;
+      }).join('')
     : '<span style="font-family:Helvetica Neue,Arial,sans-serif;font-size:12px;color:var(--ink-soft);">— nema —</span>';
 
   document.getElementById('resultsWrap').innerHTML = `
@@ -2419,6 +2462,40 @@ function stokaZaGazdinstvo(g){
 
 function markiceIzStoke(s){
   return (s.markice || '').split('\n').map(m => m.trim()).filter(Boolean);
+}
+
+// ---------- markica -> gazdinstvo (poveznica sa usporedbom markica) ----------
+// normalize() se koristi i ovdje (a ne ručno dijeljenje po redu) da isti broj
+// upisan sa ili bez razmaka (npr. "BA 4201 184333" naspram "BA4201184333")
+// bude prepoznat kao ista markica.
+function markicaIndeks(){
+  const indeks = new Map();
+  for(const g of loadGazdinstva()){
+    for(const s of stokaZaGazdinstvo(g)){
+      for(const oznaka of normalize(s.markice || '')){
+        if(!indeks.has(oznaka)) indeks.set(oznaka, []);
+        const lista = indeks.get(oznaka);
+        if(!lista.some(v => v.id === g.id)) lista.push(g);
+      }
+    }
+  }
+  return indeks;
+}
+
+function pretraziMarkicu(event){
+  event.preventDefault();
+  const el = document.getElementById('markicaPretragaRezultat');
+  const oznake = normalize(document.getElementById('markicaPretragaInput').value);
+  if(!oznake.length){ el.textContent = 'Unesi ispravan broj markice (počinje sa BA).'; return; }
+  const oznaka = oznake[0];
+  const vlasnici = markicaIndeks().get(oznaka);
+  if(!vlasnici || !vlasnici.length){
+    el.innerHTML = '<span class="cell-sub">' + escapeHtml(oznaka) + ' nije pronađena ni na jednom gazdinstvu.</span>';
+    return;
+  }
+  el.innerHTML = escapeHtml(oznaka) + ' pripada: ' + vlasnici.map(g =>
+    `<button type="button" class="small secondary" onclick="otvoriGazdinstvo('${g.id}')">${escapeHtml(g.gazdinstvo)}</button>`
+  ).join(' ');
 }
 
 function stokaSazetak(g){
