@@ -1196,7 +1196,7 @@
 // Jedino mjesto gdje se broj verzije mijenja — prikazuje se u topbaru,
 // na prijavi i u Postavkama, i mora biti usklađen sa CACHE_NAME u sw.js
 // (nova verzija = novi CACHE_NAME = preglednik povuče svježe fajlove).
-const APP_VERZIJA = '1.4';
+const APP_VERZIJA = '1.5';
 for(const id of ['verzijaTopbar', 'verzijaLogin', 'verzijaPostavke']){
   const el = document.getElementById(id);
   if(el) el.textContent = 'v' + APP_VERZIJA;
@@ -2161,7 +2161,7 @@ function renderRegistarPosjeta(){
 
   const filtrirano = filtriraniPosjeti().sort((a,b) => b.datum.localeCompare(a.datum));
   document.getElementById('posjeteCount').textContent =
-    filtrirano.length + (filtrirano.length === 1 ? ' posjeta' : ' posjeta');
+    filtrirano.length + (filtrirano.length === 1 ? ' posjeta' : ' posjete');
 
   if(!svi.length){
     wrap.innerHTML = '<div class="empty-note">Još nema zabilježenih posjeta. Dodaju se u tabu Gazdinstva, dugme "Zabilježi posjetu".</div>';
@@ -2220,11 +2220,6 @@ function otvoriGazdinstvo(id){
 // ---------- sigurnosna kopija ----------
 // Sve što aplikacija čuva ide u jedan fajl. Bez ovoga kvar uređaja znači
 // nepovratan gubitak, jer podaci nigdje drugdje ne postoje.
-const KLJUCEVI_ZA_KOPIJU = [
-  KORISNICI_KEY, DNEVNIK_KEY, 'markice:app:gazdinstva',
-  'markice:app:geocache', 'markice:app:liste'
-];
-
 function izvezuSve(){
   const podaci = { format: 'markice-usk-kopija', verzija: 1, napravljeno: new Date().toISOString(), stavke: {} };
   for(let i = 0; i < localStorage.length; i++){
@@ -3548,7 +3543,7 @@ async function napraviRutu(){
 
   crtajRutu(redoslijed, pocetak);
   status.textContent = (mojaLokacija ? 'Ruta od tvoje lokacije: ' : 'Ruta od "' + escapeHtml(trenutniPinovi[0].gazdinstvo) + '": ')
-    + redoslijed.length + (redoslijed.length === 1 ? ' stanica.' : ' stanica.');
+    + redoslijed.length + (redoslijed.length === 1 ? ' stanica.' : ' stanice.');
   btn.disabled = false;
 }
 
