@@ -40,17 +40,18 @@ Dnevnik se može pretraživati, filtrirati po korisniku, izvesti u CSV i odštam
 Za svako gazdinstvo se unosi:
 - vrsta (farma / pčelar), gazdinstvo, vlasnik, telefon
 - grad, adresa, ID gazdinstva (JIB)
-- **broj grla** (za farme) odnosno **broj košnica** (za pčelare) — polje samo mijenja naziv prema vrsti
-- vrsta i pasmina životinja (za pčelare: vrsta pčela / tip košnica)
+- **stoka na gazdinstvu** — dugme "+ Dodaj vrstu stoke" dodaje red po vrsti životinja: goveda, ovce, koze, konji, svinje, živina, ili košnice kod pčelara (slobodan tekst uz prijedloge, može i vlastita vrsta). Za svaku vrstu se unosi broj grla i, opciono, **ID brojevi / markice** — jedan po redu. Gazdinstvo može imati koliko god vrsta stoke, svaka sa svojim brojem i markicama.
 - dan iduće posjete, napomena
 - **obavljene posjete** — dugme "Zabilježi posjetu" dodaje red sa datumom, kolegom koji je bio na terenu (opciono) i nalazom; gazdinstvo može imati koliko god posjeta, sve ostaju u historiji (ništa se ne briše/prepisuje)
 - **ostale činjenice** — vlastita polja gdje sam upišeš naziv i vrijednost (npr. "Nadmorska visina: 640 m"), koliko god ih treba po gazdinstvu
 
 Podtabovi **Farme**, **Pčelari** i **Sve** filtriraju spisak po vrsti; u pogledu "Sve" tabela dobija i kolonu Vrsta. Unosi se mogu uređivati, brisati, izvesti u CSV i štampati. Telefon je klikabilan — na mobitelu pokreće poziv.
 
+Stariji unosi koji imaju samo jedno polje "broj grla" i "pasmina" (prije nego je dodana ova podjela po vrstama) i dalje se prikazuju ispravno — čim se takav unos otvori za uređivanje i sačuva, automatski dobija novu strukturu.
+
 ### Pretraga i filteri
 Iznad tabele su:
-- **pretraga** — traži kroz sve podatke unosa, uključujući telefon, ID, pasminu, napomenu i vlastita polja
+- **pretraga** — traži kroz sve podatke unosa, uključujući telefon, ID, vrste stoke, ID brojeve/markice, napomenu i vlastita polja
 - **filter po gradu** — lista se sama puni gradovima koji postoje u podacima
 - **filter po statusu** — treba u pregled / uskoro / obavljeno
 - **Očisti** — poništava sve odjednom

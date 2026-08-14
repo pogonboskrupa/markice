@@ -151,7 +151,7 @@
     border-radius:3px;
     padding:16px;
     position:relative;
-    box-shadow:0 1px 0 rgba(31,42,31,0.04);
+    box-shadow:0 1px 3px rgba(31,42,31,.05), 0 1px 2px rgba(31,42,31,.03);
   }
   .card h2{
     font-family:'Helvetica Neue',Arial,sans-serif;
@@ -221,10 +221,16 @@
     border-radius:2px;
     cursor:pointer;
     letter-spacing:.02em;
+    transition:background-color .15s ease, border-color .15s ease, color .15s ease, transform .05s ease;
   }
+  button:hover{background:#2c3a2c;border-color:#2c3a2c;}
+  button:active{transform:translateY(1px);}
+  button:disabled{opacity:.55;cursor:default;transform:none;}
   button:focus-visible{outline:2px solid var(--gold);outline-offset:2px;}
   button.secondary{background:transparent;color:var(--ink);}
+  button.secondary:hover{background:var(--paper-dim);border-color:var(--line-strong);}
   button.small{padding:5px 10px;font-size:11px;}
+  @media (prefers-reduced-motion: reduce){ button{transition:none;} }
 
   .actions-main{display:flex;justify-content:center;gap:12px;margin:22px 0 30px;flex-wrap:wrap;}
 
@@ -236,6 +242,7 @@
     padding:14px 16px;
     border-radius:3px;
     text-align:center;
+    box-shadow:0 1px 3px rgba(31,42,31,.05), 0 1px 2px rgba(31,42,31,.03);
   }
   .stat .n{font-size:30px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums;}
   .stat.match{border-color:var(--green-line);}
@@ -248,7 +255,10 @@
     color:var(--ink-soft);margin-top:4px;
   }
 
-  .results{border:1px solid var(--line);background:var(--paper-raised);border-radius:3px;overflow:hidden;}
+  .results{
+    border:1px solid var(--line);background:var(--paper-raised);border-radius:3px;overflow:hidden;
+    box-shadow:0 1px 3px rgba(31,42,31,.05), 0 1px 2px rgba(31,42,31,.03);
+  }
   .results h3{
     font-family:'Helvetica Neue',Arial,sans-serif;
     font-size:11.5px;text-transform:uppercase;letter-spacing:.09em;
@@ -462,6 +472,11 @@
     text-transform:uppercase;letter-spacing:.09em;
     color:var(--ink);text-align:left;cursor:pointer;
   }
+  /* Specificity note: a plain class selector like .form-toggle loses to the
+     generic button:hover rule (class+pseudo beats class alone), which would
+     otherwise paint this heading solid ink-green on hover — override explicitly. */
+  .form-toggle:hover{background:var(--paper-dim);}
+  .form-toggle:active{transform:none;}
   .form-toggle .chev{
     font-size:18px;font-weight:400;line-height:1;color:var(--ink-soft);
     transition:transform .15s ease;
@@ -481,6 +496,16 @@
     font-family:'Helvetica Neue',Arial,sans-serif;
     font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;
     color:var(--ink-soft);font-weight:700;
+  }
+  /* Full-width fields (Napomena, Stoka, Posjete, Ostale činjenice) get a
+     hairline divider + a slightly bolder label, so a long form reads as
+     scannable sections instead of one flat list. */
+  .field.wide{
+    border-top:1px solid var(--paper-dim);
+    padding-top:14px;margin-top:2px;
+  }
+  .field.wide > label{
+    font-size:11.5px;color:var(--ink);letter-spacing:.08em;
   }
   .field input, .field textarea{
     font-family:'Helvetica Neue',Arial,sans-serif;
@@ -504,15 +529,35 @@
   }
   .filter-bar input[type=search]:focus{outline:2px solid var(--gold);outline-offset:1px;}
 
-  .dodatno-red{display:flex;gap:6px;margin-bottom:6px;}
-  .dodatno-red input{
+  /* dodatno-red (ostale činjenice, posjete) and stoka-red (stoka) are the same
+     idea — one removable row of a repeatable list — styled as a single family
+     of light "item cards" so the form doesn't mix three different looks. */
+  .dodatno-red, .stoka-red{
+    border:1px solid var(--line);border-radius:3px;
+    padding:9px 10px;margin-bottom:7px;background:var(--paper);
+    transition:border-color .15s ease;
+  }
+  .dodatno-red:hover, .stoka-red:hover{border-color:var(--line-strong);}
+  .dodatno-red{display:flex;gap:6px;align-items:center;}
+  .dodatno-red input, .stoka-red input{
     font-family:'Helvetica Neue',Arial,sans-serif;font-size:12.5px;
     padding:7px 9px;border:1px solid var(--line);background:#fff;
     border-radius:2px;color:var(--ink);min-width:0;
   }
   .dodatno-red input.naziv{flex:0 1 200px;}
   .dodatno-red input.vrijednost{flex:1 1 auto;}
-  .dodatno-red button{padding:4px 10px;font-size:12px;}
+  .dodatno-red button, .stoka-red button{padding:4px 10px;font-size:12px;flex:0 0 auto;}
+
+  .stoka-red .redak-gore{display:flex;gap:6px;margin-bottom:7px;}
+  .stoka-red input.vrsta-stoke{flex:1 1 160px;}
+  .stoka-red input.broj-stoke{flex:0 0 110px;}
+  .stoka-red textarea.markice-stoke{
+    width:100%;min-height:44px;resize:vertical;
+    font-family:'SFMono-Regular',Consolas,monospace;font-size:11.5px;
+    padding:7px 9px;border:1px solid var(--line);background:#fff;
+    border-radius:2px;color:var(--ink);
+  }
+  .stoka-hint{font-size:10px;color:var(--ink-soft);margin:2px 0 0;}
 
   .cell-sub{font-size:11px;color:var(--ink-soft);}
   .cell-sub a{color:var(--ink-soft);}
@@ -529,7 +574,9 @@
   }
   tbody td{padding:9px 12px;border-bottom:1px solid var(--paper-dim);vertical-align:top;}
   tbody tr:last-child td{border-bottom:none;}
-  tbody tr:hover{background:var(--paper);}
+  tbody tr:nth-child(even){background:rgba(31,42,31,.014);}
+  tbody tr{transition:background-color .1s ease;}
+  tbody tr:hover{background:var(--paper-dim);}
   td.actions{white-space:nowrap;}
   td.actions button{padding:4px 9px;font-size:11px;margin-right:4px;}
 
@@ -603,6 +650,7 @@
     .wrap{max-width:100%;padding:0;}
     .seal{transform:none;}
     .tag.red{animation:none;}
+    .results, .stat, .card{box-shadow:none;}
     .results{break-inside:avoid;}
     .tab-panel{padding-top:0;}
     .table-wrap{overflow:visible;}
@@ -819,16 +867,23 @@
             <input id="gIdGazdinstva" placeholder="Registarski broj">
           </div>
           <div class="field">
-            <label for="gBroj" id="gBrojLabel">Broj grla</label>
-            <input type="number" id="gBroj" min="0" step="1" placeholder="npr. 520">
-          </div>
-          <div class="field">
-            <label for="gPasmina" id="gPasminaLabel">Vrsta i pasmina životinja</label>
-            <input id="gPasmina" placeholder="npr. Ovce — travnička pramenka">
-          </div>
-          <div class="field">
             <label for="gIduca">Dan iduće posjete</label>
             <input type="date" id="gIduca">
+          </div>
+          <div class="field wide">
+            <label>Stoka na gazdinstvu</label>
+            <datalist id="stokaVrsteList">
+              <option value="Govedo"></option>
+              <option value="Ovca"></option>
+              <option value="Koza"></option>
+              <option value="Konj"></option>
+              <option value="Svinja"></option>
+              <option value="Živina"></option>
+              <option value="Košnice"></option>
+            </datalist>
+            <div id="stokaLista"></div>
+            <button type="button" class="small secondary" id="dodajStokuBtn" style="align-self:flex-start;margin-top:2px;" onclick="dodajStokaRed()">+ Dodaj vrstu stoke</button>
+            <p class="stoka-hint">Za svaku vrstu unesi broj grla i, opciono, ID brojeve/markice — jedan po redu.</p>
           </div>
           <div class="field wide">
             <label>Obavljene posjete</label>
@@ -1559,8 +1614,7 @@ function zabiljezi(akcija, entitet, naziv, detalji){
 // Uporedi staro i novo stanje i ispiši šta se tačno promijenilo.
 const POLJA_NAZIVI = {
   vrsta:'Vrsta', gazdinstvo:'Gazdinstvo', vlasnik:'Vlasnik', telefon:'Telefon',
-  grad:'Grad', adresa:'Adresa', idGazdinstva:'ID gazdinstva', broj:'Broj grla/košnica',
-  pasmina:'Vrsta i pasmina', danIducePosjete:'Iduća posjeta',
+  grad:'Grad', adresa:'Adresa', idGazdinstva:'ID gazdinstva', danIducePosjete:'Iduća posjeta',
   napomena:'Napomena'
 };
 
@@ -1573,6 +1627,10 @@ function opisIzmjena(staro, novo){
   const staraDodatna = JSON.stringify(staro.dodatna || []);
   const novaDodatna = JSON.stringify(novo.dodatna || []);
   if(staraDodatna !== novaDodatna) promjene.push('Ostale činjenice izmijenjene');
+
+  const staraStoka = JSON.stringify(stokaZaGazdinstvo(staro));
+  const novaStoka = JSON.stringify(stokaZaGazdinstvo(novo));
+  if(staraStoka !== novaStoka) promjene.push('Stoka izmijenjena (' + stokaSazetak(novo) + ')');
 
   const starePosjete = (staro.posjete || []).length;
   const novePosjete = (novo.posjete || []).length;
@@ -1816,7 +1874,7 @@ function renderPregled(){
       d === 1 ? 'sutra' : 'za ' + d + ' dana';
     return `<tr>
       <td style="white-space:nowrap;"><b>${formatDatum(g.danIducePosjete)}</b><br><span class="cell-sub">${kada}</span></td>
-      <td><b>${escapeHtml(g.gazdinstvo)}</b><br><span class="cell-sub">${VRSTA_LABEL[g.vrsta] || ''}${g.broj ? ' · ' + escapeHtml(g.broj) + ' ' + (g.vrsta === 'pcelar' ? 'košnica' : 'grla') : ''}</span></td>
+      <td><b>${escapeHtml(g.gazdinstvo)}</b><br><span class="cell-sub">${VRSTA_LABEL[g.vrsta] || ''}${stokaSazetak(g) ? ' · ' + escapeHtml(stokaSazetak(g)) : ''}</span></td>
       <td>${escapeHtml(g.vlasnik)}${g.telefon ? '<br><span class="cell-sub"><a href="tel:' + escapeHtml(g.telefon.replace(/\s+/g,'')) + '">' + escapeHtml(g.telefon) + '</a></span>' : ''}</td>
       <td>${escapeHtml(g.grad)}${g.adresa ? '<br><span class="cell-sub">' + escapeHtml(g.adresa) + '</span>' : ''}</td>
       <td class="actions"><button class="small secondary" onclick="otvoriGazdinstvo('${g.id}')">Otvori</button></td>
@@ -2246,17 +2304,81 @@ function toggleGazdForm(otvori){
 
 const VRSTA_LABEL = { farma: 'Farma', pcelar: 'Pčelar' };
 
-// Farms count animals, beekeepers count hives — one field, label follows the type.
-function brojLabel(vrsta){ return vrsta === 'pcelar' ? 'Broj košnica' : 'Broj grla'; }
-
+// Naslov dugmeta za dodavanje stoke prati vrstu gazdinstva — samo prijedlog,
+// unos ostaje slobodan tekst (datalist).
 function osvjeziVrstuPolja(){
   const vrsta = document.getElementById('gVrsta').value;
-  document.getElementById('gBrojLabel').textContent = brojLabel(vrsta);
-  document.getElementById('gBroj').placeholder = vrsta === 'pcelar' ? 'npr. 48' : 'npr. 520';
-  document.getElementById('gPasminaLabel').textContent =
-    vrsta === 'pcelar' ? 'Vrsta pčela / tip košnica' : 'Vrsta i pasmina životinja';
-  document.getElementById('gPasmina').placeholder =
-    vrsta === 'pcelar' ? 'npr. Kranjska pčela — LR košnice' : 'npr. Ovce — travnička pramenka';
+  document.getElementById('dodajStokuBtn').textContent =
+    vrsta === 'pcelar' ? '+ Dodaj košnice' : '+ Dodaj vrstu stoke (goveda, ovce...)';
+}
+
+// ---------- stoka na gazdinstvu (goveda, ovce, košnice, ID/markice...) ----------
+function dodajStokaRed(vrsta = '', broj = '', markice = ''){
+  const red = document.createElement('div');
+  red.className = 'stoka-red';
+  red.innerHTML = `
+    <div class="redak-gore">
+      <input class="vrsta-stoke" list="stokaVrsteList" placeholder="Vrsta (npr. Govedo)">
+      <input class="broj-stoke" type="number" min="0" step="1" placeholder="Broj grla">
+      <button type="button" class="small secondary" title="Ukloni ovu vrstu">×</button>
+    </div>
+    <textarea class="markice-stoke" placeholder="ID brojevi / markice — opciono, jedan po redu (npr. BA 4201 184333)"></textarea>`;
+  red.querySelector('.vrsta-stoke').value = vrsta;
+  red.querySelector('.broj-stoke').value = broj;
+  red.querySelector('.markice-stoke').value = markice;
+  red.querySelector('button').onclick = () => red.remove();
+  document.getElementById('stokaLista').appendChild(red);
+}
+
+function procitajStoka(){
+  return [...document.querySelectorAll('#stokaLista .stoka-red')]
+    .map(red => ({
+      vrsta: red.querySelector('.vrsta-stoke').value.trim(),
+      broj: red.querySelector('.broj-stoke').value.trim(),
+      markice: red.querySelector('.markice-stoke').value.trim()
+    }))
+    .filter(s => s.vrsta || s.broj || s.markice);
+}
+
+// Stariji zapisi imaju samo pojedinačna polja "broj" + "pasmina" — ovdje se
+// pretvaraju u jednu stavku stoke, bez destruktivne migracije podataka.
+function stokaZaGazdinstvo(g){
+  if(g.stoka && g.stoka.length) return g.stoka;
+  if(g.broj || g.pasmina) return [{ vrsta: g.pasmina || (g.vrsta === 'pcelar' ? 'Košnice' : 'Grla'), broj: g.broj || '', markice: '' }];
+  return [];
+}
+
+function markiceIzStoke(s){
+  return (s.markice || '').split('\n').map(m => m.trim()).filter(Boolean);
+}
+
+function stokaSazetak(g){
+  return stokaZaGazdinstvo(g)
+    .filter(s => s.vrsta || s.broj)
+    .map(s => ((s.broj ? s.broj + ' ' : '') + (s.vrsta || '')).trim())
+    .join(' · ');
+}
+
+function stokaUkupno(g){
+  return stokaZaGazdinstvo(g).reduce((zbir, s) => zbir + (parseInt(s.broj, 10) || 0), 0);
+}
+
+function stokaMarkiceUkupno(g){
+  return stokaZaGazdinstvo(g).reduce((zbir, s) => zbir + markiceIzStoke(s).length, 0);
+}
+
+// Prikaz stoke u tabeli — svaka vrsta u svom redu, s brojem markica ako ih ima.
+function stokaCelijaHtml(g){
+  const stavke = stokaZaGazdinstvo(g).filter(s => s.vrsta || s.broj);
+  if(!stavke.length) return '—';
+  return stavke.map(s => {
+    const brojMarkica = markiceIzStoke(s).length;
+    return '<div>' +
+      (s.broj ? '<span class="num">' + escapeHtml(s.broj) + '</span> ' : '') +
+      escapeHtml(s.vrsta || '') +
+      (brojMarkica ? ' <span class="cell-sub">(' + brojMarkica + ' markica)</span>' : '') +
+      '</div>';
+  }).join('');
 }
 
 // ---------- custom fields ("ostale činjenice") ----------
@@ -2394,11 +2516,12 @@ function escapeHtml(s){
 function resetGazdForm(){
   document.getElementById('gazdId').value = '';
   for(const id of ['gNaziv','gVlasnik','gTelefon','gGrad','gAdresa','gIdGazdinstva',
-                   'gBroj','gPasmina','gIduca','gNapomena']){
+                   'gIduca','gNapomena']){
     document.getElementById(id).value = '';
   }
   document.getElementById('dodatnaPolja').innerHTML = '';
   document.getElementById('posjeteLista').innerHTML = '';
+  document.getElementById('stokaLista').innerHTML = '';
   document.getElementById('gVrsta').value = aktivnaVrsta === 'sve' ? 'farma' : aktivnaVrsta;
   osvjeziVrstuPolja();
   document.getElementById('gSubmitBtn').textContent = 'Sačuvaj gazdinstvo';
@@ -2425,8 +2548,7 @@ function submitGazdinstvo(event){
     grad: document.getElementById('gGrad').value.trim(),
     adresa: document.getElementById('gAdresa').value.trim(),
     idGazdinstva: document.getElementById('gIdGazdinstva').value.trim(),
-    broj: document.getElementById('gBroj').value.trim(),
-    pasmina: document.getElementById('gPasmina').value.trim(),
+    stoka: procitajStoka(),
     posjete: procitajPosjete(),
     danIducePosjete: document.getElementById('gIduca').value,
     napomena: document.getElementById('gNapomena').value.trim(),
@@ -2502,9 +2624,8 @@ function editGazdinstvo(id){
   document.getElementById('gGrad').value = g.grad || '';
   document.getElementById('gAdresa').value = g.adresa || '';
   document.getElementById('gIdGazdinstva').value = g.idGazdinstva || '';
-  document.getElementById('gBroj').value = g.broj || '';
-  document.getElementById('gPasmina').value = g.pasmina || '';
   document.getElementById('gIduca').value = g.danIducePosjete || '';
+  for(const s of stokaZaGazdinstvo(g)) dodajStokaRed(s.vrsta, s.broj, s.markice);
   const posjete = (g.posjete && g.posjete.length)
     ? g.posjete
     : (g.danPosjete ? [{datum: g.danPosjete, nalaz: '', ko: ''}] : []);   // migracija starih unosa
@@ -2548,13 +2669,15 @@ function tragHtml(g){
   return dijelovi.join('<br>');
 }
 
-// Everything typed into an entry is searchable, custom fields included.
+// Everything typed into an entry is searchable, custom fields, livestock
+// categories and ear-tag/ID numbers included.
 function tekstZaPretragu(g){
   return [
     g.gazdinstvo, g.vlasnik, g.telefon, g.grad, g.adresa,
-    g.idGazdinstva, g.broj, g.pasmina, g.napomena,
+    g.idGazdinstva, g.napomena,
     VRSTA_LABEL[g.vrsta],
-    ...(g.dodatna || []).flatMap(p => [p.naziv, p.vrijednost])
+    ...(g.dodatna || []).flatMap(p => [p.naziv, p.vrijednost]),
+    ...stokaZaGazdinstvo(g).flatMap(s => [s.vrsta, s.broj, s.markice])
   ].filter(Boolean).join(' ').toLowerCase();
 }
 
@@ -2612,10 +2735,7 @@ function renderGazdTable(){
         ${escapeHtml(g.grad)}
         ${g.adresa ? '<br><span class="cell-sub">' + escapeHtml(g.adresa) + '</span>' : ''}
       </td>
-      <td>
-        ${g.broj ? '<span class="num">' + escapeHtml(g.broj) + '</span>' : '—'}
-        ${g.pasmina ? '<br><span class="cell-sub">' + escapeHtml(g.pasmina) + '</span>' : ''}
-      </td>
+      <td>${stokaCelijaHtml(g)}</td>
       <td>${formatDatum(zadnjaPosjeta(g))}${(g.posjete || []).length > 1 ? '<br><span class="cell-sub">' + g.posjete.length + ' posjeta ukupno</span>' : ''}</td>
       <td>${formatDatum(g.danIducePosjete)}</td>
       <td><span class="badge ${st}">${STATUS_LABEL[st]}</span>${g.lat ? '' : '<br><span class="cell-sub">bez lokacije</span>'}</td>
@@ -2647,13 +2767,16 @@ function exportGazdinstva(){
   }
   const cisto = s => String(s == null ? '' : s).replace(/[\r\n;]+/g,' ').trim();
   const rows = [['Vrsta','Gazdinstvo','ID gazdinstva','Vlasnik','Telefon','Grad','Adresa',
-                 'Broj grla/košnica','Vrsta i pasmina','Zadnja posjeta','Broj posjeta','Iduća posjeta',
+                 'Stoka','ID brojevi / markice','Zadnja posjeta','Broj posjeta','Iduća posjeta',
                  'Status','Napomena','Ostale činjenice','Historija posjeta','Unio','Izmijenio']];
   for(const g of list){
+    const stoka = stokaZaGazdinstvo(g);
     rows.push([
       VRSTA_LABEL[g.vrsta] || '',
       cisto(g.gazdinstvo), cisto(g.idGazdinstva), cisto(g.vlasnik), cisto(g.telefon),
-      cisto(g.grad), cisto(g.adresa), cisto(g.broj), cisto(g.pasmina),
+      cisto(g.grad), cisto(g.adresa),
+      stoka.map(s => (s.broj ? s.broj + ' ' : '') + s.vrsta).filter(Boolean).map(cisto).join(' | '),
+      stoka.flatMap(s => markiceIzStoke(s)).map(cisto).join(' '),
       zadnjaPosjeta(g), String((g.posjete || []).length), g.danIducePosjete || '',
       STATUS_LABEL[statusOf(g)], cisto(g.napomena),
       (g.dodatna || []).map(p => p.naziv + ': ' + p.vrijednost).map(cisto).join(' | '),
@@ -2773,7 +2896,7 @@ function popupHtml(g){
     <span class="pop-row">${VRSTA_LABEL[g.vrsta] || ''} · ${escapeHtml(g.vlasnik)}</span><br>
     ${g.telefon ? '<span class="pop-row"><a href="tel:' + escapeHtml(g.telefon.replace(/\s+/g,'')) + '">' + escapeHtml(g.telefon) + '</a></span><br>' : ''}
     <span class="pop-row">${escapeHtml([g.adresa, g.grad].filter(Boolean).join(', '))}</span><br>
-    ${g.broj ? '<span class="pop-row">' + brojLabel(g.vrsta) + ': <b>' + escapeHtml(g.broj) + '</b>' + (g.pasmina ? ' · ' + escapeHtml(g.pasmina) : '') + '</span><br>' : ''}
+    ${stokaSazetak(g) ? '<span class="pop-row">Stoka: <b>' + escapeHtml(stokaSazetak(g)) + '</b>' + (stokaMarkiceUkupno(g) ? ' · ' + stokaMarkiceUkupno(g) + ' markica evidentirano' : '') + '</span><br>' : ''}
     <span class="pop-row">Zadnja posjeta: ${formatDatum(zadnjaPosjeta(g))} · Iduća: ${formatDatum(g.danIducePosjete)}</span><br>
     ${g.napomena ? '<span class="pop-row">' + escapeHtml(g.napomena) + '</span><br>' : ''}
     ${dodatna.length ? '<span class="pop-row">' + dodatna.map(p => escapeHtml(p.naziv + ': ' + p.vrijednost)).join(' · ') + '</span><br>' : ''}
