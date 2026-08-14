@@ -10,6 +10,7 @@
 - **Fotografije sa terena** — dodavanje fotografija uz gazdinstvo (automatski smanjene radi uštede prostora), sa sličicom u tabeli, na karti i u obrascu.
 - **Pravi .xlsx izvoz** — svi izvozi (gazdinstva, dnevnik, registar posjeta, neusklađene markice) sada daju pravi Excel dokument umjesto CSV-a.
 - **Ruta obilaska na karti** — dugme "Napravi rutu obilaska" poređa prikazana gazdinstva po najbližem susjedu (od tvoje lokacije ili od prvog gazdinstva), sa numerisanim markerima, linijom obilaska i spiskom zaustavljanja za štampu.
+- **Provjera bugova tab po tab** — najbitnije: uređivanje gazdinstva se sad jasno vizuelno razlikuje od dodavanja novog (zlatni okvir, značka "Uređivanje", dugme "Otkaži uređivanje") jer je ranije bilo lako, bez upozorenja, prepisati postojeće gazdinstvo umjesto dodati novo. Popravljeno i: gazdinstvo koje je posjećeno ali nema zakazan sljedeći termin je nestajalo iz Pregleda; svi datumi u aplikaciji su na dijelu uređaja tiho prikazivali sirovi ISO oblik (2026-01-01) umjesto bosanskog (01.01.2026.).
 
 ## Kako sistem radi — važno da se zna
 
