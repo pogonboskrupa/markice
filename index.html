@@ -1196,7 +1196,7 @@
 // Jedino mjesto gdje se broj verzije mijenja — prikazuje se u topbaru,
 // na prijavi i u Postavkama, i mora biti usklađen sa CACHE_NAME u sw.js
 // (nova verzija = novi CACHE_NAME = preglednik povuče svježe fajlove).
-const APP_VERZIJA = '1.3';
+const APP_VERZIJA = '1.4';
 for(const id of ['verzijaTopbar', 'verzijaLogin', 'verzijaPostavke']){
   const el = document.getElementById(id);
   if(el) el.textContent = 'v' + APP_VERZIJA;
@@ -1302,7 +1302,7 @@ const STORAGE_PREFIX = 'markice:';
 
 function saveLists(){
   const status = document.getElementById('status');
-  const name = prompt('Naziv za ovu usporedbu (npr. datum ili GJ):', new Date().toLocaleDateString('bs-BA'));
+  const name = prompt('Naziv za ovu usporedbu (npr. datum ili GJ):', formatDatumObjekta(new Date()));
   if(!name) return;
   try{
     const payload = {
@@ -1336,7 +1336,7 @@ function refreshSavedOptions(){
   for(const sel of [document.getElementById('saved1'), document.getElementById('saved2')]){
     const current = sel.value;
     sel.innerHTML = '<option value="">Učitaj sačuvano...</option>' +
-      names.map(n => `<option value="${n}">${n}</option>`).join('');
+      names.map(n => `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('');
     sel.value = current;
   }
 }
@@ -1558,7 +1558,7 @@ async function importFromSheets(n){
     document.getElementById('list'+n).value = text;
     updateCounts();
     localStorage.setItem(SHEET_LINK_PREFIX + n, rawUrl);
-    status.textContent = 'Lista '+n+' učitana iz Google Sheets (' + new Date().toLocaleTimeString('bs-BA') + ').';
+    status.textContent = 'Lista '+n+' učitana iz Google Sheets (' + formatVrijemeObjekta(new Date()) + ').';
   }catch(e){
     console.error(e);
     status.textContent = 'Nije uspjelo automatsko učitavanje Liste '+n+'. Provjeri da je dokument dijeljen kao "Bilo ko sa linkom — može pregledati", ili prekopiraj podatke ručno.';
@@ -1600,7 +1600,7 @@ function prikaziIzvor(){
     el.textContent = 'Učita obje liste iz jednog Excel fajla — čita se na uređaju, ništa se ne šalje na internet.';
     return;
   }
-  const kada = new Date(spremljeno.vrijeme).toLocaleString('bs-BA');
+  const kada = formatDatumVrijemeObjekta(new Date(spremljeno.vrijeme));
   el.textContent = spremljeno.vrsta === 'auto'
     ? 'Automatski učitano iz "' + UGRADJENI_XLSX + '" (' + kada + ').'
     : 'Izvor: ' + spremljeno.izvor + ' (' + kada + '). Dugme "Vrati ugrađeni fajl" vraća fajl koji dolazi uz aplikaciju.';
@@ -1662,7 +1662,7 @@ function printReport(){
 }
 window.addEventListener('beforeprint', () => {
   const meta = document.getElementById('printMeta');
-  const kada = 'Izvještaj generisan: ' + new Date().toLocaleString('bs-BA');
+  const kada = 'Izvještaj generisan: ' + formatDatumVrijemeObjekta(new Date());
 
   if(aktivniTab === 'gazdinstva'){
     const n = aktivnaVrsta === 'sve' ? loadGazdinstva().length : loadGazdinstva().filter(g => g.vrsta === aktivnaVrsta).length;
@@ -1988,7 +1988,7 @@ function renderKorisnike(){
     <tbody>${korisnici.map(k => `<tr>
       <td><b>${escapeHtml(k.ime)}</b>${k.id === trenutniKorisnik.id ? ' <span class="cell-sub">(ti)</span>' : ''}</td>
       <td>${k.uloga === 'admin' ? 'Administrator' : 'Korisnik'}</td>
-      <td>${new Date(k.kreiran).toLocaleDateString('bs-BA')}</td>
+      <td>${formatDatumObjekta(new Date(k.kreiran))}</td>
       <td>${escapeHtml(k.kreiraoIme || '—')}</td>
       <td class="actions">
         <button class="small secondary" onclick="promijeniPin('${k.id}')">Promijeni PIN</button>
@@ -2017,7 +2017,11 @@ function renderPregled(){
                      .sort((a,b) => a.danIducePosjete.localeCompare(b.danIducePosjete));
   const uskoro = sva.filter(g => { const d = danaDo(g); return d !== null && d > 7 && d <= 14; })
                     .sort((a,b) => a.danIducePosjete.localeCompare(b.danIducePosjete));
-  const nikad = sva.filter(g => !g.danIducePosjete && !zadnjaPosjeta(g));
+  // Bilo koje gazdinstvo bez zakazanog termina spada ovdje — bez obzira da li
+  // je već posjećeno ranije. Ranija verzija je tražila i "nikad posjećeno",
+  // pa je gazdinstvo koje JE posjećeno ali nema zakazan sljedeći termin
+  // potpuno nestajalo iz Pregleda (ne bi se pojavilo ni u jednoj grupi).
+  const nikad = sva.filter(g => !g.danIducePosjete);
 
   if(!sva.length){
     wrap.innerHTML = '<div class="empty-note">Još nema unesenih gazdinstava. Otvori tab Gazdinstva da dodaš prvo.</div>';
@@ -2257,7 +2261,7 @@ async function uveziSve(event){
     }
     const brojGazdinstava = (JSON.parse(podaci.stavke['markice:app:gazdinstva'] || '[]') || []).length;
     const brojKorisnika = (JSON.parse(podaci.stavke[KORISNICI_KEY] || '[]') || []).length;
-    const kada = podaci.napravljeno ? new Date(podaci.napravljeno).toLocaleString('bs-BA') : 'nepoznato';
+    const kada = podaci.napravljeno ? formatDatumVrijemeObjekta(new Date(podaci.napravljeno)) : 'nepoznato';
 
     if(!confirm(
       'Kopija od ' + kada + ' sadrži ' + brojGazdinstava + ' gazdinstava i ' + brojKorisnika + ' korisnika.\n\n' +
@@ -2358,7 +2362,7 @@ function renderDnevnik(){
   wrap.innerHTML = `<div class="table-wrap"><table>
     <thead><tr><th>Vrijeme</th><th>Korisnik</th><th>Radnja</th><th>Stavka</th><th>Detalji</th></tr></thead>
     <tbody>${filtrirani.map(z => `<tr>
-      <td style="white-space:nowrap;">${new Date(z.vrijeme).toLocaleString('bs-BA')}</td>
+      <td style="white-space:nowrap;">${formatDatumVrijemeObjekta(new Date(z.vrijeme))}</td>
       <td><b>${escapeHtml(z.korisnik)}</b></td>
       <td>${akcijaBadgeHtml(z.akcija)}</td>
       <td>${escapeHtml(z.naziv)}</td>
@@ -2372,7 +2376,7 @@ function exportDnevnik(){
   if(!zapisi.length){ document.getElementById('dnevnikCount').textContent = 'Nema zapisa za izvoz.'; return; }
   const rows = [['Vrijeme','Korisnik','Radnja','Vrsta stavke','Stavka','Detalji']];
   for(const z of zapisi){
-    rows.push([new Date(z.vrijeme).toLocaleString('bs-BA'), csvCisto(z.korisnik),
+    rows.push([formatDatumVrijemeObjekta(new Date(z.vrijeme)), csvCisto(z.korisnik),
                csvCisto(z.akcija), csvCisto(z.entitet), csvCisto(z.naziv), csvCisto(z.detalji)]);
   }
   preuzmiXlsx('dnevnik-izmjena.xlsx', 'Dnevnik izmjena', rows);
@@ -2788,9 +2792,24 @@ const STATUS_LABEL = {
   due: 'Treba u pregled'
 };
 
+// Ne koristimo toLocaleDateString('bs-BA')/toLocaleString('bs-BA') — na dijelu
+// preglednika/uređaja (nedostaje puni ICU skup za "manje" lokale) to tiho vrati
+// sirovi ISO oblik (2026-01-01) umjesto bosanskog (01.01.2026.), bez greške koja
+// bi se primijetila. Ručno formatiranje radi identično posvuda.
+function dvocifreno(n){ return String(n).padStart(2, '0'); }
+function formatDatumObjekta(d){
+  return dvocifreno(d.getDate()) + '.' + dvocifreno(d.getMonth() + 1) + '.' + d.getFullYear() + '.';
+}
+function formatVrijemeObjekta(d){
+  return dvocifreno(d.getHours()) + ':' + dvocifreno(d.getMinutes());
+}
+function formatDatumVrijemeObjekta(d){
+  return formatDatumObjekta(d) + ' ' + formatVrijemeObjekta(d);
+}
+
 function formatDatum(s){
   const d = parseDatum(s);
-  return d ? d.toLocaleDateString('bs-BA') : '—';
+  return d ? formatDatumObjekta(d) : '—';
 }
 
 function escapeHtml(s){
@@ -3163,11 +3182,11 @@ function tragHtml(g){
   const dijelovi = [];
   if(g.kreiraoIme){
     dijelovi.push('Unio: ' + escapeHtml(g.kreiraoIme) +
-      (g.kreirano ? ' (' + new Date(g.kreirano).toLocaleDateString('bs-BA') + ')' : ''));
+      (g.kreirano ? ' (' + formatDatumObjekta(new Date(g.kreirano)) + ')' : ''));
   }
   if(g.izmijenioIme && (g.izmijenioIme !== g.kreiraoIme || g.izmijenjeno !== g.kreirano)){
     dijelovi.push('Izmijenio: ' + escapeHtml(g.izmijenioIme) +
-      (g.izmijenjeno ? ' (' + new Date(g.izmijenjeno).toLocaleDateString('bs-BA') + ')' : ''));
+      (g.izmijenjeno ? ' (' + formatDatumObjekta(new Date(g.izmijenjeno)) + ')' : ''));
   }
   return dijelovi.join('<br>');
 }
