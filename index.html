@@ -577,6 +577,7 @@
     border-top:1px solid var(--paper-dim);
     padding-top:14px;margin-top:2px;
   }
+  .adresa-red{display:flex;gap:6px;}
   .field.wide > label{
     font-size:11.5px;color:var(--ink);letter-spacing:.08em;
   }
@@ -702,6 +703,13 @@
     font-family:'Helvetica Neue',Arial,sans-serif;font-size:11.5px;color:var(--ink-soft);
     margin:12px 0 0;
   }
+  .bez-lokacije-lista{margin-top:8px;}
+  .bez-lokacije-red{
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+    padding:6px 0;border-top:1px solid var(--paper-dim);
+  }
+  .bez-lokacije-red:first-child{border-top:none;}
+  .bez-lokacije-red span{font-size:12.5px;}
   .map-legend span.key{display:inline-flex;align-items:center;gap:6px;}
   .swatch{width:12px;height:12px;border-radius:50%;border:1.5px solid rgba(0,0,0,.25);}
   .swatch.ok{background:#2e6b3e;}
@@ -743,7 +751,8 @@
     body{background:#fff;}
     .install-bar, .file-import, .tag-lookup, .cards, .actions-main, .status, .footer-note, .sheet-hint,
     .topbar, .tabs, .subtabs, .gazd-form, .filter-bar, .map-toolbar, .row-actions,
-    td.actions, th.actions, .login-screen, .leaflet-control-container{display:none !important;}
+    td.actions, th.actions, .login-screen, .leaflet-control-container,
+    .bez-lokacije-red button{display:none !important;}
     /* Na papiru se vraća službeno zaglavlje sa pečatom. */
     .letterhead{display:flex !important;}
     .double-rule{display:block !important;}
@@ -984,7 +993,10 @@
           </div>
           <div class="field">
             <label for="gAdresa">Adresa</label>
-            <input id="gAdresa" placeholder="Ulica i broj / zaselak">
+            <div class="adresa-red">
+              <input id="gAdresa" placeholder="Ulica / zaselak">
+              <input id="gBroj" placeholder="Broj" style="flex:0 0 64px;">
+            </div>
           </div>
           <div class="field">
             <label for="gIdGazdinstva">ID gazdinstva (JIB)</label>
@@ -1196,7 +1208,7 @@
 // Jedino mjesto gdje se broj verzije mijenja — prikazuje se u topbaru,
 // na prijavi i u Postavkama, i mora biti usklađen sa CACHE_NAME u sw.js
 // (nova verzija = novi CACHE_NAME = preglednik povuče svježe fajlove).
-const APP_VERZIJA = '1.5';
+const APP_VERZIJA = '1.6';
 for(const id of ['verzijaTopbar', 'verzijaLogin', 'verzijaPostavke']){
   const el = document.getElementById(id);
   if(el) el.textContent = 'v' + APP_VERZIJA;
@@ -1766,7 +1778,7 @@ function zabiljezi(akcija, entitet, naziv, detalji){
 // Uporedi staro i novo stanje i ispiši šta se tačno promijenilo.
 const POLJA_NAZIVI = {
   vrsta:'Vrsta', gazdinstvo:'Gazdinstvo', vlasnik:'Vlasnik', telefon:'Telefon',
-  grad:'Grad', adresa:'Adresa', idGazdinstva:'ID gazdinstva', danIducePosjete:'Iduća posjeta',
+  grad:'Grad', adresa:'Adresa', adresaBroj:'Broj', idGazdinstva:'ID gazdinstva', danIducePosjete:'Iduća posjeta',
   napomena:'Napomena'
 };
 
@@ -2038,7 +2050,7 @@ function renderPregled(){
       <td style="white-space:nowrap;"><b>${formatDatum(g.danIducePosjete)}</b><br><span class="cell-sub">${kada}</span></td>
       <td><b>${escapeHtml(g.gazdinstvo)}</b><br><span class="cell-sub">${VRSTA_LABEL[g.vrsta] || ''}${stokaSazetak(g) ? ' · ' + escapeHtml(stokaSazetak(g)) : ''}</span></td>
       <td>${escapeHtml(g.vlasnik)}${g.telefon ? '<br><span class="cell-sub"><a href="tel:' + escapeHtml(g.telefon.replace(/\s+/g,'')) + '">' + escapeHtml(g.telefon) + '</a></span>' : ''}</td>
-      <td>${adresaHtml(g, escapeHtml(g.grad) + (g.adresa ? '<br><span class="cell-sub">' + escapeHtml(g.adresa) + '</span>' : ''))}</td>
+      <td>${adresaHtml(g, escapeHtml(g.grad) + (punaAdresa(g) ? '<br><span class="cell-sub">' + escapeHtml(punaAdresa(g)) + '</span>' : ''))}</td>
       <td class="actions"><button class="small secondary" onclick="otvoriGazdinstvo('${g.id}')">Otvori</button></td>
     </tr>`;
   };
@@ -2314,7 +2326,7 @@ function prikaziZauzece(){
 // pogled umjesto da se čita svaki red — isti badge sistem kao status gazdinstva.
 const AKCIJA_KLASA = {
   'dodao':'ok', 'dodao korisnika':'ok',
-  'izmijenio':'soon', 'promijenio PIN':'soon', 'pomjerio lokaciju':'soon',
+  'izmijenio':'soon', 'promijenio PIN':'soon', 'pomjerio lokaciju':'soon', 'postavio lokaciju':'ok',
   'obrisao':'due', 'obrisao korisnika':'due', 'vratio kopiju':'due'
 };
 function akcijaBadgeHtml(akcija){
@@ -2813,9 +2825,15 @@ function escapeHtml(s){
   ));
 }
 
+// Ulica i kućni broj se čuvaju odvojeno (zbog urednijeg unosa i preciznijeg
+// geokodiranja) ali se posvuda prikazuju i pretražuju kao jedna cjelina.
+function punaAdresa(g){
+  return [g.adresa, g.adresaBroj].filter(Boolean).join(' ');
+}
+
 // Adresa/grad kao klikabilan link ka Google Maps — isti obrazac kao telefon (tel:).
 function googleMapsLink(g){
-  const upit = [g.adresa, g.grad].filter(Boolean).join(', ');
+  const upit = [punaAdresa(g), g.grad].filter(Boolean).join(', ');
   return upit ? 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(upit) : null;
 }
 function adresaHtml(g, sadrzaj){
@@ -3020,7 +3038,7 @@ function preuzmiXlsx(nazivFajla, nazivLista, rows){
 // ---------- form ----------
 function resetGazdForm(){
   document.getElementById('gazdId').value = '';
-  for(const id of ['gNaziv','gVlasnik','gTelefon','gGrad','gAdresa','gIdGazdinstva',
+  for(const id of ['gNaziv','gVlasnik','gTelefon','gGrad','gAdresa','gBroj','gIdGazdinstva',
                    'gIduca','gNapomena']){
     document.getElementById(id).value = '';
   }
@@ -3058,6 +3076,7 @@ function submitGazdinstvo(event){
     telefon: document.getElementById('gTelefon').value.trim(),
     grad: document.getElementById('gGrad').value.trim(),
     adresa: document.getElementById('gAdresa').value.trim(),
+    adresaBroj: document.getElementById('gBroj').value.trim(),
     idGazdinstva: document.getElementById('gIdGazdinstva').value.trim(),
     stoka: procitajStoka(),
     posjete: procitajPosjete(),
@@ -3074,7 +3093,7 @@ function submitGazdinstvo(event){
   if(id){
     unos = list.find(g => g.id === id);
     if(!unos) return;
-    const adresaPromijenjena = unos.adresa !== podaci.adresa || unos.grad !== podaci.grad;
+    const adresaPromijenjena = unos.adresa !== podaci.adresa || unos.adresaBroj !== podaci.adresaBroj || unos.grad !== podaci.grad;
     const promjene = opisIzmjena(unos, podaci);
     Object.assign(unos, podaci);
     if(adresaPromijenjena && !unos.rucnoPomjeren){ unos.lat = null; unos.lng = null; }
@@ -3111,7 +3130,7 @@ function submitGazdinstvo(event){
 
   // Every saved holding lands on the map on its own — look up its coordinates
   // in the background unless we already have them.
-  if(!unos.lat && (unos.adresa || unos.grad)){
+  if(!unos.lat && (unos.adresa || unos.adresaBroj || unos.grad)){
     status.textContent = 'Tražim lokaciju na karti...';
     geocodeUnos(unos.id).then(uspjeh => {
       status.textContent = uspjeh
@@ -3135,6 +3154,7 @@ function editGazdinstvo(id){
   document.getElementById('gTelefon').value = g.telefon || '';
   document.getElementById('gGrad').value = g.grad || '';
   document.getElementById('gAdresa').value = g.adresa || '';
+  document.getElementById('gBroj').value = g.adresaBroj || '';
   document.getElementById('gIdGazdinstva').value = g.idGazdinstva || '';
   document.getElementById('gIduca').value = g.danIducePosjete || '';
   for(const s of stokaZaGazdinstvo(g)) dodajStokaRed(s.vrsta, s.broj, s.markice);
@@ -3190,7 +3210,7 @@ function tragHtml(g){
 // categories and ear-tag/ID numbers included.
 function tekstZaPretragu(g){
   return [
-    g.gazdinstvo, g.vlasnik, g.telefon, g.grad, g.adresa,
+    g.gazdinstvo, g.vlasnik, g.telefon, g.grad, g.adresa, g.adresaBroj,
     g.idGazdinstva, g.napomena,
     VRSTA_LABEL[g.vrsta],
     ...(g.dodatna || []).flatMap(p => [p.naziv, p.vrijednost]),
@@ -3250,7 +3270,7 @@ function renderGazdTable(){
         ${g.telefon ? '<br><span class="cell-sub"><a href="tel:' + escapeHtml(g.telefon.replace(/\s+/g,'')) + '">' + escapeHtml(g.telefon) + '</a></span>' : ''}
       </td>
       <td>
-        ${adresaHtml(g, escapeHtml(g.grad) + (g.adresa ? '<br><span class="cell-sub">' + escapeHtml(g.adresa) + '</span>' : ''))}
+        ${adresaHtml(g, escapeHtml(g.grad) + (punaAdresa(g) ? '<br><span class="cell-sub">' + escapeHtml(punaAdresa(g)) + '</span>' : ''))}
       </td>
       <td>${stokaCelijaHtml(g)}</td>
       <td>${formatDatum(zadnjaPosjeta(g))}${(g.posjete || []).length > 1 ? '<br><span class="cell-sub">' + g.posjete.length + ' posjeta ukupno</span>' : ''}</td>
@@ -3290,7 +3310,7 @@ function exportGazdinstva(){
     rows.push([
       VRSTA_LABEL[g.vrsta] || '',
       csvCisto(g.gazdinstvo), csvCisto(g.idGazdinstva), csvCisto(g.vlasnik), csvCisto(g.telefon),
-      csvCisto(g.grad), csvCisto(g.adresa),
+      csvCisto(g.grad), csvCisto(punaAdresa(g)),
       stoka.map(s => (s.broj ? s.broj + ' ' : '') + s.vrsta).filter(Boolean).map(csvCisto).join(' | '),
       stoka.flatMap(s => markiceIzStoke(s)).map(csvCisto).join(' '),
       zadnjaPosjeta(g), String((g.posjete || []).length), g.danIducePosjete || '',
@@ -3314,7 +3334,7 @@ function saveGeocache(cache){
 }
 
 function upitZaLokaciju(g){
-  return [g.adresa, g.grad, 'Bosna i Hercegovina'].filter(Boolean).join(', ');
+  return [punaAdresa(g), g.grad, 'Bosna i Hercegovina'].filter(Boolean).join(', ');
 }
 
 async function geocodeUnos(id){
@@ -3361,7 +3381,7 @@ async function geocodeUnos(id){
 async function lociranjeSvih(){
   const status = document.getElementById('mapStatus');
   const btn = document.getElementById('lociranjeBtn');
-  const bez = loadGazdinstva().filter(g => !g.lat && (g.adresa || g.grad));
+  const bez = loadGazdinstva().filter(g => !g.lat && (g.adresa || g.adresaBroj || g.grad));
   if(!bez.length){ status.textContent = 'Sva gazdinstva već imaju lokaciju.'; return; }
 
   btn.disabled = true;
@@ -3385,6 +3405,54 @@ let slojRute = null;
 let rutaAktivna = false;
 let trenutniPinovi = [];
 
+// ---------- ručno postavljanje lokacije klikom na kartu ----------
+// Za gazdinstva kod kojih automatsko geokodiranje ne uspije (čest slučaj za
+// zaseoke i manje precizne adrese u ruralnim područjima) — korisnik zna tačno
+// mjesto i sam ga označi, umjesto da ostane zaglavljen na "adresa nije nađena".
+let rucnoPostavljanjeId = null;
+
+function zapocniRucnoPostavljanje(id){
+  const g = loadGazdinstva().find(x => x.id === id);
+  if(!g || !mapa) return;
+  rucnoPostavljanjeId = id;
+  mapa.getContainer().style.cursor = 'crosshair';
+  document.getElementById('mapStatus').innerHTML =
+    'Klikni na kartu da postaviš lokaciju za "' + escapeHtml(g.gazdinstvo) + '" — ' +
+    '<a href="#" onclick="otkaziRucnoPostavljanje(event)">otkaži</a>';
+}
+
+function otkaziRucnoPostavljanje(event){
+  if(event) event.preventDefault();
+  rucnoPostavljanjeId = null;
+  if(mapa) mapa.getContainer().style.cursor = '';
+  renderMap();
+}
+
+function primiKlikNaKartu(e){
+  if(!rucnoPostavljanjeId) return;
+  const id = rucnoPostavljanjeId;
+  rucnoPostavljanjeId = null;
+  mapa.getContainer().style.cursor = '';
+
+  const list = loadGazdinstva();
+  const g = list.find(x => x.id === id);
+  if(!g){ renderMap(); return; }
+
+  g.lat = e.latlng.lat;
+  g.lng = e.latlng.lng;
+  g.rucnoPomjeren = true;   // isto kao ručno prevlačenje — adresa se poslije može mijenjati bez brisanja pina
+  g.izmijenioIme = trenutniKorisnik ? trenutniKorisnik.ime : 'nepoznat';
+  g.izmijenjeno = new Date().toISOString();
+  saveGazdinstva(list);
+  zabiljezi('postavio lokaciju', 'gazdinstvo', g.gazdinstvo,
+    e.latlng.lat.toFixed(5) + ', ' + e.latlng.lng.toFixed(5));
+
+  renderGazdTable();
+  renderMap();
+  renderDnevnik();
+  document.getElementById('mapStatus').textContent = 'Lokacija za "' + g.gazdinstvo + '" je postavljena.';
+}
+
 function initMap(){
   if(typeof L === 'undefined'){
     document.getElementById('map').innerHTML =
@@ -3398,6 +3466,7 @@ function initMap(){
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
     }).addTo(mapa);
     slojMarkera = L.layerGroup().addTo(mapa);
+    mapa.on('click', primiKlikNaKartu);
   }
   // The container had no size while its tab was hidden, so Leaflet needs a nudge.
   setTimeout(() => mapa.invalidateSize(), 0);
@@ -3413,7 +3482,7 @@ function popupHtml(g){
   return `${fotoCelijaHtml(g)}<b>${escapeHtml(g.gazdinstvo)}</b><br>
     <span class="pop-row">${VRSTA_LABEL[g.vrsta] || ''} · ${escapeHtml(g.vlasnik)}</span><br>
     ${g.telefon ? '<span class="pop-row"><a href="tel:' + escapeHtml(g.telefon.replace(/\s+/g,'')) + '">' + escapeHtml(g.telefon) + '</a></span><br>' : ''}
-    <span class="pop-row">${adresaHtml(g, escapeHtml([g.adresa, g.grad].filter(Boolean).join(', ')))}</span><br>
+    <span class="pop-row">${adresaHtml(g, escapeHtml([punaAdresa(g), g.grad].filter(Boolean).join(', ')))}</span><br>
     ${stokaSazetak(g) ? '<span class="pop-row">Stoka: <b>' + escapeHtml(stokaSazetak(g)) + '</b>' + (stokaMarkiceUkupno(g) ? ' · ' + stokaMarkiceUkupno(g) + ' markica evidentirano' : '') + '</span><br>' : ''}
     <span class="pop-row">Zadnja posjeta: ${formatDatum(zadnjaPosjeta(g))} · Iduća: ${formatDatum(g.danIducePosjete)}</span><br>
     ${g.napomena ? '<span class="pop-row">' + escapeHtml(g.napomena) + '</span><br>' : ''}
@@ -3475,9 +3544,15 @@ function renderMap(){
   const bezLok = vidljivi.filter(g => !g.lat || !g.lng);
   document.getElementById('bezLokacije').innerHTML = bezLok.length
     ? `<div class="empty-note" style="margin-top:14px;text-align:left;">
-         <b>Bez lokacije na karti (${bezLok.length}):</b><br>
-         ${bezLok.map(g => escapeHtml(g.gazdinstvo + ' — ' + [g.adresa, g.grad].filter(Boolean).join(', '))).join('<br>')}
-         <br><br>Klikni "Pronađi lokacije koje nedostaju", ili dopuni adresu u tabu Gazdinstva.
+         <b>Bez lokacije na karti (${bezLok.length}):</b>
+         <div class="bez-lokacije-lista">
+           ${bezLok.map(g => `
+             <div class="bez-lokacije-red">
+               <span>${escapeHtml(g.gazdinstvo)} — ${escapeHtml([punaAdresa(g), g.grad].filter(Boolean).join(', ') || 'nema adrese ni grada')}</span>
+               <button type="button" class="small secondary" onclick="zapocniRucnoPostavljanje('${g.id}')">Postavi na karti</button>
+             </div>`).join('')}
+         </div>
+         <p class="stoka-hint" style="margin-top:10px;">"Pronađi lokacije koje nedostaju" pokušava automatsko prepoznavanje po adresi. "Postavi na karti" te pusti da sam klikneš tačno mjesto — korisno kad adresa nije dovoljno precizna za automatsko prepoznavanje.</p>
        </div>`
     : '';
 
@@ -3601,7 +3676,7 @@ function renderRutaLista(redoslijed){
           <td style="white-space:nowrap;"><b>${i + 1}.</b></td>
           <td><b>${escapeHtml(g.gazdinstvo)}</b><br><span class="cell-sub">${VRSTA_LABEL[g.vrsta] || ''}</span></td>
           <td>${escapeHtml(g.vlasnik)}${g.telefon ? '<br><span class="cell-sub"><a href="tel:' + escapeHtml(g.telefon.replace(/\s+/g, '')) + '">' + escapeHtml(g.telefon) + '</a></span>' : ''}</td>
-          <td>${adresaHtml(g, escapeHtml(g.grad) + (g.adresa ? '<br><span class="cell-sub">' + escapeHtml(g.adresa) + '</span>' : ''))}</td>
+          <td>${adresaHtml(g, escapeHtml(g.grad) + (punaAdresa(g) ? '<br><span class="cell-sub">' + escapeHtml(punaAdresa(g)) + '</span>' : ''))}</td>
           <td class="actions"><button class="small secondary" onclick="otvoriGazdinstvo('${g.id}')">Otvori</button></td>
         </tr>`).join('')}</tbody>
       </table></div>

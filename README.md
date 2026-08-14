@@ -40,7 +40,7 @@ Dnevnik se može pretraživati, filtrirati po korisniku, izvesti u Excel i odšt
 ## Gazdinstva (Farme / Pčelari / Sve)
 Za svako gazdinstvo se unosi:
 - vrsta (farma / pčelar), gazdinstvo, vlasnik, telefon
-- grad, adresa, ID gazdinstva (JIB)
+- grad, adresa (ulica/zaselak i kućni broj su odvojena polja — tačniji unos i preciznije geokodiranje), ID gazdinstva (JIB)
 - **stoka na gazdinstvu** — dugme "+ Dodaj vrstu stoke" dodaje red po vrsti životinja: goveda, ovce, koze, konji, svinje, živina, ili košnice kod pčelara (slobodan tekst uz prijedloge, može i vlastita vrsta). Za svaku vrstu se unosi broj grla i, opciono, **ID brojevi / markice** — jedan po redu. Gazdinstvo može imati koliko god vrsta stoke, svaka sa svojim brojem i markicama.
 - dan iduće posjete, napomena
 - **obavljene posjete** — dugme "Zabilježi posjetu" dodaje red sa datumom, kolegom koji je bio na terenu (opciono) i nalazom; gazdinstvo može imati koliko god posjeta, sve ostaju u historiji (ništa se ne briše/prepisuje)
@@ -70,9 +70,10 @@ Boje markera se računaju automatski iz datuma:
 
 Slovo u markeru: **F** = farma, **P** = pčelar. Filteri iznad karte prikazuju samo farme / samo pčelare, i samo odabrani grad. Klik na marker otvara sve podatke gazdinstva (kontakt, broj grla ili košnica, termine, ostale činjenice).
 
-Ako adresa nije pronađena, gazdinstvo se izlistava ispod karte pod "Bez lokacije" — tada:
-- klikni **"Pronađi lokacije koje nedostaju"** da se pokuša ponovo, ili
-- dopuni precizniju adresu u tabu Gazdinstva.
+Ako adresa nije pronađena, gazdinstvo se izlistava ispod karte pod "Bez lokacije na karti" — tu za svaki takav unos stoji:
+- **"Postavi na karti"** — klikni dugme pa klikni tačno mjesto na mapi (npr. za zaseoke i manje precizne adrese koje automatsko prepoznavanje ne pogodi); traka iznad karte vodi kroz taj korak i nudi "otkaži" u svakom trenutku,
+- ili gore, dugme **"Pronađi lokacije koje nedostaju"** da se pokuša automatsko prepoznavanje ponovo,
+- ili dopuni precizniju adresu u tabu Gazdinstva.
 
 **Marker se može uhvatiti i prevući** na tačnu lokaciju — ta pozicija se pamti i ostaje čak i ako kasnije izmijeniš adresu.
 
