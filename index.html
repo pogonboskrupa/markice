@@ -328,17 +328,31 @@
     position:fixed;inset:0;z-index:2000;
     display:flex;align-items:center;justify-content:center;padding:20px;
     background:
+      repeating-linear-gradient(0deg, rgba(31,42,31,0.025) 0px, rgba(31,42,31,0.025) 1px, transparent 1px, transparent 26px),
       radial-gradient(900px 500px at 20% 0%, #fffef9 0%, transparent 60%),
       var(--paper);
   }
   .login-screen[hidden]{display:none;}
+  .login-seal{
+    width:64px;height:64px;margin:0 auto 16px;
+    border-radius:50%;border:1.5px dashed var(--gold);
+    display:flex;align-items:center;justify-content:center;
+    transform:rotate(-6deg);
+  }
+  .login-seal-inner{
+    width:50px;height:50px;border-radius:50%;border:1px solid var(--gold);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    font-family:'Helvetica Neue',Arial,sans-serif;color:var(--gold);
+  }
+  .login-seal-inner .k1{font-size:13px;font-weight:800;letter-spacing:.03em;line-height:1;}
+  .login-seal-inner .k2{font-size:5.5px;letter-spacing:.1em;margin-top:2px;text-transform:uppercase;}
   .login-card{
     width:100%;max-width:340px;
     background:var(--paper-raised);
     border:1px solid var(--line);
     border-top:3px solid var(--ink);
     border-radius:3px;
-    padding:26px 24px;
+    padding:30px 24px 26px;
     box-shadow:0 2px 12px rgba(31,42,31,.07);
   }
   .login-card h2{
@@ -448,6 +462,20 @@
 
   /* Zaglavlje sa pečatom ide samo na papir, ne troši ekran. */
   .letterhead, .double-rule{display:none;}
+
+  /* Kompaktan naslov za ekran — zamjena za zaglavlje, samo dovoljno da se
+     zna gdje si, bez da ponovo pojede cijeli prvi ekran. */
+  .page-heading{margin:18px 0 20px;}
+  .page-heading h1{
+    font-size:19px;font-weight:600;letter-spacing:-.005em;line-height:1.2;
+    margin:0;color:var(--ink);
+  }
+  .page-heading p{
+    font-family:'Helvetica Neue',Arial,sans-serif;
+    font-size:12px;color:var(--ink-soft);line-height:1.5;
+    max-width:640px;margin:5px 0 0;
+  }
+  @media print{ .page-heading{display:none;} }
   .subtabs{display:flex;gap:8px;margin:0 0 14px;flex-wrap:wrap;}
   .subtabs button{
     font-size:12px;padding:6px 14px;border-radius:20px;
@@ -597,6 +625,10 @@
     background:var(--paper-dim);
   }
   @media (max-width:600px){ #map{height:400px;} }
+  /* Tone the default OSM tiles toward the app's paper/sepia palette instead
+     of the stock blue-and-white cartography, so the map reads as part of
+     the same document rather than an embedded third-party widget. */
+  #map .leaflet-tile-pane{filter:sepia(12%) saturate(80%) brightness(101%) hue-rotate(-4deg);}
   .map-legend{
     display:flex;gap:16px;flex-wrap:wrap;align-items:center;
     font-family:'Helvetica Neue',Arial,sans-serif;font-size:11.5px;color:var(--ink-soft);
@@ -672,6 +704,12 @@
 
 <div class="login-screen" id="loginScreen">
   <div class="login-card">
+    <div class="login-seal" aria-hidden="true">
+      <div class="login-seal-inner">
+        <span class="k1">USK</span>
+        <span class="k2">Evidencija</span>
+      </div>
+    </div>
     <p class="eyebrow">Poljoprivredni zavod Unsko-sanskog kantona</p>
     <h2>Prijava</h2>
     <form onsubmit="prijava(event)">
@@ -740,6 +778,11 @@
     </div>
   </div>
   <div class="double-rule"></div>
+
+  <div class="page-heading">
+    <h1 id="pageTitleScreen">Usporedba spiskova ušnih markica</h1>
+    <p id="pageSubScreen">Zalijepi brojeve markica iz oba dokumenta — Popis identifikacionih oznaka i Potvrda o stanju životinja — da vidiš gdje se evidencije podudaraju.</p>
+  </div>
 
   <div class="print-meta" id="printMeta"></div>
 
@@ -2162,6 +2205,20 @@ function prikaziZauzece(){
 }
 
 // ---------- dnevnik ----------
+// Boja radnje po vrsti, tako da se dodavanje/izmjena/brisanje razlikuju na prvi
+// pogled umjesto da se čita svaki red — isti badge sistem kao status gazdinstva.
+const AKCIJA_KLASA = {
+  'dodao':'ok', 'dodao korisnika':'ok',
+  'izmijenio':'soon', 'promijenio PIN':'soon', 'pomjerio lokaciju':'soon',
+  'obrisao':'due', 'obrisao korisnika':'due', 'vratio kopiju':'due'
+};
+function akcijaBadgeHtml(akcija){
+  const klasa = AKCIJA_KLASA[akcija];
+  return klasa
+    ? '<span class="badge ' + klasa + '">' + escapeHtml(akcija) + '</span>'
+    : escapeHtml(akcija);
+}
+
 function renderDnevnik(){
   const wrap = document.getElementById('dnevnikWrap');
   if(!wrap) return;
@@ -2197,7 +2254,7 @@ function renderDnevnik(){
     <tbody>${filtrirani.map(z => `<tr>
       <td style="white-space:nowrap;">${new Date(z.vrijeme).toLocaleString('bs-BA')}</td>
       <td><b>${escapeHtml(z.korisnik)}</b></td>
-      <td>${escapeHtml(z.akcija)}</td>
+      <td>${akcijaBadgeHtml(z.akcija)}</td>
       <td>${escapeHtml(z.naziv)}</td>
       <td><span class="cell-sub">${escapeHtml(z.detalji)}</span></td>
     </tr>`).join('')}</tbody>
@@ -2277,6 +2334,8 @@ function showTab(name){
   }
   document.getElementById('pageTitle').textContent = TAB_HEADINGS[name].title;
   document.getElementById('pageSub').textContent = TAB_HEADINGS[name].sub;
+  document.getElementById('pageTitleScreen').textContent = TAB_HEADINGS[name].title;
+  document.getElementById('pageSubScreen').textContent = TAB_HEADINGS[name].sub;
   document.body.classList.toggle('wide', name !== 'usporedba');
   if(name === 'karta') initMap();
   if(name === 'pregled') renderPregled();
