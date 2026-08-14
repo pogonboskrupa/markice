@@ -2,11 +2,14 @@
 
 ## Planirano, još nije urađeno
 
-- **Povezati markice sa gazdinstvom** — usporedba markica (tab Markice) je i dalje odvojena od evidencije gazdinstava. Cilj: da se rezultat poređenja može sačuvati direktno uz gazdinstvo, i da se u par klikova vidi kojem gazdinstvu pripada koja markica.
-- **Fotografije sa terena** — mogućnost da se uz gazdinstvo (ili uz pojedinu posjetu) doda fotografija snimljena na licu mjesta.
-- **Pravi .xlsx izvoz** — tabele (gazdinstva, dnevnik, registar posjeta) trenutno izvoze samo CSV; dodati i izvoz u pravi Excel format.
 - **Ruta obilaska na karti** — numerisan/optimalan redoslijed posjeta za dati dan, direktno na karti.
 - **Zajednička baza podataka** (npr. Supabase) — trenutno svaki korisnik ima svoje odvojene podatke na svom uređaju (vidi napomenu ispod). Prava zajednička baza bi omogućila da svi vide iste podatke uživo, umjesto ručnog izvoza/uvoza sigurnosne kopije.
+
+## Nedavno urađeno
+
+- **Povezivanje markica sa gazdinstvom** — pretraga markice po broju (tab Markice) i klikabilni rezultati poređenja odmah pokazuju kojem gazdinstvu markica pripada.
+- **Fotografije sa terena** — dodavanje fotografija uz gazdinstvo (automatski smanjene radi uštede prostora), sa sličicom u tabeli, na karti i u obrascu.
+- **Pravi .xlsx izvoz** — svi izvozi (gazdinstva, dnevnik, registar posjeta, neusklađene markice) sada daju pravi Excel dokument umjesto CSV-a.
 
 ## Kako sistem radi — važno da se zna
 

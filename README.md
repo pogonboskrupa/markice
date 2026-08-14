@@ -26,7 +26,7 @@ Zaključaj i sam uređaj (PIN/otisak na telefonu ili laptopu) — to je u ovoj p
 ## Dnevnik izmjena
 Tab **Dnevnik izmjena** hronološki bilježi svaku radnju: ko se prijavio/odjavio, ko je dodao, izmijenio ili obrisao gazdinstvo, ko je pomjerio lokaciju na karti i ko je dodao ili obrisao korisnika. Kod izmjena se vidi i **tačno koje polje je promijenjeno i iz čega u šta** (npr. `Broj grla/košnica: "520" → "545"`).
 
-Dnevnik se može pretraživati, filtrirati po korisniku, izvesti u CSV i odštampati. Uz to, svaki red u spisku gazdinstava i svaki marker na karti pokazuju „Unio: … / Izmijenio: …". Dnevnik čuva zadnjih 2000 zapisa.
+Dnevnik se može pretraživati, filtrirati po korisniku, izvesti u Excel i odštampati. Uz to, svaki red u spisku gazdinstava i svaki marker na karti pokazuju „Unio: … / Izmijenio: …". Dnevnik čuva zadnjih 2000 zapisa.
 
 ## Tabovi u aplikaciji
 1. **Pregled** — prvi ekran nakon prijave: gazdinstva kojima je pregled istekao ili predstoji, po danima i gradovima
@@ -47,7 +47,7 @@ Za svako gazdinstvo se unosi:
 - **fotografije sa terena** — dugme "+ Dodaj fotografiju" (radi i sa kamerom na mobitelu). Slika se prije čuvanja automatski smanji (najviše 1000px, JPEG) da ne troši previše prostora — vidi napomenu o localStorage ispod. Prva fotografija se prikazuje kao mala sličica u tabeli i na karti; klik na nju otvara sliku u punoj veličini.
 - **ostale činjenice** — vlastita polja gdje sam upišeš naziv i vrijednost (npr. "Nadmorska visina: 640 m"), koliko god ih treba po gazdinstvu
 
-Podtabovi **Farme**, **Pčelari** i **Sve** filtriraju spisak po vrsti; u pogledu "Sve" tabela dobija i kolonu Vrsta. Unosi se mogu uređivati, brisati, izvesti u CSV i štampati. Telefon je klikabilan — na mobitelu pokreće poziv. Grad/adresa je klikabilna i otvara lokaciju u Google Maps (u tabeli, na Pregledu i u popup-u na karti).
+Podtabovi **Farme**, **Pčelari** i **Sve** filtriraju spisak po vrsti; u pogledu "Sve" tabela dobija i kolonu Vrsta. Unosi se mogu uređivati, brisati, izvesti u Excel i štampati. Telefon je klikabilan — na mobitelu pokreće poziv. Grad/adresa je klikabilna i otvara lokaciju u Google Maps (u tabeli, na Pregledu i u popup-u na karti).
 
 Stariji unosi koji imaju samo jedno polje "broj grla" i "pasmina" (prije nego je dodana ova podjela po vrstama) i dalje se prikazuju ispravno — čim se takav unos otvori za uređivanje i sačuva, automatski dobija novu strukturu.
 
@@ -58,7 +58,7 @@ Iznad tabele su:
 - **filter po statusu** — treba u pregled / uskoro / obavljeno
 - **Očisti** — poništava sve odjednom
 
-Izvoz u CSV izvozi tačno ono što je trenutno prikazano, pa filtrirani spisak daje filtriran fajl.
+Izvoz u Excel izvozi tačno ono što je trenutno prikazano, pa filtrirani spisak daje filtriran fajl.
 
 **Svaki sačuvani unos automatski završava na Karti** — aplikacija u pozadini potraži koordinate za unesenu adresu (preko OpenStreetMap Nominatim servisa) i postavi gazdinstvo na mapu.
 
@@ -90,7 +90,7 @@ Dugme "Otvori" na svakom redu vodi pravo na uređivanje tog gazdinstva. "Štampa
 ## Posjete (registar po mjesecima)
 Sve posjete iz svih gazdinstava, sabrane na jedno mjesto i grupisane po mjesecu (najnoviji mjesec prvi). Za svaku posjetu se vidi gazdinstvo (kod koga), korisnik koji je bio, kolega (ako je bio s nekim), i nalaz.
 
-Filter po korisniku se **pri otvaranju tabа sam postavi na tebe** — svako prvo vidi svoj registar, a filter lako prebaciš na kolegu ili na "Svi korisnici" da vidiš sve zajedno. Ima i filter po mjesecu i pretragu kroz sve podatke. Izvoz u CSV i štampa poštuju trenutne filtere.
+Filter po korisniku se **pri otvaranju tabа sam postavi na tebe** — svako prvo vidi svoj registar, a filter lako prebaciš na kolegu ili na "Svi korisnici" da vidiš sve zajedno. Ima i filter po mjesecu i pretragu kroz sve podatke. Izvoz u Excel i štampa poštuju trenutne filtere.
 
 ## Postavke i sigurnosna kopija
 > ⚠️ **Najvažnije poglavlje ovog README-a.** Svi podaci (gazdinstva, posjete, korisnici, dnevnik) žive **samo u ovom pregledniku, na ovom uređaju**. Nema servera, nema sinhronizacije. Ako se uređaj pokvari, izgubi, ili neko obriše podatke preglednika (ili instalira aplikaciju iznova) — **sve nestaje bez mogućnosti povrata**, osim ako postoji kopija.
@@ -144,6 +144,9 @@ Aplikacija očekuje dokument sa dva taba tačno ovako nazvana:
 
 Iz svakog taba čita se kolona B (šifra/identifikacijski broj životinje); naslovni i "Ukupno evidencija" redovi se automatski ignorišu. Ako fajl ima drugačija imena tabova, uvoz za tu listu neće raditi — javi ako treba dodati još naziva ili prilagoditi kolonu.
 
+## Izvoz u Excel (.xlsx)
+Svako dugme "Izvezi (Excel)" (gazdinstva, dnevnik izmjena, registar posjeta, neusklađene markice) preuzima pravi `.xlsx` dokument koji se otvara direktno u Excelu, LibreOffice-u ili Google Sheetsu — ne CSV. I čitanje i pisanje `.xlsx` fajlova je urađeno ručno (bez vanjske biblioteke poput SheetJS-a), jer jedina verzija te biblioteke dostupna preko npm-a ima poznate bezbjednosne ranjivosti. Fajl koji nastaje je minimalan ali ispravan OOXML dokument (ZIP arhiva bez kompresije + par XML dijelova), provjeren i ručno (otpakivanje ZIP-a) i učitavanjem kroz Python biblioteku za čitanje Excel fajlova.
+
 ## Povezivanje sa Google Sheets (alternativa)
 Svaka lista ima polje "Link ka Google Sheets dokumentu" + dugme "Uvezi" — nalijepi link i aplikacija povuče sadržaj direktno iz dokumenta (prepoznaje brojeve markica isto kao i kod ručnog kopiranja).
 
@@ -155,3 +158,11 @@ Ako uvoz ne uspije, provjeri dijeljenje dokumenta ili prekopiraj podatke ručno 
 
 ## Štampanje izvještaja
 Nakon "Uporedi liste", dugme "Štampaj izvještaj" otvara standardni dijalog za štampu (ili "Save as PDF") sa čistim izgledom: samo zaglavlje, sažetak i liste podudarnih/neusklađenih markica — bez tekstualnih polja i dugmadi.
+
+## Povezivanje markica sa gazdinstvom
+Svaka markica upisana uz stoku na nekom gazdinstvu (polje "ID brojevi / markice" u obrascu) automatski postaje pretraživa:
+
+- U tabu **Markice**, iznad liste za poređenje, polje "Pretraga po broju markice" — ukucaj broj i odmah vidi kojem gazdinstvu pripada (ili poruku da nije pronađena).
+- Nakon "Uporedi liste", svaka markica koja se poklapa sa nekim gazdinstvom je klikabilna i pokazuje naziv vlasnika direktno na "čipu"; klik otvara to gazdinstvo na uređivanje. Markice bez poznatog vlasnika ostaju obične (nisu klikabilne).
+
+Poređenje formata brojeva (razmaci, mala/velika slova, novi red) je isto kao i kod uvoza liste, tako da se "BA 4201 111111" i "BA4201111111" prepoznaju kao ista markica.

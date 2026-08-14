@@ -896,7 +896,7 @@
   <div class="actions-main">
     <button onclick="compareLists()">Uporedi liste</button>
     <button class="secondary" onclick="saveLists()">Sačuvaj obje liste</button>
-    <button class="secondary" onclick="exportMismatches()">Izvezi neusklađene (CSV)</button>
+    <button class="secondary" onclick="exportMismatches()">Izvezi neusklađene (Excel)</button>
     <button class="secondary" onclick="printReport()">Štampaj izvještaj</button>
   </div>
   <div class="status" id="status"></div>
@@ -1033,7 +1033,7 @@
 
     <div class="row-actions" style="margin:14px 0 10px;">
       <span class="count-pill" id="gazdCount">0 unosa</span>
-      <button class="small secondary" onclick="exportGazdinstva()">Izvezi (CSV)</button>
+      <button class="small secondary" onclick="exportGazdinstva()">Izvezi (Excel)</button>
       <button class="small secondary" onclick="window.print()">Štampaj spisak</button>
     </div>
 
@@ -1084,7 +1084,7 @@
 
     <div class="row-actions" style="margin:14px 0 10px;">
       <span class="count-pill" id="posjeteCount"></span>
-      <button class="small secondary" onclick="exportRegistarPosjeta()">Izvezi (CSV)</button>
+      <button class="small secondary" onclick="exportRegistarPosjeta()">Izvezi (Excel)</button>
       <button class="small secondary" onclick="window.print()">Štampaj registar</button>
     </div>
 
@@ -1104,7 +1104,7 @@
 
     <div class="row-actions" style="margin:14px 0 10px;">
       <span class="count-pill" id="dnevnikCount"></span>
-      <button class="small secondary" onclick="exportDnevnik()">Izvezi (CSV)</button>
+      <button class="small secondary" onclick="exportDnevnik()">Izvezi (Excel)</button>
       <button class="small secondary" onclick="window.print()">Štampaj dnevnik</button>
     </div>
 
@@ -1257,14 +1257,7 @@ function exportMismatches(){
   const rows = [['Markica','Status']];
   lastCompare.onlyIn1.forEach(t => rows.push([t, 'Samo u Listi 1']));
   lastCompare.onlyIn2.forEach(t => rows.push([t, 'Samo u Listi 2']));
-  const csv = rows.map(r => r.join(';')).join('\n');
-  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'neuskladjene-markice.csv';
-  a.click();
-  URL.revokeObjectURL(url);
+  preuzmiXlsx('neuskladjene-markice.xlsx', 'Neusklađene markice', rows);
 }
 
 // ---------- persistence (localStorage) ----------
@@ -2172,11 +2165,7 @@ function exportRegistarPosjeta(){
   for(const p of filtrirano){
     rows.push([p.datum, csvCisto(p.gazdinstvo), csvCisto(p.vlasnik), csvCisto(p.grad), csvCisto(p.ko), csvCisto(p.kolega), csvCisto(p.nalaz)]);
   }
-  const blob = new Blob(['﻿' + rows.map(r => r.join(';')).join('\n')], {type:'text/csv;charset=utf-8;'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = 'registar-posjeta.csv'; a.click();
-  URL.revokeObjectURL(url);
+  preuzmiXlsx('registar-posjeta.xlsx', 'Registar posjeta', rows);
 }
 
 // Skoči sa Pregleda pravo na uređivanje tog gazdinstva.
@@ -2349,11 +2338,7 @@ function exportDnevnik(){
     rows.push([new Date(z.vrijeme).toLocaleString('bs-BA'), csvCisto(z.korisnik),
                csvCisto(z.akcija), csvCisto(z.entitet), csvCisto(z.naziv), csvCisto(z.detalji)]);
   }
-  const blob = new Blob(['﻿' + rows.map(r => r.join(';')).join('\n')], {type:'text/csv;charset=utf-8;'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = 'dnevnik-izmjena.csv'; a.click();
-  URL.revokeObjectURL(url);
+  preuzmiXlsx('dnevnik-izmjena.xlsx', 'Dnevnik izmjena', rows);
 }
 
 // ============================================================
@@ -2794,6 +2779,189 @@ function csvCisto(s){
   return /^[=+\-@\t]/.test(tekst) ? "'" + tekst : tekst;
 }
 
+// ============================================================
+//  Minimalni .xlsx pisac (bez ijedne vanjske biblioteke)
+// ============================================================
+// Zašto ručno: jedina verzija SheetJS-a dostupna preko npm registra ima
+// poznate visoko-rizične ranjivosti (prototype pollution, ReDoS) i nema
+// načina da se iz ove razvojne okoline dobije zakrpljena verzija — isti
+// razlog zbog kojeg je i .xlsx UVOZ ranije napisan ručno (vidi importFromXlsxFile).
+// Za PISANJE poznatih, internih podataka (ne parsiranje tuđeg fajla) ovo je
+// mnogo manji i lakše provjerljiv posao: .xlsx je ZIP sa par XML dijelova, a
+// stavke se pišu nekomprimovano ("stored", metoda 0) — potpuno validan ZIP
+// oblik koji ne zahtijeva implementaciju deflate kompresije.
+
+const CRC32_TABELA = (() => {
+  const t = new Uint32Array(256);
+  for(let n = 0; n < 256; n++){
+    let c = n;
+    for(let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+    t[n] = c >>> 0;
+  }
+  return t;
+})();
+function crc32(bytes){
+  let crc = 0xFFFFFFFF;
+  for(let i = 0; i < bytes.length; i++) crc = CRC32_TABELA[(crc ^ bytes[i]) & 0xFF] ^ (crc >>> 8);
+  return (crc ^ 0xFFFFFFFF) >>> 0;
+}
+
+class BajtPisac{
+  constructor(){ this.dijelovi = []; this.duzina = 0; }
+  bajtovi(arr){ this.dijelovi.push(arr); this.duzina += arr.length; return this; }
+  u16(v){ return this.bajtovi(new Uint8Array([v & 0xFF, (v >>> 8) & 0xFF])); }
+  u32(v){ return this.bajtovi(new Uint8Array([v & 0xFF, (v >>> 8) & 0xFF, (v >>> 16) & 0xFF, (v >>> 24) & 0xFF])); }
+  spoji(){
+    const izlaz = new Uint8Array(this.duzina);
+    let pomak = 0;
+    for(const d of this.dijelovi){ izlaz.set(d, pomak); pomak += d.length; }
+    return izlaz;
+  }
+}
+
+// stavke: [{naziv, sadrzaj: string|Uint8Array}] -> Blob (validan .xlsx ZIP paket)
+function napraviZip(stavke){
+  const lokalni = new BajtPisac();
+  const centralniDijelovi = [];
+  const DOS_VRIJEME = 0, DOS_DATUM = 0x21; // proizvoljan fiksni datum (1.1.1980) — Excel ga ne provjerava
+
+  for(const {naziv, sadrzaj} of stavke){
+    const podaci = sadrzaj instanceof Uint8Array ? sadrzaj : new TextEncoder().encode(sadrzaj);
+    const imeBajtovi = new TextEncoder().encode(naziv);
+    const offset = lokalni.duzina;
+    const crc = crc32(podaci);
+
+    lokalni.u32(0x04034b50).u16(20).u16(0).u16(0).u16(DOS_VRIJEME).u16(DOS_DATUM)
+      .u32(crc).u32(podaci.length).u32(podaci.length)
+      .u16(imeBajtovi.length).u16(0)
+      .bajtovi(imeBajtovi).bajtovi(podaci);
+
+    const cd = new BajtPisac();
+    cd.u32(0x02014b50).u16(20).u16(20).u16(0).u16(0).u16(DOS_VRIJEME).u16(DOS_DATUM)
+      .u32(crc).u32(podaci.length).u32(podaci.length)
+      .u16(imeBajtovi.length).u16(0).u16(0).u16(0).u16(0).u32(0).u32(offset)
+      .bajtovi(imeBajtovi);
+    centralniDijelovi.push(cd.spoji());
+  }
+
+  const centralni = new BajtPisac();
+  for(const c of centralniDijelovi) centralni.bajtovi(c);
+  const centralniOffset = lokalni.duzina;
+  const centralniBajtovi = centralni.spoji();
+
+  const eocd = new BajtPisac();
+  eocd.u32(0x06054b50).u16(0).u16(0).u16(stavke.length).u16(stavke.length)
+    .u32(centralniBajtovi.length).u32(centralniOffset).u16(0);
+
+  const finalno = new BajtPisac();
+  finalno.bajtovi(lokalni.spoji()).bajtovi(centralniBajtovi).bajtovi(eocd.spoji());
+  return new Blob([finalno.spoji()], {type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+}
+
+function xmlCisto(s){
+  return String(s == null ? '' : s)
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '')   // XML 1.0 ne dozvoljava većinu kontrolnih znakova
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function stupacSlovo(indeks){
+  let i = indeks + 1, slovo = '';
+  while(i > 0){
+    const ostatak = (i - 1) % 26;
+    slovo = String.fromCharCode(65 + ostatak) + slovo;
+    i = Math.floor((i - 1) / 26);
+  }
+  return slovo;
+}
+
+// Sve ćelije kao inline-string tekst (bez posebnih brojčanih/datumskih tipova) —
+// isti sadržaj kao dosadašnji CSV izvoz, samo u pravom Excel formatu: ispravan
+// UTF-8, podebljan naslovni red, bez nagađanja separatora/kodne stranice.
+function xlsxListXml(rows){
+  let xml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+    '<sheetData>';
+  rows.forEach((red, ri) => {
+    const rBroj = ri + 1;
+    xml += `<row r="${rBroj}">`;
+    red.forEach((vrijednost, ci) => {
+      const stil = ri === 0 ? ' s="1"' : '';
+      xml += `<c r="${stupacSlovo(ci)}${rBroj}" t="inlineStr"${stil}><is><t xml:space="preserve">${xmlCisto(vrijednost)}</t></is></c>`;
+    });
+    xml += '</row>';
+  });
+  xml += '</sheetData></worksheet>';
+  return xml;
+}
+
+const XLSX_CONTENT_TYPES = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+  '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
+  '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
+  '<Default Extension="xml" ContentType="application/xml"/>' +
+  '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>' +
+  '<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>' +
+  '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>' +
+  '</Types>';
+
+const XLSX_RELS_ROOT = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+  '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+  '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>' +
+  '</Relationships>';
+
+const XLSX_WORKBOOK_RELS = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+  '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+  '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>' +
+  '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>' +
+  '</Relationships>';
+
+// fontId 1 (podebljano) se koristi samo za naslovni red — vidi xlsxListXml.
+const XLSX_STYLES = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+  '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+  '<fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><sz val="11"/><name val="Calibri"/><b/></font></fonts>' +
+  '<fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills>' +
+  '<borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders>' +
+  '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>' +
+  '<cellXfs count="2">' +
+  '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>' +
+  '<xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/>' +
+  '</cellXfs>' +
+  '<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>' +
+  '</styleSheet>';
+
+function xlsxWorkbookXml(nazivLista){
+  return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">' +
+    '<sheets><sheet name="' + xmlCisto(nazivLista) + '" sheetId="1" r:id="rId1"/></sheets>' +
+    '</workbook>';
+}
+
+// Excel ne dozvoljava : \ / ? * [ ] u nazivu taba, i ograničava ga na 31 znak.
+function sanitizirajNazivLista(naziv){
+  const ocisceno = String(naziv || 'List1').replace(/[:\\/?*[\]]/g, ' ').trim();
+  return (ocisceno || 'List1').slice(0, 31);
+}
+
+function xlsxBlob(nazivLista, rows){
+  return napraviZip([
+    { naziv: '[Content_Types].xml', sadrzaj: XLSX_CONTENT_TYPES },
+    { naziv: '_rels/.rels', sadrzaj: XLSX_RELS_ROOT },
+    { naziv: 'xl/workbook.xml', sadrzaj: xlsxWorkbookXml(sanitizirajNazivLista(nazivLista)) },
+    { naziv: 'xl/_rels/workbook.xml.rels', sadrzaj: XLSX_WORKBOOK_RELS },
+    { naziv: 'xl/styles.xml', sadrzaj: XLSX_STYLES },
+    { naziv: 'xl/worksheets/sheet1.xml', sadrzaj: xlsxListXml(rows) }
+  ]);
+}
+
+function preuzmiXlsx(nazivFajla, nazivLista, rows){
+  const blob = xlsxBlob(nazivLista, rows);
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = nazivFajla;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 // ---------- form ----------
 function resetGazdForm(){
   document.getElementById('gazdId').value = '';
@@ -3072,14 +3240,7 @@ function exportGazdinstva(){
       csvCisto(g.kreiraoIme), csvCisto(g.izmijenioIme)
     ]);
   }
-  const csv = rows.map(r => r.join(';')).join('\n');
-  const blob = new Blob(['﻿' + csv], {type:'text/csv;charset=utf-8;'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'gazdinstva.csv';
-  a.click();
-  URL.revokeObjectURL(url);
+  preuzmiXlsx('gazdinstva.xlsx', 'Gazdinstva', rows);
 }
 
 // ---------- geocoding (OpenStreetMap Nominatim) ----------
