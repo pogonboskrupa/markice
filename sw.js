@@ -13,9 +13,24 @@ const ASSETS = [
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
+    caches.open(CACHE_NAME).then((cache) =>
+      // {cache:'reload'} bypasses the browser's own HTTP cache for each asset —
+      // cache.addAll() alone can silently re-pack an already-stale index.html
+      // into the brand new Cache Storage bucket if the host ever sends a
+      // cacheable response for it, defeating the whole CACHE_NAME bump.
+      Promise.all(ASSETS.map((url) =>
+        fetch(url, {cache: 'reload'}).then((response) => cache.put(url, response))
+      ))
+    )
   );
-  self.skipWaiting();
+  // No self.skipWaiting() here on purpose: when this install is replacing an
+  // already-active version, the new worker should sit in "waiting" until the
+  // page's own "Osvježi" button confirms it (see the message listener below)
+  // — otherwise an update could yank the app out from under someone mid-entry.
+});
+
+self.addEventListener('message', (event) => {
+  if(event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {

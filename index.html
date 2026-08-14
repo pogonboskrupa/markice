@@ -816,6 +816,11 @@
     <button class="small" id="installBtn">Instaliraj</button>
   </div>
 
+  <div class="install-bar" id="updateBar">
+    <span>Dostupna je nova verzija aplikacije.</span>
+    <button class="small" id="updateBtn">Osvježi</button>
+  </div>
+
   <!-- Zaglavlje se na ekranu ne prikazuje — služi samo za štampani izvještaj. -->
   <div class="letterhead">
     <div class="letterhead-left">
@@ -3613,9 +3618,60 @@ window.addEventListener('appinstalled', () => {
 });
 
 // ---------- register service worker ----------
+// Instalirana PWA aplikacija često ostane otvorena danima, pa se ne oslanjamo
+// samo na provjeru koju preglednik radi pri sljedećoj navigaciji — provjeravamo
+// i sami (pri povratku u fokus) i jasno prikažemo korisniku kad je nova verzija
+// spremna, umjesto da tiho ostane na starom kodu dok neko ručno ne obriše keš.
 if('serviceWorker' in navigator){
+  let noviWorkerCekaPotvrdu = null;
+
+  const ponudiOsvjezavanje = (worker) => {
+    noviWorkerCekaPotvrdu = worker;
+    document.getElementById('updateBar').style.display = 'flex';
+  };
+
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js').catch(err => console.warn('SW registration failed', err));
+    // updateViaCache:'none' stops the browser from ever using its own HTTP
+    // cache for sw.js on update checks — without this, some browsers can keep
+    // reusing a stale copy of the script itself even though the server sends
+    // fresh bytes, which is exactly the "have to clear cache" symptom.
+    navigator.serviceWorker.register('sw.js', {updateViaCache: 'none'}).then(reg => {
+      document.addEventListener('visibilitychange', () => {
+        if(document.visibilityState === 'visible') reg.update();
+      });
+
+      // Novi worker je možda već instaliran i čeka od ranije (npr. korisnik
+      // se vratio na tab poslije duže odsutnosti) — ponudi osvježavanje odmah.
+      if(reg.waiting && navigator.serviceWorker.controller){
+        ponudiOsvjezavanje(reg.waiting);
+      }
+
+      reg.addEventListener('updatefound', () => {
+        const noviWorker = reg.installing;
+        if(!noviWorker) return;
+        noviWorker.addEventListener('statechange', () => {
+          // "installed" uz postojećeg controllera znači da je ovo AŽURIRANJE
+          // (ne prva instalacija) — tek tada ima smisla ponuditi osvježavanje.
+          if(noviWorker.state === 'installed' && navigator.serviceWorker.controller){
+            ponudiOsvjezavanje(noviWorker);
+          }
+        });
+      });
+    }).catch(err => console.warn('SW registration failed', err));
+
+    let vecOsvjezeno = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if(vecOsvjezeno) return;
+      vecOsvjezeno = true;
+      window.location.reload();
+    });
+  });
+
+  document.getElementById('updateBtn').addEventListener('click', () => {
+    // Novi worker aktivno čeka potvrdu (vidi "no self.skipWaiting()" u sw.js)
+    // — poruka mu kaže da preuzme kontrolu, a "controllerchange" gore onda
+    // pokreće stvarno osvježavanje stranice tek kad je zaista spreman.
+    if(noviWorkerCekaPotvrdu) noviWorkerCekaPotvrdu.postMessage({type: 'SKIP_WAITING'});
   });
 }
 </script>

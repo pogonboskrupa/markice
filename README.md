@@ -117,6 +117,15 @@ Upravljanje korisnicima (dodavanje, PIN) ostaje u istom tabu, ali vidljivo samo 
 
 Kasnije, ako želiš stalniji domen, možeš napraviti besplatan Netlify nalog i povezati ovaj folder trajno (ili ga povezati sa GitHub repozitorijem za automatski redeploy).
 
+## Nova verzija poslije deploya
+Kad se aplikacija ponovo deployuje, korisnici koji je već imaju otvorenu (ili instaliranu) **ne moraju ništa brisati** — aplikacija sama primijeti novu verziju (odmah pri sljedećem otvaranju, ili dok je otvorena, kad se vrati u fokus) i na vrhu ekrana pokaže traku "Dostupna je nova verzija aplikacije" sa dugmetom **Osvježi**. Dok se dugme ne klikne, trenutna sesija normalno nastavlja raditi sa starom verzijom — ništa se ne prekida usred unosa. Klik učita novu verziju i sesija (prijava) ostaje ista, ne treba se ponovo prijavljivati.
+
+Ovo je urađeno na nekoliko nivoa odjednom, jer preglednici inače vole zadržati staru kopiju bar na jednom od njih:
+- `CACHE_NAME` u `sw.js` i `APP_VERZIJA` u `index.html` se podignu zajedno pri svakom deployu koji mijenja kod — to je ono što uopšte tjera keš (Cache Storage) aplikacije da se osvježi.
+- Service worker pri instalaciji sam zaobilazi keš preglednika za svaki fajl koji preuzima (`{cache:'reload'}`), i registruje se sa `updateViaCache:'none'` — bez toga bi preglednik znao zadržati staru kopiju `sw.js`-a čak i kad je na serveru nova.
+- Fajl `_headers` govori Netlify-ju (ili bilo kojem hostingu koji ga poštuje) da `index.html`, `sw.js` i `manifest.json` nikad ne kešira na nivou CDN-a/HTTP-a.
+- Nova verzija se ne nameće automatski — čeka klik na "Osvježi", da se ne izgubi ništa što je korisnik usred kucanja.
+
 ## Instalacija na uređaje
 - **Android (Chrome):** otvori link → meni (⋮) → "Dodaj na početni ekran" / "Instaliraj aplikaciju"
 - **iPhone (Safari):** otvori link → dugme Share → "Add to Home Screen"
