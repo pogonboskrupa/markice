@@ -542,6 +542,23 @@
   .form-body[hidden]{display:none;}
   @media (prefers-reduced-motion: reduce){ .form-toggle .chev{transition:none;} }
 
+  /* Uređivanje mora biti upadljivo drugačije od praznog obrasca — bez toga je
+     lako otvoriti "Uredi" na jednom gazdinstvu, zaboraviti da si u tom modu i
+     upisati novo gazdinstvo preko starog umjesto da ga dodaš kao novo. */
+  .gazd-form.editing{
+    border-color:var(--gold);
+    box-shadow:0 0 0 1px var(--gold), 0 1px 3px rgba(31,42,31,.05);
+  }
+  .gazd-form.editing .form-toggle{background:#fbf1de;}
+  .edit-badge{
+    display:inline-block;font-size:9.5px;font-weight:700;letter-spacing:.08em;
+    text-transform:uppercase;background:var(--gold);color:#fff;
+    padding:2px 8px;border-radius:20px;margin-left:9px;vertical-align:middle;
+  }
+  /* Explicit — an author-stylesheet display value otherwise beats the UA
+     [hidden]{display:none} rule, so el.hidden=true alone wouldn't hide this. */
+  .edit-badge[hidden]{display:none;}
+
   .form-grid{
     display:grid;
     grid-template-columns:repeat(auto-fit,minmax(190px,1fr));
@@ -922,10 +939,10 @@
       <button role="tab" aria-selected="false" data-vrsta="sve" onclick="showVrsta('sve')">Sve</button>
     </div>
 
-    <div class="card gazd-form">
+    <div class="card gazd-form" id="gazdFormCard">
       <button type="button" class="form-toggle" id="formToggle" aria-expanded="false"
               aria-controls="gazdFormBody" onclick="toggleGazdForm()">
-        <span id="formNaslov">Novo gazdinstvo — farma</span>
+        <span><span id="formNaslov">Novo gazdinstvo — farma</span><span class="edit-badge" id="editBadge" hidden>Uređivanje</span></span>
         <span class="chev" aria-hidden="true">+</span>
       </button>
       <div class="form-body" id="gazdFormBody" hidden>
@@ -1016,7 +1033,7 @@
         </div>
         <div class="row-actions" style="margin-top:14px;">
           <button type="submit" id="gSubmitBtn">Sačuvaj gazdinstvo</button>
-          <button type="button" class="secondary" onclick="resetGazdForm()">Poništi</button>
+          <button type="button" class="secondary" id="gPonistiBtn" onclick="resetGazdForm()">Poništi</button>
           <span class="count-pill" id="gazdStatus"></span>
         </div>
       </form>
@@ -1179,7 +1196,7 @@
 // Jedino mjesto gdje se broj verzije mijenja — prikazuje se u topbaru,
 // na prijavi i u Postavkama, i mora biti usklađen sa CACHE_NAME u sw.js
 // (nova verzija = novi CACHE_NAME = preglednik povuče svježe fajlove).
-const APP_VERZIJA = '1.2';
+const APP_VERZIJA = '1.3';
 for(const id of ['verzijaTopbar', 'verzijaLogin', 'verzijaPostavke']){
   const el = document.getElementById(id);
   if(el) el.textContent = 'v' + APP_VERZIJA;
@@ -3002,8 +3019,11 @@ function resetGazdForm(){
   document.getElementById('gVrsta').value = aktivnaVrsta === 'sve' ? 'farma' : aktivnaVrsta;
   osvjeziVrstuPolja();
   document.getElementById('gSubmitBtn').textContent = 'Sačuvaj gazdinstvo';
+  document.getElementById('gPonistiBtn').textContent = 'Poništi';
   document.getElementById('gazdStatus').textContent = '';
   document.getElementById('formNaslov').textContent = naslovForme();
+  document.getElementById('gazdFormCard').classList.remove('editing');
+  document.getElementById('editBadge').hidden = true;
 }
 
 function naslovForme(){
@@ -3113,8 +3133,11 @@ function editGazdinstvo(id){
   renderFotoGalerija();
   for(const p of (g.dodatna || [])) dodajPolje(p.naziv, p.vrijednost);
   document.getElementById('gSubmitBtn').textContent = 'Sačuvaj izmjene';
+  document.getElementById('gPonistiBtn').textContent = 'Otkaži uređivanje';
   document.getElementById('formNaslov').textContent = 'Uređivanje: ' + (g.gazdinstvo || g.vlasnik);
   document.getElementById('gazdStatus').textContent = '';
+  document.getElementById('gazdFormCard').classList.add('editing');
+  document.getElementById('editBadge').hidden = false;
   toggleGazdForm(true);
   document.getElementById('gNaziv').scrollIntoView({block:'center', behavior:'smooth'});
   document.getElementById('gNaziv').focus();
