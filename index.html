@@ -589,6 +589,8 @@
 
   .cell-sub{font-size:11px;color:var(--ink-soft);}
   .cell-sub a{color:var(--ink-soft);}
+  a.adresa-link{color:inherit;text-decoration:none;border-bottom:1px dotted var(--line-strong);}
+  a.adresa-link:hover{color:var(--green);border-bottom-color:var(--green);}
   td .num{font-variant-numeric:tabular-nums;font-weight:700;}
 
   .table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:3px;background:var(--paper-raised);}
@@ -1924,7 +1926,7 @@ function renderPregled(){
       <td style="white-space:nowrap;"><b>${formatDatum(g.danIducePosjete)}</b><br><span class="cell-sub">${kada}</span></td>
       <td><b>${escapeHtml(g.gazdinstvo)}</b><br><span class="cell-sub">${VRSTA_LABEL[g.vrsta] || ''}${stokaSazetak(g) ? ' · ' + escapeHtml(stokaSazetak(g)) : ''}</span></td>
       <td>${escapeHtml(g.vlasnik)}${g.telefon ? '<br><span class="cell-sub"><a href="tel:' + escapeHtml(g.telefon.replace(/\s+/g,'')) + '">' + escapeHtml(g.telefon) + '</a></span>' : ''}</td>
-      <td>${escapeHtml(g.grad)}${g.adresa ? '<br><span class="cell-sub">' + escapeHtml(g.adresa) + '</span>' : ''}</td>
+      <td>${adresaHtml(g, escapeHtml(g.grad) + (g.adresa ? '<br><span class="cell-sub">' + escapeHtml(g.adresa) + '</span>' : ''))}</td>
       <td class="actions"><button class="small secondary" onclick="otvoriGazdinstvo('${g.id}')">Otvori</button></td>
     </tr>`;
   };
@@ -2575,6 +2577,18 @@ function escapeHtml(s){
   ));
 }
 
+// Adresa/grad kao klikabilan link ka Google Maps — isti obrazac kao telefon (tel:).
+function googleMapsLink(g){
+  const upit = [g.adresa, g.grad].filter(Boolean).join(', ');
+  return upit ? 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(upit) : null;
+}
+function adresaHtml(g, sadrzaj){
+  const link = googleMapsLink(g);
+  return link
+    ? '<a class="adresa-link" href="' + escapeHtml(link) + '" target="_blank" rel="noopener" title="Otvori u Google Maps">' + sadrzaj + '</a>'
+    : sadrzaj;
+}
+
 // Shared CSV cell cleanup: strips characters that would break the ';'-delimited
 // format, and guards against CSV formula injection (CWE-1236) — a cell that
 // starts with =, +, -, @ or a tab can run as a formula when the exported file
@@ -2804,8 +2818,7 @@ function renderGazdTable(){
         ${g.telefon ? '<br><span class="cell-sub"><a href="tel:' + escapeHtml(g.telefon.replace(/\s+/g,'')) + '">' + escapeHtml(g.telefon) + '</a></span>' : ''}
       </td>
       <td>
-        ${escapeHtml(g.grad)}
-        ${g.adresa ? '<br><span class="cell-sub">' + escapeHtml(g.adresa) + '</span>' : ''}
+        ${adresaHtml(g, escapeHtml(g.grad) + (g.adresa ? '<br><span class="cell-sub">' + escapeHtml(g.adresa) + '</span>' : ''))}
       </td>
       <td>${stokaCelijaHtml(g)}</td>
       <td>${formatDatum(zadnjaPosjeta(g))}${(g.posjete || []).length > 1 ? '<br><span class="cell-sub">' + g.posjete.length + ' posjeta ukupno</span>' : ''}</td>
@@ -2968,7 +2981,7 @@ function popupHtml(g){
   return `<b>${escapeHtml(g.gazdinstvo)}</b><br>
     <span class="pop-row">${VRSTA_LABEL[g.vrsta] || ''} · ${escapeHtml(g.vlasnik)}</span><br>
     ${g.telefon ? '<span class="pop-row"><a href="tel:' + escapeHtml(g.telefon.replace(/\s+/g,'')) + '">' + escapeHtml(g.telefon) + '</a></span><br>' : ''}
-    <span class="pop-row">${escapeHtml([g.adresa, g.grad].filter(Boolean).join(', '))}</span><br>
+    <span class="pop-row">${adresaHtml(g, escapeHtml([g.adresa, g.grad].filter(Boolean).join(', ')))}</span><br>
     ${stokaSazetak(g) ? '<span class="pop-row">Stoka: <b>' + escapeHtml(stokaSazetak(g)) + '</b>' + (stokaMarkiceUkupno(g) ? ' · ' + stokaMarkiceUkupno(g) + ' markica evidentirano' : '') + '</span><br>' : ''}
     <span class="pop-row">Zadnja posjeta: ${formatDatum(zadnjaPosjeta(g))} · Iduća: ${formatDatum(g.danIducePosjete)}</span><br>
     ${g.napomena ? '<span class="pop-row">' + escapeHtml(g.napomena) + '</span><br>' : ''}

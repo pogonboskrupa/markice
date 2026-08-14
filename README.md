@@ -6,6 +6,7 @@
 - `sw.js` — service worker, keširа fajlove za offline rad
 - `icons/` — ikone aplikacije
 - `vendor/` — Leaflet (biblioteka za kartu, BSD-2 licenca, uključena lokalno da radi i bez interneta)
+- `TODO.md` — šta je planirano a još nije urađeno, i najvažnije napomene o tome kako podaci žive u aplikaciji
 
 ## Prijava i korisnici
 Aplikacija traži prijavu pri otvaranju. Prvi korisnik je već ugrađen:
@@ -45,7 +46,7 @@ Za svako gazdinstvo se unosi:
 - **obavljene posjete** — dugme "Zabilježi posjetu" dodaje red sa datumom, kolegom koji je bio na terenu (opciono) i nalazom; gazdinstvo može imati koliko god posjeta, sve ostaju u historiji (ništa se ne briše/prepisuje)
 - **ostale činjenice** — vlastita polja gdje sam upišeš naziv i vrijednost (npr. "Nadmorska visina: 640 m"), koliko god ih treba po gazdinstvu
 
-Podtabovi **Farme**, **Pčelari** i **Sve** filtriraju spisak po vrsti; u pogledu "Sve" tabela dobija i kolonu Vrsta. Unosi se mogu uređivati, brisati, izvesti u CSV i štampati. Telefon je klikabilan — na mobitelu pokreće poziv.
+Podtabovi **Farme**, **Pčelari** i **Sve** filtriraju spisak po vrsti; u pogledu "Sve" tabela dobija i kolonu Vrsta. Unosi se mogu uređivati, brisati, izvesti u CSV i štampati. Telefon je klikabilan — na mobitelu pokreće poziv. Grad/adresa je klikabilna i otvara lokaciju u Google Maps (u tabeli, na Pregledu i u popup-u na karti).
 
 Stariji unosi koji imaju samo jedno polje "broj grla" i "pasmina" (prije nego je dodana ova podjela po vrstama) i dalje se prikazuju ispravno — čim se takav unos otvori za uređivanje i sačuva, automatski dobija novu strukturu.
 
