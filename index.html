@@ -1063,7 +1063,6 @@
       <button class="small secondary" onclick="ukloniRutu()" id="ukloniRutuBtn" style="display:none;">Ukloni rutu</button>
       <span class="count-pill" id="mapStatus"></span>
     </div>
-    <p class="stoka-hint" style="margin:6px 0 14px;">Ruta ređa trenutno prikazana gazdinstva po najbližem susjedu, počevši od tvoje lokacije (ako dozvoliš pristup) ili od prvog gazdinstva na spisku.</p>
 
     <div id="map"></div>
 
@@ -1180,7 +1179,7 @@
 // Jedino mjesto gdje se broj verzije mijenja — prikazuje se u topbaru,
 // na prijavi i u Postavkama, i mora biti usklađen sa CACHE_NAME u sw.js
 // (nova verzija = novi CACHE_NAME = preglednik povuče svježe fajlove).
-const APP_VERZIJA = '1.1';
+const APP_VERZIJA = '1.2';
 for(const id of ['verzijaTopbar', 'verzijaLogin', 'verzijaPostavke']){
   const el = document.getElementById(id);
   if(el) el.textContent = 'v' + APP_VERZIJA;
@@ -2395,7 +2394,7 @@ const TAB_HEADINGS = {
   },
   karta: {
     title: 'Karta korisnika usluga',
-    sub: 'Pregled svih gazdinstava na mapi — zeleno je obavljeno, crveno čeka pregled.'
+    sub: ''
   },
   dnevnik: {
     title: 'Dnevnik izmjena',
@@ -2422,6 +2421,10 @@ function showTab(name){
   document.getElementById('pageSub').textContent = TAB_HEADINGS[name].sub;
   document.getElementById('pageTitleScreen').textContent = TAB_HEADINGS[name].title;
   document.getElementById('pageSubScreen').textContent = TAB_HEADINGS[name].sub;
+  // Prazan podnaslov ne treba da zauzima red — bitno za tab Karta, gdje se
+  // taj prostor prepušta mapi (i na ekranu i u štampanom zaglavlju).
+  document.getElementById('pageSub').style.display = TAB_HEADINGS[name].sub ? '' : 'none';
+  document.getElementById('pageSubScreen').style.display = TAB_HEADINGS[name].sub ? '' : 'none';
   document.body.classList.toggle('wide', name !== 'usporedba');
   if(name === 'karta') initMap();
   if(name === 'pregled') renderPregled();
