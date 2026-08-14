@@ -1060,8 +1060,13 @@
 // ---------- normalize & compare ----------
 function normalize(raw){
   const text = raw.toUpperCase();
-  const matches = text.match(/BA\s*\d[\d\s]{5,15}\d/g) || [];
-  return matches.map(m => m.replace(/\s+/g,''));
+  // Whitespace inside a match is restricted to space/tab (not \n or \r): the
+  // original [\d\s]{5,15} let the pattern span a line break, so a real tag
+  // immediately followed by an unrelated short number on the next line (a
+  // stray footer value from an Excel/Sheets import, for instance) would fuse
+  // into one bogus, too-long "tag" — silently dropping the real one.
+  const matches = text.match(/BA[ \t]*\d[\d \t]{5,15}\d/g) || [];
+  return matches.map(m => m.replace(/[ \t]+/g,''));
 }
 function uniqueList(arr){ return [...new Set(arr)]; }
 
@@ -2040,10 +2045,9 @@ function renderRegistarPosjeta(){
 function exportRegistarPosjeta(){
   const filtrirano = filtriraniPosjeti().sort((a,b) => a.datum.localeCompare(b.datum));
   if(!filtrirano.length){ document.getElementById('posjeteCount').textContent = 'Nema posjeta za izvoz.'; return; }
-  const cisto = s => String(s == null ? '' : s).replace(/[\r\n;]+/g,' ').trim();
   const rows = [['Datum','Gazdinstvo','Vlasnik','Grad','Korisnik','Kolega','Napomena']];
   for(const p of filtrirano){
-    rows.push([p.datum, cisto(p.gazdinstvo), cisto(p.vlasnik), cisto(p.grad), cisto(p.ko), cisto(p.kolega), cisto(p.nalaz)]);
+    rows.push([p.datum, csvCisto(p.gazdinstvo), csvCisto(p.vlasnik), csvCisto(p.grad), csvCisto(p.ko), csvCisto(p.kolega), csvCisto(p.nalaz)]);
   }
   const blob = new Blob(['﻿' + rows.map(r => r.join(';')).join('\n')], {type:'text/csv;charset=utf-8;'});
   const url = URL.createObjectURL(blob);
@@ -2203,11 +2207,10 @@ function renderDnevnik(){
 function exportDnevnik(){
   const zapisi = loadDnevnik().slice().reverse();
   if(!zapisi.length){ document.getElementById('dnevnikCount').textContent = 'Nema zapisa za izvoz.'; return; }
-  const cisto = s => String(s == null ? '' : s).replace(/[\r\n;]+/g,' ').trim();
   const rows = [['Vrijeme','Korisnik','Radnja','Vrsta stavke','Stavka','Detalji']];
   for(const z of zapisi){
-    rows.push([new Date(z.vrijeme).toLocaleString('bs-BA'), cisto(z.korisnik),
-               cisto(z.akcija), cisto(z.entitet), cisto(z.naziv), cisto(z.detalji)]);
+    rows.push([new Date(z.vrijeme).toLocaleString('bs-BA'), csvCisto(z.korisnik),
+               csvCisto(z.akcija), csvCisto(z.entitet), csvCisto(z.naziv), csvCisto(z.detalji)]);
   }
   const blob = new Blob(['﻿' + rows.map(r => r.join(';')).join('\n')], {type:'text/csv;charset=utf-8;'});
   const url = URL.createObjectURL(blob);
@@ -2343,7 +2346,12 @@ function procitajStoka(){
 // Stariji zapisi imaju samo pojedinačna polja "broj" + "pasmina" — ovdje se
 // pretvaraju u jednu stavku stoke, bez destruktivne migracije podataka.
 function stokaZaGazdinstvo(g){
-  if(g.stoka && g.stoka.length) return g.stoka;
+  // g.stoka !== undefined (not "truthy length") is the right check here — a
+  // record saved through the current form always has a stoka array, even an
+  // empty one after the user deliberately removes its last row. Falling back
+  // to legacy broj/pasmina in that case would silently resurrect data the
+  // user just cleared.
+  if(g.stoka !== undefined) return g.stoka;
   if(g.broj || g.pasmina) return [{ vrsta: g.pasmina || (g.vrsta === 'pcelar' ? 'Košnice' : 'Grla'), broj: g.broj || '', markice: '' }];
   return [];
 }
@@ -2357,10 +2365,6 @@ function stokaSazetak(g){
     .filter(s => s.vrsta || s.broj)
     .map(s => ((s.broj ? s.broj + ' ' : '') + (s.vrsta || '')).trim())
     .join(' · ');
-}
-
-function stokaUkupno(g){
-  return stokaZaGazdinstvo(g).reduce((zbir, s) => zbir + (parseInt(s.broj, 10) || 0), 0);
 }
 
 function stokaMarkiceUkupno(g){
@@ -2510,6 +2514,15 @@ function escapeHtml(s){
   return String(s == null ? '' : s).replace(/[&<>"']/g, ch => (
     {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]
   ));
+}
+
+// Shared CSV cell cleanup: strips characters that would break the ';'-delimited
+// format, and guards against CSV formula injection (CWE-1236) — a cell that
+// starts with =, +, -, @ or a tab can run as a formula when the exported file
+// is opened in Excel/Sheets by a colleague. A leading apostrophe neutralizes it.
+function csvCisto(s){
+  const tekst = String(s == null ? '' : s).replace(/[\r\n;]+/g,' ').trim();
+  return /^[=+\-@\t]/.test(tekst) ? "'" + tekst : tekst;
 }
 
 // ---------- form ----------
@@ -2765,7 +2778,6 @@ function exportGazdinstva(){
     document.getElementById('gazdStatus').textContent = 'Nema unosa za izvoz.';
     return;
   }
-  const cisto = s => String(s == null ? '' : s).replace(/[\r\n;]+/g,' ').trim();
   const rows = [['Vrsta','Gazdinstvo','ID gazdinstva','Vlasnik','Telefon','Grad','Adresa',
                  'Stoka','ID brojevi / markice','Zadnja posjeta','Broj posjeta','Iduća posjeta',
                  'Status','Napomena','Ostale činjenice','Historija posjeta','Unio','Izmijenio']];
@@ -2773,15 +2785,15 @@ function exportGazdinstva(){
     const stoka = stokaZaGazdinstvo(g);
     rows.push([
       VRSTA_LABEL[g.vrsta] || '',
-      cisto(g.gazdinstvo), cisto(g.idGazdinstva), cisto(g.vlasnik), cisto(g.telefon),
-      cisto(g.grad), cisto(g.adresa),
-      stoka.map(s => (s.broj ? s.broj + ' ' : '') + s.vrsta).filter(Boolean).map(cisto).join(' | '),
-      stoka.flatMap(s => markiceIzStoke(s)).map(cisto).join(' '),
+      csvCisto(g.gazdinstvo), csvCisto(g.idGazdinstva), csvCisto(g.vlasnik), csvCisto(g.telefon),
+      csvCisto(g.grad), csvCisto(g.adresa),
+      stoka.map(s => (s.broj ? s.broj + ' ' : '') + s.vrsta).filter(Boolean).map(csvCisto).join(' | '),
+      stoka.flatMap(s => markiceIzStoke(s)).map(csvCisto).join(' '),
       zadnjaPosjeta(g), String((g.posjete || []).length), g.danIducePosjete || '',
-      STATUS_LABEL[statusOf(g)], cisto(g.napomena),
-      (g.dodatna || []).map(p => p.naziv + ': ' + p.vrijednost).map(cisto).join(' | '),
-      (g.posjete || []).map(p => p.datum + (p.nalaz ? ' — ' + p.nalaz : '')).map(cisto).join(' | '),
-      cisto(g.kreiraoIme), cisto(g.izmijenioIme)
+      STATUS_LABEL[statusOf(g)], csvCisto(g.napomena),
+      (g.dodatna || []).map(p => p.naziv + ': ' + p.vrijednost).map(csvCisto).join(' | '),
+      (g.posjete || []).map(p => p.datum + (p.nalaz ? ' — ' + p.nalaz : '')).map(csvCisto).join(' | '),
+      csvCisto(g.kreiraoIme), csvCisto(g.izmijenioIme)
     ]);
   }
   const csv = rows.map(r => r.join(';')).join('\n');
@@ -2835,10 +2847,12 @@ async function geocodeUnos(id){
     cache[upit] = {lat, lng};
     saveGeocache(cache);
 
-    // Re-read the list: the user may have edited something while we waited.
+    // Re-read the list: the user may have edited (or deleted) it while we waited.
     const svjezaLista = loadGazdinstva();
     const meta = svjezaLista.find(x => x.id === id);
-    if(meta){ meta.lat = lat; meta.lng = lng; saveGazdinstva(svjezaLista); }
+    if(!meta) return false;
+    meta.lat = lat; meta.lng = lng;
+    saveGazdinstva(svjezaLista);
     return true;
   }catch(e){
     console.warn('Geokodiranje nije uspjelo', e);
