@@ -1015,7 +1015,6 @@
         <span class="chev" aria-hidden="true">+</span>
       </button>
       <div class="form-body" id="gazdFormBody" hidden>
-      <p class="hint">Popuni podatke i sačuvaj — unos se odmah pojavljuje i na Karti korisnika usluga.</p>
       <form onsubmit="submitGazdinstvo(event)">
         <input type="hidden" id="gazdId">
         <div class="form-grid">
@@ -1266,7 +1265,7 @@
 // Jedino mjesto gdje se broj verzije mijenja — prikazuje se u topbaru,
 // na prijavi i u Postavkama, i mora biti usklađen sa CACHE_NAME u sw.js
 // (nova verzija = novi CACHE_NAME = preglednik povuče svježe fajlove).
-const APP_VERZIJA = '1.9';
+const APP_VERZIJA = '1.10';
 for(const id of ['verzijaTopbar', 'verzijaLogin', 'verzijaPostavke']){
   const el = document.getElementById(id);
   if(el) el.textContent = 'v' + APP_VERZIJA;
