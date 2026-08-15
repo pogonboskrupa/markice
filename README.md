@@ -30,9 +30,9 @@ Dnevnik se može pretraživati, filtrirati po korisniku, izvesti u Excel i odšt
 
 ## Tabovi u aplikaciji
 1. **Pregled** — prvi ekran nakon prijave: gazdinstva kojima je pregled istekao ili predstoji, po danima i gradovima
-2. **Markice** — poređenje dva spiska ušnih markica (uvoz iz Excela ili Google Sheetsa, izvoz i štampa)
-3. **Gazdinstva** — evidencija farmi i pčelara (podtabovi **Farme**, **Pčelari**, **Sve**)
-4. **Karta** — sva gazdinstva na mapi, obojena po statusu posjete
+2. **Gazdinstva** — evidencija farmi i pčelara (podtabovi **Farme**, **Pčelari**, **Sve**)
+3. **Karta** — sva gazdinstva na mapi, obojena po statusu posjete
+4. **Markice** — poređenje dva spiska ušnih markica (uvoz iz Excela ili Google Sheetsa, izvoz i štampa)
 5. **Posjete** — registar obavljenih posjeta po mjesecima i po korisniku
 6. **Dnevnik** — ko je šta unio, izmijenio ili obrisao
 7. **Postavke** — sigurnosna kopija podataka (svima), upravljanje korisnicima (samo administratoru)

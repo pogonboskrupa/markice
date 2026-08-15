@@ -885,9 +885,9 @@
   </div>
   <nav class="tabs" role="tablist">
     <button role="tab" aria-selected="true" data-tab="pregled" onclick="showTab('pregled')">Pregled</button>
-    <button role="tab" aria-selected="false" data-tab="usporedba" onclick="showTab('usporedba')">Markice</button>
     <button role="tab" aria-selected="false" data-tab="gazdinstva" onclick="showTab('gazdinstva')">Gazdinstva</button>
     <button role="tab" aria-selected="false" data-tab="karta" onclick="showTab('karta')">Karta</button>
+    <button role="tab" aria-selected="false" data-tab="usporedba" onclick="showTab('usporedba')">Markice</button>
     <button role="tab" aria-selected="false" data-tab="posjete" onclick="showTab('posjete')">Posjete</button>
     <button role="tab" aria-selected="false" data-tab="dnevnik" onclick="showTab('dnevnik')">Dnevnik</button>
     <button role="tab" aria-selected="false" data-tab="postavke" onclick="showTab('postavke')">Postavke</button>
@@ -935,69 +935,6 @@
     <div class="row-actions" style="margin-top:16px;">
       <button class="small secondary" onclick="window.print()">Štampaj plan obilaska</button>
     </div>
-  </section>
-
-  <section id="tab-usporedba" class="tab-panel" role="tabpanel">
-
-  <div class="file-import">
-    <input type="file" id="xlsxFile" accept=".xlsx" onchange="importFromXlsxFile(event)">
-    <button class="small" onclick="document.getElementById('xlsxFile').click()">Uvezi .xlsx</button>
-    <button class="small secondary" onclick="vratiUgradjeniFajl()">Vrati ugrađeni fajl</button>
-    <span class="file-import-note" id="izvorPodataka">Učita obje liste iz jednog Excel fajla — čita se na uređaju, ništa se ne šalje na internet.</span>
-  </div>
-
-  <form class="tag-lookup" onsubmit="pretraziMarkicu(event)">
-    <input type="text" id="markicaPretragaInput" placeholder="Provjeri kojem gazdinstvu pripada markica — npr. BA 4201 184333">
-    <button type="submit" class="small secondary">Provjeri</button>
-    <span id="markicaPretragaRezultat"></span>
-  </form>
-
-  <div class="cards">
-    <div class="card">
-      <h2>Lista 1 — Popis identifikacionih oznaka</h2>
-      <p class="hint">npr. BA 4201 184333 (jedan po redu, ili zalijepi cijelu kolonu)</p>
-      <textarea id="list1" placeholder="BA 4201 184333&#10;BA 4201 184546&#10;BA 4200 856612 ..."></textarea>
-      <div class="row-actions">
-        <span class="count-pill" id="count1">0 markica</span>
-        <button class="small secondary" onclick="clearList(1)">Obriši</button>
-        <select id="saved1" onchange="loadSaved(1)"><option value="">Učitaj sačuvano...</option></select>
-      </div>
-      <div class="sheet-row">
-        <input type="url" id="sheetLink1" placeholder="Link ka Google Sheets dokumentu">
-        <button class="small secondary" onclick="importFromSheets(1)">Uvezi</button>
-      </div>
-    </div>
-
-    <div class="card">
-      <h2>Lista 2 — Potvrda o stanju životinja</h2>
-      <p class="hint">npr. BA4201385109 (jedan po redu, ili zalijepi cijelu kolonu)</p>
-      <textarea id="list2" placeholder="BA4201385109&#10;BA4201385110&#10;BA4200856558 ..."></textarea>
-      <div class="row-actions">
-        <span class="count-pill" id="count2">0 markica</span>
-        <button class="small secondary" onclick="clearList(2)">Obriši</button>
-        <select id="saved2" onchange="loadSaved(2)"><option value="">Učitaj sačuvano...</option></select>
-      </div>
-      <div class="sheet-row">
-        <input type="url" id="sheetLink2" placeholder="Link ka Google Sheets dokumentu">
-        <button class="small secondary" onclick="importFromSheets(2)">Uvezi</button>
-      </div>
-    </div>
-  </div>
-  <p class="sheet-hint">Uvoz radi za dokumente podijeljene kao "Bilo ko sa linkom — može pregledati". Nalijepi običan link iz adresne trake ili linka za dijeljenje.</p>
-
-  <div class="actions-main">
-    <button onclick="compareLists()">Uporedi liste</button>
-    <button class="secondary" onclick="saveLists()">Sačuvaj obje liste</button>
-    <button class="secondary" onclick="exportMismatches()">Izvezi neusklađene (Excel)</button>
-    <button class="secondary" onclick="printReport()">Štampaj izvještaj</button>
-  </div>
-  <div class="status" id="status"></div>
-
-  <div id="summaryWrap"></div>
-  <div id="resultsWrap"></div>
-
-  <p class="footer-note">Zeleno = markica postoji u obje liste · Crveno (treperi) = markica postoji samo u jednoj listi<br>Sačuvane liste ostaju dostupne na ovom uređaju i bez interneta.</p>
-
   </section>
 
   <section id="tab-gazdinstva" class="tab-panel" role="tabpanel">
@@ -1164,6 +1101,69 @@
 
   </section>
 
+  <section id="tab-usporedba" class="tab-panel" role="tabpanel">
+
+  <div class="file-import">
+    <input type="file" id="xlsxFile" accept=".xlsx" onchange="importFromXlsxFile(event)">
+    <button class="small" onclick="document.getElementById('xlsxFile').click()">Uvezi .xlsx</button>
+    <button class="small secondary" onclick="vratiUgradjeniFajl()">Vrati ugrađeni fajl</button>
+    <span class="file-import-note" id="izvorPodataka">Učita obje liste iz jednog Excel fajla — čita se na uređaju, ništa se ne šalje na internet.</span>
+  </div>
+
+  <form class="tag-lookup" onsubmit="pretraziMarkicu(event)">
+    <input type="text" id="markicaPretragaInput" placeholder="Provjeri kojem gazdinstvu pripada markica — npr. BA 4201 184333">
+    <button type="submit" class="small secondary">Provjeri</button>
+    <span id="markicaPretragaRezultat"></span>
+  </form>
+
+  <div class="cards">
+    <div class="card">
+      <h2>Lista 1 — Popis identifikacionih oznaka</h2>
+      <p class="hint">npr. BA 4201 184333 (jedan po redu, ili zalijepi cijelu kolonu)</p>
+      <textarea id="list1" placeholder="BA 4201 184333&#10;BA 4201 184546&#10;BA 4200 856612 ..."></textarea>
+      <div class="row-actions">
+        <span class="count-pill" id="count1">0 markica</span>
+        <button class="small secondary" onclick="clearList(1)">Obriši</button>
+        <select id="saved1" onchange="loadSaved(1)"><option value="">Učitaj sačuvano...</option></select>
+      </div>
+      <div class="sheet-row">
+        <input type="url" id="sheetLink1" placeholder="Link ka Google Sheets dokumentu">
+        <button class="small secondary" onclick="importFromSheets(1)">Uvezi</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Lista 2 — Potvrda o stanju životinja</h2>
+      <p class="hint">npr. BA4201385109 (jedan po redu, ili zalijepi cijelu kolonu)</p>
+      <textarea id="list2" placeholder="BA4201385109&#10;BA4201385110&#10;BA4200856558 ..."></textarea>
+      <div class="row-actions">
+        <span class="count-pill" id="count2">0 markica</span>
+        <button class="small secondary" onclick="clearList(2)">Obriši</button>
+        <select id="saved2" onchange="loadSaved(2)"><option value="">Učitaj sačuvano...</option></select>
+      </div>
+      <div class="sheet-row">
+        <input type="url" id="sheetLink2" placeholder="Link ka Google Sheets dokumentu">
+        <button class="small secondary" onclick="importFromSheets(2)">Uvezi</button>
+      </div>
+    </div>
+  </div>
+  <p class="sheet-hint">Uvoz radi za dokumente podijeljene kao "Bilo ko sa linkom — može pregledati". Nalijepi običan link iz adresne trake ili linka za dijeljenje.</p>
+
+  <div class="actions-main">
+    <button onclick="compareLists()">Uporedi liste</button>
+    <button class="secondary" onclick="saveLists()">Sačuvaj obje liste</button>
+    <button class="secondary" onclick="exportMismatches()">Izvezi neusklađene (Excel)</button>
+    <button class="secondary" onclick="printReport()">Štampaj izvještaj</button>
+  </div>
+  <div class="status" id="status"></div>
+
+  <div id="summaryWrap"></div>
+  <div id="resultsWrap"></div>
+
+  <p class="footer-note">Zeleno = markica postoji u obje liste · Crveno (treperi) = markica postoji samo u jednoj listi<br>Sačuvane liste ostaju dostupne na ovom uređaju i bez interneta.</p>
+
+  </section>
+
   <section id="tab-posjete" class="tab-panel" role="tabpanel">
 
     <div class="filter-bar">
@@ -1265,7 +1265,7 @@
 // Jedino mjesto gdje se broj verzije mijenja — prikazuje se u topbaru,
 // na prijavi i u Postavkama, i mora biti usklađen sa CACHE_NAME u sw.js
 // (nova verzija = novi CACHE_NAME = preglednik povuče svježe fajlove).
-const APP_VERZIJA = '1.10';
+const APP_VERZIJA = '1.11';
 for(const id of ['verzijaTopbar', 'verzijaLogin', 'verzijaPostavke']){
   const el = document.getElementById(id);
   if(el) el.textContent = 'v' + APP_VERZIJA;
