@@ -399,34 +399,34 @@
   }
   .vt-panel.vt-otvorena{transform:translateY(0);}
   .vt-panel[hidden]{display:none;}
-  .vt-unutra{max-width:640px;margin:0 auto;padding:10px 8px calc(12px + env(safe-area-inset-bottom));}
+  .vt-unutra{max-width:640px;margin:0 auto;padding:12px 8px calc(14px + env(safe-area-inset-bottom));}
   .vt-glava{
     display:flex;justify-content:space-between;align-items:center;
     font-family:'Helvetica Neue',Arial,sans-serif;
     font-size:10px;text-transform:uppercase;letter-spacing:.09em;
-    color:var(--ink-soft);padding:0 2px 7px;
+    color:var(--ink-soft);padding:0 2px 8px;
   }
   .vt-glava button{font-size:10px;padding:2px 8px;}
-  .vt-red{display:flex;gap:5px;margin-bottom:6px;}
+  .vt-red{display:flex;gap:5px;margin-bottom:7px;}
   .vt-red:last-child{margin-bottom:0;}
   .vt-tipka{
     flex:1;min-width:0;
     font-family:'Helvetica Neue',Arial,sans-serif;
-    font-size:18px;font-weight:600;
+    font-size:21px;font-weight:600;
     border:1px solid var(--line);background:var(--paper);color:var(--ink);
-    border-radius:5px;padding:13px 0;
+    border-radius:5px;padding:15px 0;
     cursor:pointer;user-select:none;-webkit-user-select:none;
     transition:background-color .1s ease, transform .05s ease;
   }
   .vt-tipka:active{background:var(--paper-dim);transform:translateY(1px);}
-  .vt-tipka.vt-posebna{background:var(--paper-dim);color:var(--ink-soft);font-size:17px;}
+  .vt-tipka.vt-posebna{background:var(--paper-dim);color:var(--ink-soft);font-size:20px;}
   .vt-tipka.vt-aktivna{background:var(--gold);color:#fff;border-color:var(--gold);}
-  .vt-tipka.vt-razmak{flex:4;font-size:11.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-soft);}
+  .vt-tipka.vt-razmak{flex:4;font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-soft);}
   .vt-tipka.vt-gold{flex:2;background:var(--ink);color:var(--paper);font-weight:700;border-color:var(--ink);}
   .vt-tipka.vt-gold:active{background:#2c3a2c;}
   .vt-panel.vt-brojevi .vt-unutra{max-width:300px;}
-  .vt-panel.vt-brojevi .vt-tipka{font-size:25px;padding:18px 0;}
-  @media (max-width:420px){ .vt-tipka{font-size:16px;padding:11px 0;} }
+  .vt-panel.vt-brojevi .vt-tipka{font-size:29px;padding:21px 0;}
+  @media (max-width:420px){ .vt-tipka{font-size:18px;padding:13px 0;} }
   @media (prefers-reduced-motion: reduce){ .vt-panel{transition:none;} }
 
   /* ---------- login ---------- */
@@ -1374,7 +1374,7 @@
 // Jedino mjesto gdje se broj verzije mijenja — prikazuje se u topbaru,
 // na prijavi i u Postavkama, i mora biti usklađen sa CACHE_NAME u sw.js
 // (nova verzija = novi CACHE_NAME = preglednik povuče svježe fajlove).
-const APP_VERZIJA = '1.16';
+const APP_VERZIJA = '1.17';
 for(const id of ['verzijaTopbar', 'verzijaLogin', 'verzijaPostavke']){
   const el = document.getElementById(id);
   if(el) el.textContent = 'v' + APP_VERZIJA;
