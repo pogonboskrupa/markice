@@ -58,7 +58,10 @@ Iznad tabele su:
 - **filter po statusu** — treba u pregled / uskoro / obavljeno
 - **Očisti** — poništava sve odjednom
 
-Izvoz u Excel izvozi tačno ono što je trenutno prikazano, pa filtrirani spisak daje filtriran fajl.
+Izvoz u Excel izvozi tačno ono što je trenutno prikazano, pa filtrirani spisak daje filtriran fajl. "Štampaj spisak" štampa tu istu (filtriranu) tabelu.
+
+### Profil gazdinstva za štampu
+Dok je gazdinstvo otvoreno za uređivanje, dugme **"Štampaj profil"** (pored "Sačuvaj izmjene") daje jedan uredan list sa svim podacima o TOM gazdinstvu — posebno zaglavlje sa pečatom, osnovni podaci (vlasnik, telefon, adresa, ID, status), tabela stoke sa markicama, kompletna historija posjeta, ostale činjenice i napomena. Za razliku od "Štampaj spisak" (cijela tabela, jedan red po gazdinstvu), ovo je pogodno za predaju vlasniku ili arhivu jednog dosjea.
 
 **Svaki sačuvani unos automatski završava na Karti** — aplikacija u pozadini potraži koordinate za unesenu adresu (preko OpenStreetMap Nominatim servisa) i postavi gazdinstvo na mapu.
 
@@ -76,6 +79,8 @@ Ako adresa nije pronađena, gazdinstvo se izlistava ispod karte pod "Bez lokacij
 - ili dopuni precizniju adresu u tabu Gazdinstva.
 
 **Marker se može uhvatiti i prevući** na tačnu lokaciju — ta pozicija se pamti i ostaje čak i ako kasnije izmijeniš adresu.
+
+Dugme **"Štampaj kartu"** štampa trenutni prikaz karte (poštuje filtere po vrsti/gradu) sa legendom i spiskom "Bez lokacije" ako postoji.
 
 Napomena: karta i traženje adresa zahtijevaju internet (učitavaju se mape sa OpenStreetMapa). Sve ostalo — unos, tabela, izvoz, štampa — radi i offline; već pronađene lokacije se pamte na uređaju.
 
