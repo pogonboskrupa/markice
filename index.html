@@ -549,6 +549,8 @@
   }
   .tab-panel{display:none;padding-top:16px;}
   .tab-panel.active{display:block;}
+  .postavke-sekcija{display:none;}
+  .postavke-sekcija.active{display:block;}
 
   /* ---------- gazdinstva form + table ---------- */
   /* Obrazac je sklopljen dok ne zatreba — spisak je ono što se najčešće gleda. */
@@ -889,7 +891,7 @@
     <button role="tab" aria-selected="false" data-tab="karta" onclick="showTab('karta')">Karta</button>
     <button role="tab" aria-selected="false" data-tab="usporedba" onclick="showTab('usporedba')">Markice</button>
     <button role="tab" aria-selected="false" data-tab="posjete" onclick="showTab('posjete')">Posjete</button>
-    <button role="tab" aria-selected="false" data-tab="dnevnik" onclick="showTab('dnevnik')">Dnevnik</button>
+    <button role="tab" aria-selected="false" data-tab="sihtarica" onclick="showTab('sihtarica')">Šihtarica</button>
     <button role="tab" aria-selected="false" data-tab="postavke" onclick="showTab('postavke')">Postavke</button>
   </nav>
 </header>
@@ -934,6 +936,7 @@
     <div id="pregledWrap"></div>
     <div class="row-actions" style="margin-top:16px;">
       <button class="small secondary" onclick="window.print()">Štampaj plan obilaska</button>
+      <span class="count-pill" id="pregledStatus"></span>
     </div>
   </section>
 
@@ -1001,6 +1004,7 @@
           <div class="field">
             <label for="gIduca">Dan iduće posjete</label>
             <input type="date" id="gIduca">
+            <button type="button" class="small secondary" id="gSihtaricaBtn" style="align-self:flex-start;margin-top:2px;" onclick="dodajUSihtaricuIzForme()" hidden>+ U moju šihtaricu</button>
           </div>
           <div class="field wide">
             <label id="stokaNaslov">Grla na gazdinstvu</label>
@@ -1187,74 +1191,123 @@
 
   </section>
 
-  <section id="tab-dnevnik" class="tab-panel" role="tabpanel">
+  <section id="tab-sihtarica" class="tab-panel" role="tabpanel">
+
+    <div class="card" style="margin-bottom:18px;">
+      <h2>Nova bilješka</h2>
+      <p class="hint">Lični podsjetnik/plan — vidiš samo ti. Gazdinstva sa zakazanom posjetom se dodaju odavde bez upisivanja ("+ Šihtarica" u Pregledu ili "+ U moju šihtaricu" kod uređivanja gazdinstva).</p>
+      <form onsubmit="dodajSihtaricaBiljesku(event)">
+        <div class="form-grid">
+          <div class="field">
+            <label for="shDatum">Datum</label>
+            <input type="date" id="shDatum" required>
+          </div>
+          <div class="field wide">
+            <label for="shTekst">Bilješka</label>
+            <input id="shTekst" required placeholder="npr. Teren: tri gazdinstva u Cazinu, popodne administracija">
+          </div>
+        </div>
+        <div class="row-actions" style="margin-top:12px;">
+          <button type="submit">Dodaj bilješku</button>
+          <span class="count-pill" id="shStatus"></span>
+        </div>
+      </form>
+    </div>
 
     <div class="filter-bar">
-      <input type="search" id="dnevnikPretraga" placeholder="Pretraži dnevnik po korisniku, gazdinstvu ili radnji..." oninput="renderDnevnik()">
-      <select id="dnevnikKorisnik" onchange="renderDnevnik()">
-        <option value="">Svi korisnici</option>
+      <select id="shMjesecFilter" onchange="renderSihtarica()">
+        <option value="">Svi mjeseci</option>
       </select>
-      <button class="small secondary" onclick="document.getElementById('dnevnikPretraga').value='';document.getElementById('dnevnikKorisnik').value='';renderDnevnik();">Očisti</button>
+      <button class="small secondary" onclick="document.getElementById('shMjesecFilter').value='';renderSihtarica();">Očisti</button>
     </div>
 
     <div class="row-actions" style="margin:14px 0 10px;">
-      <span class="count-pill" id="dnevnikCount"></span>
-      <button class="small secondary" onclick="exportDnevnik()">Izvezi (Excel)</button>
-      <button class="small secondary" onclick="window.print()">Štampaj dnevnik</button>
+      <span class="count-pill" id="shCount"></span>
+      <button class="small secondary" onclick="window.print()">Štampaj šihtaricu</button>
     </div>
 
-    <div id="dnevnikWrap"></div>
+    <div id="sihtaricaWrap"></div>
 
   </section>
 
   <section id="tab-postavke" class="tab-panel" role="tabpanel">
 
-    <div class="card" style="margin-bottom:18px;">
-      <h2>Sigurnosna kopija</h2>
-      <p class="hint">Svi podaci žive samo u ovom pregledniku, na ovom uređaju. Ako se uređaj pokvari ili se obrišu podaci preglednika, sve nestaje — zato redovno pravi kopiju.</p>
-      <div class="row-actions" style="margin-top:12px;">
-        <button onclick="izvezuSve()">Izvezi sve podatke</button>
-        <input type="file" id="uvozFajl" accept=".json" style="display:none;" onchange="uveziSve(event)">
-        <button class="secondary" onclick="document.getElementById('uvozFajl').click()">Uvezi iz kopije</button>
-        <span class="count-pill" id="kopijaStatus"></span>
-      </div>
-      <p class="hint" id="zauzeceInfo" style="margin-top:12px;"></p>
-      <p class="hint" style="margin-top:4px;">Verzija aplikacije: <span id="verzijaPostavke"></span></p>
+    <div class="subtabs">
+      <button role="tab" aria-selected="true" data-postavke="opste" onclick="showPostavkeSekciju('opste')">Postavke</button>
+      <button role="tab" aria-selected="false" data-postavke="dnevnik" onclick="showPostavkeSekciju('dnevnik')">Dnevnik izmjena</button>
     </div>
 
-    <div class="card" id="korisniciSekcija" hidden>
-      <h2>Novi korisnik</h2>
-      <p class="hint">Samo administrator može dodavati korisnike i dodjeljivati PIN.</p>
-      <form onsubmit="dodajKorisnika(event)">
-        <div class="form-grid">
-          <div class="field">
-            <label for="kIme">Ime korisnika</label>
-            <input id="kIme" required placeholder="npr. Amela">
-          </div>
-          <div class="field">
-            <label for="kPin">PIN (najmanje 4 cifre)</label>
-            <input id="kPin" type="text" inputmode="numeric" pattern="[0-9]{4,10}" required placeholder="npr. 4821">
-          </div>
-          <div class="field">
-            <label for="kUloga">Uloga</label>
-            <select id="kUloga">
-              <option value="korisnik">Korisnik — unosi i mijenja podatke</option>
-              <option value="admin">Administrator — može i dodavati korisnike</option>
-            </select>
-          </div>
+    <div id="postavkeOpste" class="postavke-sekcija active">
+
+      <div class="card" style="margin-bottom:18px;">
+        <h2>Sigurnosna kopija</h2>
+        <p class="hint">Svi podaci žive samo u ovom pregledniku, na ovom uređaju. Ako se uređaj pokvari ili se obrišu podaci preglednika, sve nestaje — zato redovno pravi kopiju.</p>
+        <div class="row-actions" style="margin-top:12px;">
+          <button onclick="izvezuSve()">Izvezi sve podatke</button>
+          <input type="file" id="uvozFajl" accept=".json" style="display:none;" onchange="uveziSve(event)">
+          <button class="secondary" onclick="document.getElementById('uvozFajl').click()">Uvezi iz kopije</button>
+          <span class="count-pill" id="kopijaStatus"></span>
         </div>
-        <div class="row-actions" style="margin-top:14px;">
-          <button type="submit">Dodaj korisnika</button>
-          <span class="count-pill" id="korisnikStatus"></span>
+        <p class="hint" id="zauzeceInfo" style="margin-top:12px;"></p>
+        <p class="hint" style="margin-top:4px;">Verzija aplikacije: <span id="verzijaPostavke"></span></p>
+      </div>
+
+      <div class="card" id="korisniciSekcija" hidden>
+        <h2>Novi korisnik</h2>
+        <p class="hint">Samo administrator može dodavati korisnike i dodjeljivati PIN.</p>
+        <form onsubmit="dodajKorisnika(event)">
+          <div class="form-grid">
+            <div class="field">
+              <label for="kIme">Ime korisnika</label>
+              <input id="kIme" required placeholder="npr. Amela">
+            </div>
+            <div class="field">
+              <label for="kPin">PIN (najmanje 4 cifre)</label>
+              <input id="kPin" type="text" inputmode="numeric" pattern="[0-9]{4,10}" required placeholder="npr. 4821">
+            </div>
+            <div class="field">
+              <label for="kUloga">Uloga</label>
+              <select id="kUloga">
+                <option value="korisnik">Korisnik — unosi i mijenja podatke</option>
+                <option value="admin">Administrator — može i dodavati korisnike</option>
+              </select>
+            </div>
+          </div>
+          <div class="row-actions" style="margin-top:14px;">
+            <button type="submit">Dodaj korisnika</button>
+            <span class="count-pill" id="korisnikStatus"></span>
+          </div>
+        </form>
+      </div>
+
+      <div id="korisniciPopis" hidden>
+        <div class="row-actions" style="margin:20px 0 10px;">
+          <span class="count-pill" id="korisniciCount"></span>
         </div>
-      </form>
+        <div id="korisniciWrap"></div>
+      </div>
+
     </div>
 
-    <div id="korisniciPopis" hidden>
-      <div class="row-actions" style="margin:20px 0 10px;">
-        <span class="count-pill" id="korisniciCount"></span>
+    <div id="postavkeDnevnik" class="postavke-sekcija">
+
+      <div class="filter-bar">
+        <input type="search" id="dnevnikPretraga" placeholder="Pretraži dnevnik po korisniku, gazdinstvu ili radnji..." oninput="renderDnevnik()">
+        <select id="dnevnikKorisnik" onchange="renderDnevnik()">
+          <option value="">Svi korisnici</option>
+        </select>
+        <input type="date" id="dnevnikDan" onchange="renderDnevnik()">
+        <button class="small secondary" onclick="ocistiFiltereDnevnika()">Očisti</button>
       </div>
-      <div id="korisniciWrap"></div>
+
+      <div class="row-actions" style="margin:14px 0 10px;">
+        <span class="count-pill" id="dnevnikCount"></span>
+        <button class="small secondary" onclick="exportDnevnik()">Izvezi (Excel)</button>
+        <button class="small secondary" onclick="window.print()">Štampaj dnevnik</button>
+      </div>
+
+      <div id="dnevnikWrap"></div>
+
     </div>
 
   </section>
@@ -1265,7 +1318,7 @@
 // Jedino mjesto gdje se broj verzije mijenja — prikazuje se u topbaru,
 // na prijavi i u Postavkama, i mora biti usklađen sa CACHE_NAME u sw.js
 // (nova verzija = novi CACHE_NAME = preglednik povuče svježe fajlove).
-const APP_VERZIJA = '1.11';
+const APP_VERZIJA = '1.12';
 for(const id of ['verzijaTopbar', 'verzijaLogin', 'verzijaPostavke']){
   const el = document.getElementById(id);
   if(el) el.textContent = 'v' + APP_VERZIJA;
@@ -1855,7 +1908,11 @@ window.addEventListener('beforeprint', () => {
     meta.textContent = 'Pregled obilazaka · ' + kada;
     return;
   }
-  if(aktivniTab === 'dnevnik'){
+  if(aktivniTab === 'sihtarica'){
+    meta.textContent = 'Šihtarica · ' + kada;
+    return;
+  }
+  if(aktivniTab === 'postavke' && aktivnaPostavkaSekcija === 'dnevnik'){
     meta.textContent = 'Dnevnik izmjena · ' + kada;
     return;
   }
@@ -1878,6 +1935,7 @@ const KORISNICI_KEY = 'markice:app:korisnici';
 const SESIJA_KEY = 'markice:app:sesija';
 const DNEVNIK_KEY = 'markice:app:dnevnik';
 const POKUSAJI_KEY = 'markice:app:pokusaji';
+const SIHTARICA_KEY = 'markice:app:sihtarica';
 
 const PRVI_KORISNIK = { ime: 'Nedžad', pin: '2201', uloga: 'admin' };
 const MAX_POKUSAJA = 5;
@@ -1898,6 +1956,8 @@ const loadKorisnici = () => loadJson(KORISNICI_KEY, []);
 const saveKorisnici = list => localStorage.setItem(KORISNICI_KEY, JSON.stringify(list));
 const loadDnevnik = () => loadJson(DNEVNIK_KEY, []);
 const saveDnevnik = list => localStorage.setItem(DNEVNIK_KEY, JSON.stringify(list));
+const loadSihtarica = () => loadJson(SIHTARICA_KEY, []);
+const saveSihtarica = list => localStorage.setItem(SIHTARICA_KEY, JSON.stringify(list));
 
 // ---------- PIN hashing ----------
 // PBKDF2 preko WebCrypto; PIN se nikad ne pamti u čitljivom obliku.
@@ -2072,6 +2132,7 @@ function pokreniAplikaciju(){
   document.getElementById('korisniciPopis').hidden = !jeAdmin();
   showVrsta('farma');
   renderDnevnik();
+  renderSihtarica();
   renderKorisnike();
   renderPregled();
   prikaziZauzece();
@@ -2212,7 +2273,10 @@ function renderPregled(){
       <td><b>${escapeHtml(g.gazdinstvo)}</b><br><span class="cell-sub">${VRSTA_LABEL[g.vrsta] || ''}${stokaSazetak(g) ? ' · ' + escapeHtml(stokaSazetak(g)) : ''}</span></td>
       <td>${escapeHtml(g.vlasnik)}${g.telefon ? '<br><span class="cell-sub"><a href="tel:' + escapeHtml(g.telefon.replace(/\s+/g,'')) + '">' + escapeHtml(g.telefon) + '</a></span>' : ''}</td>
       <td>${adresaHtml(g, escapeHtml(g.grad) + (punaAdresa(g) ? '<br><span class="cell-sub">' + escapeHtml(punaAdresa(g)) + '</span>' : ''))}</td>
-      <td class="actions"><button class="small secondary" onclick="otvoriGazdinstvo('${g.id}')">Otvori</button></td>
+      <td class="actions">
+        <button class="small secondary" onclick="otvoriGazdinstvo('${g.id}')">Otvori</button>
+        ${g.danIducePosjete ? '<button class="small secondary" onclick="dodajUSihtaricuIzPregleda(\'' + g.id + '\')">+ Šihtarica</button>' : ''}
+      </td>
     </tr>`;
   };
 
@@ -2482,7 +2546,135 @@ function prikaziZauzece(){
     (kb > 3500 ? ' Približavaš se granici prostora u pregledniku — napravi kopiju i razmisli o prelasku na zajedničku bazu.' : '');
 }
 
-// ---------- dnevnik ----------
+// ---------- šihtarica (lični radni dnevnik korisnika) ----------
+// Odvojeno od "Dnevnik izmjena" (Postavke) — ono je evidencija ko je šta
+// mijenjao u podacima, ovo je lični planer/podsjetnik: bilješke koje korisnik
+// sam upiše, plus gazdinstva koja je "preuzeo" za određeni dan (klikom kod
+// zakazane posjete), bez uticaja na sam podatak o gazdinstvu.
+function dodajUSihtaricu(gazdinstvoId, datum, naziv){
+  if(!datum || !trenutniKorisnik) return false;
+  const lista = loadSihtarica();
+  const vecPostoji = lista.some(z =>
+    z.vrsta === 'posjeta' && z.korisnik === trenutniKorisnik.ime &&
+    z.gazdinstvoId === gazdinstvoId && z.datum === datum);
+  if(vecPostoji) return 'postoji';
+  lista.push({
+    id: 'sh' + Date.now() + Math.random().toString(36).slice(2,6),
+    korisnik: trenutniKorisnik.ime,
+    datum, vrsta: 'posjeta',
+    tekst: null, gazdinstvoId, gazdinstvo: naziv,
+    kreirano: new Date().toISOString()
+  });
+  saveSihtarica(lista);
+  return true;
+}
+
+function dodajUSihtaricuIzForme(){
+  const status = document.getElementById('gazdStatus');
+  const datum = document.getElementById('gIduca').value;
+  if(!datum){ status.textContent = 'Prvo postavi dan iduće posjete.'; return; }
+  const naziv = document.getElementById('gNaziv').value.trim() || document.getElementById('gVlasnik').value.trim();
+  const rezultat = dodajUSihtaricu(document.getElementById('gazdId').value, datum, naziv);
+  status.textContent = rezultat === 'postoji'
+    ? 'Već je u tvojoj šihtarici za ' + formatDatum(datum) + '.'
+    : 'Dodano u tvoju šihtaricu za ' + formatDatum(datum) + '.';
+}
+
+function dodajUSihtaricuIzPregleda(gazdinstvoId){
+  const g = loadGazdinstva().find(x => x.id === gazdinstvoId);
+  const status = document.getElementById('pregledStatus');
+  if(!g || !g.danIducePosjete || !status) return;
+  const rezultat = dodajUSihtaricu(g.id, g.danIducePosjete, g.gazdinstvo);
+  status.textContent = rezultat === 'postoji'
+    ? '"' + g.gazdinstvo + '" je već u tvojoj šihtarici za ' + formatDatum(g.danIducePosjete) + '.'
+    : '"' + g.gazdinstvo + '" dodano u tvoju šihtaricu za ' + formatDatum(g.danIducePosjete) + '.';
+}
+
+function dodajSihtaricaBiljesku(event){
+  event.preventDefault();
+  const status = document.getElementById('shStatus');
+  const datum = document.getElementById('shDatum').value;
+  const tekst = document.getElementById('shTekst').value.trim();
+  if(!datum || !tekst){ status.textContent = 'Upiši datum i tekst bilješke.'; return; }
+  const lista = loadSihtarica();
+  lista.push({
+    id: 'sh' + Date.now() + Math.random().toString(36).slice(2,6),
+    korisnik: trenutniKorisnik.ime,
+    datum, vrsta: 'biljeska', tekst,
+    gazdinstvoId: null, gazdinstvo: null,
+    kreirano: new Date().toISOString()
+  });
+  saveSihtarica(lista);
+  document.getElementById('shTekst').value = '';
+  status.textContent = 'Bilješka dodana.';
+  renderSihtarica();
+}
+
+function obrisiSihtaricaStavku(id){
+  if(!confirm('Obrisati ovaj zapis iz šihtarice?')) return;
+  const ime = trenutniKorisnik ? trenutniKorisnik.ime : '';
+  saveSihtarica(loadSihtarica().filter(z => !(z.id === id && z.korisnik === ime)));
+  renderSihtarica();
+}
+
+function renderSihtarica(){
+  const wrap = document.getElementById('sihtaricaWrap');
+  if(!wrap || !trenutniKorisnik) return;
+
+  const moje = loadSihtarica().filter(z => z.korisnik === trenutniKorisnik.ime);
+
+  const mjeseci = [...new Set(moje.map(z => z.datum.slice(0,7)))].sort().reverse();
+  const selMjesec = document.getElementById('shMjesecFilter');
+  const trenutniMjesec = selMjesec.value;
+  selMjesec.innerHTML = '<option value="">Svi mjeseci</option>' +
+    mjeseci.map(m => `<option value="${m}">${mjesecOznaka(m + '-01').naziv}</option>`).join('');
+  selMjesec.value = mjeseci.includes(trenutniMjesec) ? trenutniMjesec : '';
+
+  const filtrirano = moje
+    .filter(z => !selMjesec.value || z.datum.slice(0,7) === selMjesec.value)
+    .sort((a,b) => b.datum.localeCompare(a.datum) || b.kreirano.localeCompare(a.kreirano));
+
+  document.getElementById('shCount').textContent =
+    filtrirano.length + (filtrirano.length === 1 ? ' zapis' : ' zapisa');
+
+  if(!moje.length){
+    wrap.innerHTML = '<div class="empty-note">Još nema zapisa u šihtarici. Dodaj bilješku iznad, ili u Pregledu/uređivanju gazdinstva klikni "+ Šihtarica" kod zakazane posjete.</div>';
+    return;
+  }
+  if(!filtrirano.length){
+    wrap.innerHTML = '<div class="empty-note">Nema zapisa za odabrani mjesec.</div>';
+    return;
+  }
+
+  const grupe = new Map();
+  for(const z of filtrirano){
+    if(!grupe.has(z.datum)) grupe.set(z.datum, []);
+    grupe.get(z.datum).push(z);
+  }
+
+  const stavkaHtml = (z) => {
+    if(z.vrsta === 'posjeta'){
+      const otvoriBtn = z.gazdinstvoId
+        ? ' <button type="button" class="small secondary" onclick="otvoriGazdinstvo(\'' + z.gazdinstvoId + '\')">Otvori</button>'
+        : '';
+      return '<span class="badge soon">Posjeta</span> <b>' + escapeHtml(z.gazdinstvo || '—') + '</b>' + otvoriBtn;
+    }
+    return '<span class="badge ok">Bilješka</span> ' + escapeHtml(z.tekst || '');
+  };
+
+  wrap.innerHTML = [...grupe.entries()].map(([datum, stavke]) => `
+    <div class="results" style="margin-bottom:16px;">
+      <h3>${formatDatum(datum)} <span>${stavke.length}</span></h3>
+      <div class="table-wrap"><table>
+        <tbody>${stavke.map(z => `<tr>
+          <td>${stavkaHtml(z)}</td>
+          <td class="actions"><button class="small secondary" onclick="obrisiSihtaricaStavku('${z.id}')">Obriši</button></td>
+        </tr>`).join('')}</tbody>
+      </table></div>
+    </div>`).join('');
+}
+
+// ---------- dnevnik izmjena ----------
 // Boja radnje po vrsti, tako da se dodavanje/izmjena/brisanje razlikuju na prvi
 // pogled umjesto da se čita svaki red — isti badge sistem kao status gazdinstva.
 const AKCIJA_KLASA = {
@@ -2495,6 +2687,13 @@ function akcijaBadgeHtml(akcija){
   return klasa
     ? '<span class="badge ' + klasa + '">' + escapeHtml(akcija) + '</span>'
     : escapeHtml(akcija);
+}
+
+function ocistiFiltereDnevnika(){
+  document.getElementById('dnevnikPretraga').value = '';
+  document.getElementById('dnevnikKorisnik').value = '';
+  document.getElementById('dnevnikDan').value = '';
+  renderDnevnik();
 }
 
 function renderDnevnik(){
@@ -2510,8 +2709,10 @@ function renderDnevnik(){
   selKorisnik.value = imena.includes(trenutni) ? trenutni : '';
 
   const pojam = document.getElementById('dnevnikPretraga').value.trim().toLowerCase();
+  const dan = document.getElementById('dnevnikDan').value;
   const filtrirani = sviUnosi.filter(z => {
     if(selKorisnik.value && z.korisnik !== selKorisnik.value) return false;
+    if(dan && z.vrijeme.slice(0,10) !== dan) return false;
     if(pojam){
       const tekst = [z.korisnik, z.akcija, z.entitet, z.naziv, z.detalji].join(' ').toLowerCase();
       if(!tekst.includes(pojam)) return false;
@@ -2565,13 +2766,13 @@ const TAB_HEADINGS = {
     title: 'Registar posjeta',
     sub: 'Sve obavljene posjete, po mjesecima i po korisniku — ko je bio, kod koga, s kim i sa kakvim nalazom.'
   },
-  dnevnik: {
-    title: 'Dnevnik izmjena',
-    sub: 'Ko je i kada unio ili izmijenio koji podatak.'
+  sihtarica: {
+    title: 'Šihtarica',
+    sub: 'Lični radni dnevnik — bilješke i gazdinstva koja si preuzeo za određeni dan. Vidiš samo svoje zapise.'
   },
   postavke: {
     title: 'Postavke',
-    sub: 'Sigurnosna kopija podataka i upravljanje korisnicima.'
+    sub: 'Sigurnosna kopija podataka, upravljanje korisnicima i dnevnik izmjena.'
   },
   usporedba: {
     title: 'Usporedba spiskova ušnih markica',
@@ -2584,14 +2785,6 @@ const TAB_HEADINGS = {
   karta: {
     title: 'Karta korisnika usluga',
     sub: ''
-  },
-  dnevnik: {
-    title: 'Dnevnik izmjena',
-    sub: 'Ko je šta unio, izmijenio ili obrisao — hronološki, najnovije prvo.'
-  },
-  korisnici: {
-    title: 'Korisnici',
-    sub: 'Dodavanje korisnika i dodjela PIN-a. Vidljivo samo administratoru.'
   }
 };
 
@@ -2618,20 +2811,42 @@ function showTab(name){
   if(name === 'karta') initMap();
   if(name === 'pregled') renderPregled();
   if(name === 'posjete') renderRegistarPosjeta();
-  if(name === 'dnevnik') renderDnevnik();
-  if(name === 'postavke'){ renderKorisnike(); prikaziZauzece(); }
-  if(name === 'dnevnik') renderDnevnik();
-  if(name === 'korisnici') renderKorisnike();
+  if(name === 'sihtarica'){
+    // Novi unos počinje na današnji dan, bez da se briše dok korisnik nešto unosi.
+    const shDatum = document.getElementById('shDatum');
+    if(shDatum && !shDatum.value) shDatum.value = new Date().toISOString().slice(0,10);
+    renderSihtarica();
+  }
+  if(name === 'postavke'){
+    renderKorisnike();
+    prikaziZauzece();
+    if(aktivnaPostavkaSekcija === 'dnevnik') renderDnevnik();
+  }
 }
 
 function showVrsta(v){
   aktivnaVrsta = v;
-  for(const btn of document.querySelectorAll('.subtabs button')){
+  // Skopirano na #tab-gazdinstva — od dodavanja podtabova u Postavke ima više
+  // od jedne .subtabs trake na stranici, pa bi neskopiran upit zbunio i one.
+  for(const btn of document.querySelectorAll('#tab-gazdinstva .subtabs button')){
     btn.setAttribute('aria-selected', String(btn.dataset.vrsta === v));
   }
   resetGazdForm();
   toggleGazdForm(false);
   renderGazdTable();
+}
+
+let aktivnaPostavkaSekcija = 'opste';
+const POSTAVKE_SEKCIJA_ID = { opste: 'postavkeOpste', dnevnik: 'postavkeDnevnik' };
+function showPostavkeSekciju(name){
+  aktivnaPostavkaSekcija = name;
+  for(const btn of document.querySelectorAll('#tab-postavke .subtabs button')){
+    btn.setAttribute('aria-selected', String(btn.dataset.postavke === name));
+  }
+  for(const sekcija of document.querySelectorAll('.postavke-sekcija')){
+    sekcija.classList.toggle('active', sekcija.id === POSTAVKE_SEKCIJA_ID[name]);
+  }
+  if(name === 'dnevnik') renderDnevnik();
 }
 
 function toggleGazdForm(otvori){
@@ -3247,6 +3462,7 @@ function resetGazdForm(){
   document.getElementById('gazdFormCard').classList.remove('editing');
   document.getElementById('editBadge').hidden = true;
   document.getElementById('gStampajProfilBtn').hidden = true;
+  document.getElementById('gSihtaricaBtn').hidden = true;
 }
 
 function naslovForme(){
@@ -3364,6 +3580,7 @@ function editGazdinstvo(id){
   document.getElementById('gazdFormCard').classList.add('editing');
   document.getElementById('editBadge').hidden = false;
   document.getElementById('gStampajProfilBtn').hidden = false;
+  document.getElementById('gSihtaricaBtn').hidden = false;
   toggleGazdForm(true);
   document.getElementById('gNaziv').scrollIntoView({block:'center', behavior:'smooth'});
   document.getElementById('gNaziv').focus();

@@ -23,10 +23,19 @@ Zaštite: PIN se nikad ne čuva u čitljivom obliku (PBKDF2, 150.000 iteracija, 
 
 Zaključaj i sam uređaj (PIN/otisak na telefonu ili laptopu) — to je u ovoj postavci najjača stvarna zaštita.
 
-## Dnevnik izmjena
-Tab **Dnevnik izmjena** hronološki bilježi svaku radnju: ko se prijavio/odjavio, ko je dodao, izmijenio ili obrisao gazdinstvo, ko je pomjerio lokaciju na karti i ko je dodao ili obrisao korisnika. Kod izmjena se vidi i **tačno koje polje je promijenjeno i iz čega u šta** (npr. `Broj grla/košnica: "520" → "545"`).
+## Šihtarica (lični radni dnevnik)
+Tab **Šihtarica** je lični radni dnevnik prijavljenog korisnika — svako vidi samo svoje zapise, niko tuđe (ni administrator). Služi za planiranje i evidenciju vlastitog terena, ne za odgovornost/kontrolu (za to služi Dnevnik izmjena, ispod).
 
-Dnevnik se može pretraživati, filtrirati po korisniku, izvesti u Excel i odštampati. Uz to, svaki red u spisku gazdinstava i svaki marker na karti pokazuju „Unio: … / Izmijenio: …". Dnevnik čuva zadnjih 2000 zapisa.
+Dva načina unosa:
+- **ručna bilješka** — slobodan tekst uz datum (npr. "Teren: 3 gazdinstva u Cazinu"), dugme "Dodaj bilješku"
+- **preuzimanje zakazane posjete** — kod gazdinstva koje ima zakazan "dan iduće posjete", dugme **"+ U moju šihtaricu"** (u obrascu za uređivanje gazdinstva) ili **"+ Šihtarica"** (u redu na Pregledu) doda taj termin u šihtaricu, sa datumom posjete i nazivom gazdinstva. Ne može se dodati dvaput.
+
+Zapisi su grupisani po danu, sa oznakom je li riječ o bilješci ili preuzetoj posjeti; posjeta ima dugme "Otvori" koje vodi pravo na to gazdinstvo. Filter po mjesecu, izvoz u Excel i štampa su tu isto dostupni.
+
+## Dnevnik izmjena
+Podtab **Dnevnik izmjena** u Postavkama hronološki bilježi svaku radnju: ko se prijavio/odjavio, ko je dodao, izmijenio ili obrisao gazdinstvo, ko je pomjerio lokaciju na karti i ko je dodao ili obrisao korisnika. Kod izmjena se vidi i **tačno koje polje je promijenjeno i iz čega u šta** (npr. `Broj grla/košnica: "520" → "545"`).
+
+Dnevnik se može pretraživati, filtrirati po korisniku i po danu, izvesti u Excel i odštampati. Uz to, svaki red u spisku gazdinstava i svaki marker na karti pokazuju „Unio: … / Izmijenio: …". Dnevnik čuva zadnjih 2000 zapisa.
 
 ## Tabovi u aplikaciji
 1. **Pregled** — prvi ekran nakon prijave: gazdinstva kojima je pregled istekao ili predstoji, po danima i gradovima
@@ -34,8 +43,8 @@ Dnevnik se može pretraživati, filtrirati po korisniku, izvesti u Excel i odšt
 3. **Karta** — sva gazdinstva na mapi, obojena po statusu posjete
 4. **Markice** — poređenje dva spiska ušnih markica (uvoz iz Excela ili Google Sheetsa, izvoz i štampa)
 5. **Posjete** — registar obavljenih posjeta po mjesecima i po korisniku
-6. **Dnevnik** — ko je šta unio, izmijenio ili obrisao
-7. **Postavke** — sigurnosna kopija podataka (svima), upravljanje korisnicima (samo administratoru)
+6. **Šihtarica** — lični radni dnevnik prijavljenog korisnika (bilješke + preuzete zakazane posjete)
+7. **Postavke** — sigurnosna kopija podataka i Dnevnik izmjena (svima), upravljanje korisnicima (samo administratoru)
 
 ## Gazdinstva (Farme / Pčelari / Sve)
 Za svako gazdinstvo se unosi:
@@ -106,7 +115,9 @@ Filter po korisniku se **pri otvaranju tabа sam postavi na tebe** — svako prv
 ## Postavke i sigurnosna kopija
 > ⚠️ **Najvažnije poglavlje ovog README-a.** Svi podaci (gazdinstva, posjete, korisnici, dnevnik) žive **samo u ovom pregledniku, na ovom uređaju**. Nema servera, nema sinhronizacije. Ako se uređaj pokvari, izgubi, ili neko obriše podatke preglednika (ili instalira aplikaciju iznova) — **sve nestaje bez mogućnosti povrata**, osim ako postoji kopija.
 
-Tab **Postavke** je dostupan svim korisnicima i sadrži:
+Tab **Postavke** ima dva podtaba: **Postavke** (opšte) i **Dnevnik izmjena** (vidi poglavlje iznad).
+
+Podtab Postavke je dostupan svim korisnicima i sadrži:
 - **"Izvezi sve podatke"** — preuzima jedan `.json` fajl sa svime (gazdinstva, korisnici, dnevnik, liste, sačuvane lokacije). Radi ovo redovno — poslije svakog dana rada na terenu je razumno.
 - **"Uvezi iz kopije"** — vraća stanje iz takvog fajla. Traži potvrdu jer **briše sve trenutno na uređaju** prije nego što vrati podatke iz kopije. Ako se tvoj trenutni korisnik (po imenu) ne nalazi u vraćenoj kopiji, tražit će se ponovna prijava.
 - Ispod dugmadi piše koliko prostora podaci trenutno zauzimaju.
