@@ -33,11 +33,13 @@
   }
   *{box-sizing:border-box;}
   html{-webkit-text-size-adjust:100%;}
+  :root{ --vt-visina:0px; }
   body{
     margin:0;
     font-family:'Iowan Old Style','Palatino Linotype','Georgia',serif;
     color:var(--ink);
     min-height:100vh;
+    padding-bottom:var(--vt-visina);
     background:
       repeating-linear-gradient(0deg, rgba(31,42,31,0.025) 0px, rgba(31,42,31,0.025) 1px, transparent 1px, transparent 26px),
       radial-gradient(1000px 500px at 8% -10%, #fffef9 0%, transparent 55%),
@@ -386,10 +388,53 @@
     .tag.red{animation:none;}
   }
 
+  /* ---------- vlastita tastatura (zamjenjuje sistemsku na svim poljima) ---------- */
+  .vt-panel{
+    position:fixed;left:0;right:0;bottom:0;z-index:2500;
+    background:var(--paper-raised);
+    border-top:2px solid var(--ink);
+    box-shadow:0 -6px 18px rgba(31,42,31,.18);
+    transform:translateY(100%);
+    transition:transform .18s ease;
+  }
+  .vt-panel.vt-otvorena{transform:translateY(0);}
+  .vt-panel[hidden]{display:none;}
+  .vt-unutra{max-width:640px;margin:0 auto;padding:8px 8px calc(10px + env(safe-area-inset-bottom));}
+  .vt-glava{
+    display:flex;justify-content:space-between;align-items:center;
+    font-family:'Helvetica Neue',Arial,sans-serif;
+    font-size:10px;text-transform:uppercase;letter-spacing:.09em;
+    color:var(--ink-soft);padding:0 2px 6px;
+  }
+  .vt-glava button{font-size:10px;padding:2px 8px;}
+  .vt-red{display:flex;gap:5px;margin-bottom:5px;}
+  .vt-red:last-child{margin-bottom:0;}
+  .vt-tipka{
+    flex:1;min-width:0;
+    font-family:'Helvetica Neue',Arial,sans-serif;
+    font-size:15px;font-weight:600;
+    border:1px solid var(--line);background:var(--paper);color:var(--ink);
+    border-radius:5px;padding:11px 0;
+    cursor:pointer;user-select:none;-webkit-user-select:none;
+    transition:background-color .1s ease, transform .05s ease;
+  }
+  .vt-tipka:active{background:var(--paper-dim);transform:translateY(1px);}
+  .vt-tipka.vt-posebna{background:var(--paper-dim);color:var(--ink-soft);font-size:14px;}
+  .vt-tipka.vt-aktivna{background:var(--gold);color:#fff;border-color:var(--gold);}
+  .vt-tipka.vt-razmak{flex:4;font-size:9.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-soft);}
+  .vt-tipka.vt-gold{flex:2;background:var(--ink);color:var(--paper);font-weight:700;border-color:var(--ink);}
+  .vt-tipka.vt-gold:active{background:#2c3a2c;}
+  .vt-panel.vt-brojevi .vt-unutra{max-width:300px;}
+  .vt-panel.vt-brojevi .vt-tipka{font-size:21px;padding:15px 0;}
+  @media (max-width:420px){ .vt-tipka{font-size:13px;padding:9px 0;} }
+  @media (prefers-reduced-motion: reduce){ .vt-panel{transition:none;} }
+
   /* ---------- login ---------- */
   .login-screen{
     position:fixed;inset:0;z-index:2000;
-    display:flex;align-items:center;justify-content:center;padding:20px;
+    display:flex;align-items:center;justify-content:center;
+    padding:20px;padding-bottom:calc(20px + var(--vt-visina));
+    overflow-y:auto;
     background:
       repeating-linear-gradient(0deg, rgba(31,42,31,0.025) 0px, rgba(31,42,31,0.025) 1px, transparent 1px, transparent 26px),
       radial-gradient(900px 500px at 20% 0%, #fffef9 0%, transparent 60%),
@@ -808,7 +853,7 @@
     .install-bar, .file-import, .tag-lookup, .cards, .actions-main, .status, .footer-note, .sheet-hint,
     .topbar, .tabs, .subtabs, .gazd-form, .filter-bar, .map-toolbar, .row-actions,
     td.actions, th.actions, .login-screen, .leaflet-control-container,
-    .bez-lokacije-red button{display:none !important;}
+    .bez-lokacije-red button, .vt-panel{display:none !important;}
     /* Na papiru se vraća službeno zaglavlje sa pečatom. */
     .letterhead{display:flex !important;}
     .double-rule{display:block !important;}
@@ -866,6 +911,16 @@
     <p class="login-greska" id="loginGreska"></p>
     <p class="login-nota">Prijava služi da se zna ko je unio ili izmijenio koji podatak. Podaci ostaju na ovom uređaju.</p>
     <p id="verzijaLogin" style="font-family:'Helvetica Neue',Arial,sans-serif;font-size:10px;color:var(--ink-soft);opacity:.6;margin:6px 0 0;border:none;padding:0;"></p>
+  </div>
+</div>
+
+<div id="vTastatura" class="vt-panel" hidden>
+  <div class="vt-unutra">
+    <div class="vt-glava">
+      <span>Tastatura</span>
+      <button type="button" class="secondary small" onmousedown="event.preventDefault()" onclick="zatvoriTastaturu()">✕ Zatvori</button>
+    </div>
+    <div class="vt-tijelo"></div>
   </div>
 </div>
 
@@ -1319,11 +1374,208 @@
 // Jedino mjesto gdje se broj verzije mijenja — prikazuje se u topbaru,
 // na prijavi i u Postavkama, i mora biti usklađen sa CACHE_NAME u sw.js
 // (nova verzija = novi CACHE_NAME = preglednik povuče svježe fajlove).
-const APP_VERZIJA = '1.14';
+const APP_VERZIJA = '1.15';
 for(const id of ['verzijaTopbar', 'verzijaLogin', 'verzijaPostavke']){
   const el = document.getElementById(id);
   if(el) el.textContent = 'v' + APP_VERZIJA;
 }
+
+// ---------- vlastita tastatura (zamjenjuje sistemsku na svim poljima za unos) ----------
+// "Potpuno zamijeni": svako polje za unos teksta postaje readonly i unos ide
+// isključivo preko ove tastature na dodir — dosljedan izgled na svim uređajima,
+// bez sistemske tastature koja iskače i mijenja izgled ekrana. Datumska polja,
+// fajlovi, checkbox/radio i padajuće liste zadržavaju svoje prirodne kontrole,
+// to nije "tastatura" u pravom smislu. Lijepljenje iz clipboard-a i dalje radi
+// (presretnuto ručno, ispod) jer je ključno za unos spiskova markica.
+let aktivnoPoljeTastature = null;
+let tastaturaVelika = false;
+
+const TASTATURA_REDOVI = [
+  ['1','2','3','4','5','6','7','8','9','0'],
+  ['q','w','e','r','t','z','u','i','o','p','š'],
+  ['a','s','d','f','g','h','j','k','l','č','ć'],
+  ['y','x','c','v','b','n','m','ž','đ']
+];
+
+function tastaturaJeNumericka(el){
+  return el.type === 'number' || el.getAttribute('inputmode') === 'numeric';
+}
+
+function poljeZaTastaturu(el){
+  if(!el) return false;
+  if(el.tagName === 'TEXTAREA') return true;
+  if(el.tagName !== 'INPUT') return false;
+  return !['date','file','checkbox','radio','range','color','hidden','submit','button'].includes(el.type);
+}
+
+function tastaturaUmetni(tekst){
+  const el = aktivnoPoljeTastature;
+  if(!el) return;
+  if(el.type === 'number'){
+    el.value = (el.value || '') + tekst.replace(/[^\d]/g,'');
+  }else{
+    const start = el.selectionStart ?? el.value.length;
+    const end = el.selectionEnd ?? el.value.length;
+    el.value = el.value.slice(0, start) + tekst + el.value.slice(end);
+    const pozicija = start + tekst.length;
+    el.setSelectionRange(pozicija, pozicija);
+  }
+  el.dispatchEvent(new Event('input', {bubbles:true}));
+}
+
+// Readonly polja inače odbijaju standardno lijepljenje preglednika — bez ovoga
+// bi lijepljenje cijele kolone markica (dokumentovano u tabu Markice) prestalo
+// raditi. Paste event i dalje stiže na readonly polje, samo je zadano ubacivanje
+// blokirano, pa ga ovdje uradimo ručno.
+function tastaturaOmoguciLijepljenje(el){
+  el.addEventListener('paste', e => {
+    e.preventDefault();
+    const tekst = (e.clipboardData || window.clipboardData).getData('text');
+    if(tekst) tastaturaUmetni(tekst);
+  });
+}
+
+function tastaturaOznaciPolje(el){
+  if(!poljeZaTastaturu(el) || el.dataset.vt) return;
+  el.dataset.vt = '1';
+  el.setAttribute('readonly','');
+  tastaturaOmoguciLijepljenje(el);
+}
+
+function tastaturaOznaciSva(korijen){
+  korijen.querySelectorAll('input, textarea').forEach(tastaturaOznaciPolje);
+}
+
+function tastaturaTipkaHtml(znak, cssKlasa){
+  const izlaz = znak === "'" ? "\\'" : znak;
+  return `<button type="button" class="vt-tipka${cssKlasa ? ' ' + cssKlasa : ''}" onmousedown="event.preventDefault()" onclick="tastaturaUnesi('${izlaz}')">${znak}</button>`;
+}
+
+function tastaturaHtml(){
+  const el = aktivnoPoljeTastature;
+  if(!el) return '';
+  if(tastaturaJeNumericka(el)){
+    return `
+      <div class="vt-red">${['1','2','3'].map(k => tastaturaTipkaHtml(k)).join('')}</div>
+      <div class="vt-red">${['4','5','6'].map(k => tastaturaTipkaHtml(k)).join('')}</div>
+      <div class="vt-red">${['7','8','9'].map(k => tastaturaTipkaHtml(k)).join('')}</div>
+      <div class="vt-red">
+        <button type="button" class="vt-tipka vt-posebna" onmousedown="event.preventDefault()" onclick="tastaturaObrisi()">⌫</button>
+        ${tastaturaTipkaHtml('0')}
+        <button type="button" class="vt-tipka vt-gold" onmousedown="event.preventDefault()" onclick="zatvoriTastaturu()">Gotovo</button>
+      </div>`;
+  }
+  const slovo = s => tastaturaVelika ? s.toUpperCase() : s;
+  const jeTekstualno = el.tagName === 'TEXTAREA';
+  return `
+    <div class="vt-red">${TASTATURA_REDOVI[0].map(k => tastaturaTipkaHtml(k)).join('')}</div>
+    <div class="vt-red">${TASTATURA_REDOVI[1].map(k => tastaturaTipkaHtml(slovo(k))).join('')}</div>
+    <div class="vt-red">${TASTATURA_REDOVI[2].map(k => tastaturaTipkaHtml(slovo(k))).join('')}</div>
+    <div class="vt-red">
+      <button type="button" class="vt-tipka vt-posebna${tastaturaVelika ? ' vt-aktivna' : ''}" onmousedown="event.preventDefault()" onclick="tastaturaVelikaPrekidac()">⇧</button>
+      ${TASTATURA_REDOVI[3].map(k => tastaturaTipkaHtml(slovo(k))).join('')}
+      <button type="button" class="vt-tipka vt-posebna" onmousedown="event.preventDefault()" onclick="tastaturaObrisi()">⌫</button>
+    </div>
+    <div class="vt-red">
+      ${tastaturaTipkaHtml(',', 'vt-posebna')}
+      <button type="button" class="vt-tipka vt-razmak" onmousedown="event.preventDefault()" onclick="tastaturaUnesi(' ')">razmak</button>
+      ${tastaturaTipkaHtml('.', 'vt-posebna')}
+      ${jeTekstualno ? '<button type="button" class="vt-tipka vt-posebna" onmousedown="event.preventDefault()" onclick="tastaturaNoviRed()">⏎</button>' : ''}
+      <button type="button" class="vt-tipka vt-gold" onmousedown="event.preventDefault()" onclick="zatvoriTastaturu()">Gotovo</button>
+    </div>`;
+}
+
+function iscrtajTastaturu(){
+  const panel = document.getElementById('vTastatura');
+  if(!panel || !aktivnoPoljeTastature) return;
+  panel.classList.toggle('vt-brojevi', tastaturaJeNumericka(aktivnoPoljeTastature));
+  panel.querySelector('.vt-tijelo').innerHTML = tastaturaHtml();
+  // Rezerviši prostor na dnu stranice (i login ekrana) u visini tastature,
+  // da fiksirani panel ne prekrije polja/dugmad ispod njega (npr. "Prijavi se").
+  document.documentElement.style.setProperty('--vt-visina', panel.offsetHeight + 'px');
+}
+
+function otvoriTastaturu(el){
+  aktivnoPoljeTastature = el;
+  tastaturaVelika = false;
+  const panel = document.getElementById('vTastatura');
+  panel.hidden = false;
+  iscrtajTastaturu();
+  requestAnimationFrame(() => panel.classList.add('vt-otvorena'));
+  el.scrollIntoView({block:'center', behavior:'smooth'});
+}
+
+function zatvoriTastaturu(){
+  const panel = document.getElementById('vTastatura');
+  panel.classList.remove('vt-otvorena');
+  document.documentElement.style.setProperty('--vt-visina', '0px');
+  if(aktivnoPoljeTastature) aktivnoPoljeTastature.blur();
+  aktivnoPoljeTastature = null;
+  setTimeout(() => { if(!aktivnoPoljeTastature) panel.hidden = true; }, 200);
+}
+
+function tastaturaUnesi(znak){
+  if(!aktivnoPoljeTastature) return;
+  tastaturaUmetni(znak);
+  if(tastaturaVelika){ tastaturaVelika = false; iscrtajTastaturu(); }
+}
+
+function tastaturaNoviRed(){
+  tastaturaUmetni('\n');
+}
+
+function tastaturaObrisi(){
+  const el = aktivnoPoljeTastature;
+  if(!el) return;
+  if(el.type === 'number'){
+    el.value = (el.value || '').slice(0, -1);
+    el.dispatchEvent(new Event('input', {bubbles:true}));
+    return;
+  }
+  const start = el.selectionStart ?? el.value.length;
+  const end = el.selectionEnd ?? el.value.length;
+  if(start !== end){
+    el.value = el.value.slice(0, start) + el.value.slice(end);
+    el.setSelectionRange(start, start);
+  }else if(start > 0){
+    el.value = el.value.slice(0, start - 1) + el.value.slice(start);
+    el.setSelectionRange(start - 1, start - 1);
+  }else{
+    return;
+  }
+  el.dispatchEvent(new Event('input', {bubbles:true}));
+}
+
+function tastaturaVelikaPrekidac(){
+  tastaturaVelika = !tastaturaVelika;
+  iscrtajTastaturu();
+}
+
+document.addEventListener('focusin', e => {
+  if(poljeZaTastaturu(e.target)) otvoriTastaturu(e.target);
+});
+document.addEventListener('focusout', e => {
+  if(e.target !== aktivnoPoljeTastature) return;
+  setTimeout(() => {
+    const aktivni = document.activeElement;
+    const panel = document.getElementById('vTastatura');
+    if(aktivni === aktivnoPoljeTastature) return;
+    if(panel && panel.contains(aktivni)) return;
+    zatvoriTastaturu();
+  }, 0);
+});
+
+new MutationObserver(mutacije => {
+  for(const m of mutacije){
+    for(const node of m.addedNodes){
+      if(node.nodeType !== 1) continue;
+      if(node.matches && node.matches('input, textarea')) tastaturaOznaciPolje(node);
+      if(node.querySelectorAll) tastaturaOznaciSva(node);
+    }
+  }
+}).observe(document.body, {childList:true, subtree:true});
+
+tastaturaOznaciSva(document);
 
 // ---------- normalize & compare ----------
 function normalize(raw){

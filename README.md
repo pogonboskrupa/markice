@@ -23,6 +23,15 @@ Zaštite: PIN se nikad ne čuva u čitljivom obliku (PBKDF2, 150.000 iteracija, 
 
 Zaključaj i sam uređaj (PIN/otisak na telefonu ili laptopu) — to je u ovoj postavci najjača stvarna zaštita.
 
+## Vlastita tastatura
+Aplikacija ima svoju vlastitu tastaturu (u stilu "papir i tinta" kao i ostatak aplikacije) koja se otvara na dnu ekrana čim dodirneš/klikneš bilo koje polje za unos teksta — sistemska tastatura se ne pojavljuje. Dva oblika:
+- **puna slovna tastatura** (raspored kao QWERTZ, sa č ć ž š đ) — za nazive, adrese, napomene, pretrage i slično. Dugme ⇧ velikim slovom piše samo sljedeće slovo (kao na mobitelu), ⌫ briše, tekstualna polja (npr. Napomena) imaju i dugme ⏎ za novi red.
+- **brojčana tastatura** (raspored kao na telefonu) — za PIN i brojčana polja (npr. broj grla/košnica).
+
+Datumska polja, izbor fajla, čekboksi i padajuće liste zadržavaju svoje uobičajene kontrole (nisu "tastatura" u pravom smislu). Lijepljenje iz clipboard-a (npr. cijele kolone markica iz Excela) i dalje radi normalno.
+
+Napomena: kako sistemska tastatura nikad ne iskače, prijedlozi za automatsko dovršavanje grada/vrste stoke iz browsera se ne prikazuju (polje se i dalje može popuniti kucanjem preko vlastite tastature), a osoba koja unos radi isključivo fizičkom tastaturom bez dodira/klika na polje neće moći kucati direktno — treba dodirnuti/kliknuti polje da se otvori vlastita tastatura.
+
 ## Šihtarica (lični radni dnevnik)
 Tab **Šihtarica** je lični radni dnevnik prijavljenog korisnika — svako vidi samo svoje zapise, niko tuđe (ni administrator). Služi za planiranje i evidenciju vlastitog terena, ne za odgovornost/kontrolu (za to služi Dnevnik izmjena, ispod).
 
