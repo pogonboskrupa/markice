@@ -41,7 +41,7 @@ Dnevnik se može pretraživati, filtrirati po korisniku, izvesti u Excel i odšt
 Za svako gazdinstvo se unosi:
 - vrsta (farma / pčelar), gazdinstvo, vlasnik, telefon
 - grad, adresa (ulica/zaselak i kućni broj su odvojena polja — tačniji unos i preciznije geokodiranje), ID gazdinstva (JIB)
-- **stoka na gazdinstvu** — dugme "+ Dodaj vrstu stoke" dodaje red po vrsti životinja: goveda, ovce, koze, konji, svinje, živina, ili košnice kod pčelara (slobodan tekst uz prijedloge, može i vlastita vrsta). Za svaku vrstu se unosi broj grla i, opciono, **ID brojevi / markice** — jedan po redu. Gazdinstvo može imati koliko god vrsta stoke, svaka sa svojim brojem i markicama.
+- **stoka na gazdinstvu** — sekcija se prilagođava vrsti gazdinstva: za farme je to "Grla na gazdinstvu" sa prijedlozima goveda/ovce/koze/konji/svinje/živina, za pčelare "Košnice na gazdinstvu" sa prijedlozima tipova košnica (LR, Standard, AŽ) — bez miješanja jednih i drugih. Dugme "+ Dodaj..." dodaje red (slobodan tekst uz prijedloge, može i vlastita vrsta/tip); kod pčelara odmah upiše "Košnice" da ne mora ručno. Za svaku vrstu se unosi broj i, opciono, **ID brojevi / markice** — jedan po redu. Gazdinstvo može imati koliko god vrsta, svaka sa svojim brojem i markicama.
 - dan iduće posjete, napomena
 - **obavljene posjete** — dugme "Zabilježi posjetu" dodaje red sa datumom, kolegom koji je bio na terenu (opciono) i nalazom; gazdinstvo može imati koliko god posjeta, sve ostaju u historiji (ništa se ne briše/prepisuje)
 - **fotografije sa terena** — dugme "+ Dodaj fotografiju" (radi i sa kamerom na mobitelu). Slika se prije čuvanja automatski smanji (najviše 1000px, JPEG) da ne troši previše prostora — vidi napomenu o localStorage ispod. Prva fotografija se prikazuje kao mala sličica u tabeli i na karti; klik na nju otvara sliku u punoj veličini.
@@ -78,7 +78,7 @@ Ako adresa nije pronađena, gazdinstvo se izlistava ispod karte pod "Bez lokacij
 - ili gore, dugme **"Pronađi lokacije koje nedostaju"** da se pokuša automatsko prepoznavanje ponovo,
 - ili dopuni precizniju adresu u tabu Gazdinstva.
 
-**Marker se može uhvatiti i prevući** na tačnu lokaciju — ta pozicija se pamti i ostaje čak i ako kasnije izmijeniš adresu.
+Marker se **ne pomjera slobodnim prevlačenjem** (namjerno — slučajan dodir/klik na mobitelu bi ga lako pomjerio bez da se primijeti). Za ispravku lokacije, klikni marker pa dugme **"Pomjeri lokaciju"** u popup-u — isti režim biranja kao za gazdinstva bez lokacije (klikni tačno mjesto na karti). Postavljena pozicija se pamti i ostaje čak i ako kasnije izmijeniš adresu.
 
 Dugme **"Štampaj kartu"** štampa trenutni prikaz karte (poštuje filtere po vrsti/gradu) sa legendom i spiskom "Bez lokacije" ako postoji.
 
