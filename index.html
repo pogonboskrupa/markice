@@ -967,19 +967,19 @@
           </div>
           <div class="field">
             <label for="gNaziv">Gazdinstvo</label>
-            <input id="gNaziv" required placeholder="npr. Gazdinstvo Dizdarević">
+            <input id="gNaziv" required>
           </div>
           <div class="field">
             <label for="gVlasnik">Vlasnik</label>
-            <input id="gVlasnik" required placeholder="Ime i prezime">
+            <input id="gVlasnik" required>
           </div>
           <div class="field">
             <label for="gTelefon">Telefon</label>
-            <input type="tel" id="gTelefon" placeholder="npr. 061 123 456">
+            <input type="tel" id="gTelefon">
           </div>
           <div class="field">
             <label for="gGrad">Grad / mjesto</label>
-            <input id="gGrad" required placeholder="npr. Bosanska Krupa" list="gradoviList">
+            <input id="gGrad" required list="gradoviList">
             <datalist id="gradoviList">
               <option value="Bosanska Krupa"></option>
               <option value="Bihać"></option>
@@ -999,7 +999,7 @@
           </div>
           <div class="field">
             <label for="gIdGazdinstva">ID gazdinstva (JIB)</label>
-            <input id="gIdGazdinstva" placeholder="Registarski broj">
+            <input id="gIdGazdinstva">
           </div>
           <div class="field">
             <label for="gIduca">Dan iduće posjete</label>
@@ -1020,7 +1020,7 @@
           </div>
           <div class="field wide">
             <label for="gNapomena">Napomena</label>
-            <textarea id="gNapomena" placeholder="Kratka bilješka o gazdinstvu, zapažanjima sa terena..."></textarea>
+            <textarea id="gNapomena"></textarea>
           </div>
           <div class="field wide">
             <label>Fotografije sa terena</label>
@@ -1046,7 +1046,7 @@
     </div>
 
     <div class="filter-bar">
-      <input type="search" id="gPretraga" placeholder="Pretraži po gazdinstvu, vlasniku, telefonu, adresi, napomeni..." oninput="renderGazdTable()">
+      <input type="search" id="gPretraga" placeholder="Pretraga" oninput="renderGazdTable()">
       <select id="gGradFilter" onchange="renderGazdTable()">
         <option value="">Svi gradovi</option>
       </select>
@@ -1115,7 +1115,7 @@
   </div>
 
   <form class="tag-lookup" onsubmit="pretraziMarkicu(event)">
-    <input type="text" id="markicaPretragaInput" placeholder="Provjeri kojem gazdinstvu pripada markica — npr. BA 4201 184333">
+    <input type="text" id="markicaPretragaInput" placeholder="Provjeri kojem gazdinstvu pripada markica">
     <button type="submit" class="small secondary">Provjeri</button>
     <span id="markicaPretragaRezultat"></span>
   </form>
@@ -1124,7 +1124,7 @@
     <div class="card">
       <h2>Lista 1 — Popis identifikacionih oznaka</h2>
       <p class="hint">npr. BA 4201 184333 (jedan po redu, ili zalijepi cijelu kolonu)</p>
-      <textarea id="list1" placeholder="BA 4201 184333&#10;BA 4201 184546&#10;BA 4200 856612 ..."></textarea>
+      <textarea id="list1"></textarea>
       <div class="row-actions">
         <span class="count-pill" id="count1">0 markica</span>
         <button class="small secondary" onclick="clearList(1)">Obriši</button>
@@ -1139,7 +1139,7 @@
     <div class="card">
       <h2>Lista 2 — Potvrda o stanju životinja</h2>
       <p class="hint">npr. BA4201385109 (jedan po redu, ili zalijepi cijelu kolonu)</p>
-      <textarea id="list2" placeholder="BA4201385109&#10;BA4201385110&#10;BA4200856558 ..."></textarea>
+      <textarea id="list2"></textarea>
       <div class="row-actions">
         <span class="count-pill" id="count2">0 markica</span>
         <button class="small secondary" onclick="clearList(2)">Obriši</button>
@@ -1171,7 +1171,7 @@
   <section id="tab-posjete" class="tab-panel" role="tabpanel">
 
     <div class="filter-bar">
-      <input type="search" id="posjeteePretraga" placeholder="Pretraži po gazdinstvu, vlasniku, kolegi, napomeni..." oninput="renderRegistarPosjeta()">
+      <input type="search" id="posjeteePretraga" placeholder="Pretraga" oninput="renderRegistarPosjeta()">
       <select id="posjeteKorisnikFilter" onchange="posjeteKorisnikPromijenjen()">
         <option value="">Svi korisnici</option>
       </select>
@@ -1204,7 +1204,7 @@
           </div>
           <div class="field wide">
             <label for="shTekst">Bilješka</label>
-            <input id="shTekst" required placeholder="npr. Teren: tri gazdinstva u Cazinu, popodne administracija">
+            <input id="shTekst" required>
           </div>
         </div>
         <div class="row-actions" style="margin-top:12px;">
@@ -1259,11 +1259,11 @@
           <div class="form-grid">
             <div class="field">
               <label for="kIme">Ime korisnika</label>
-              <input id="kIme" required placeholder="npr. Amela">
+              <input id="kIme" required>
             </div>
             <div class="field">
               <label for="kPin">PIN (najmanje 4 cifre)</label>
-              <input id="kPin" type="text" inputmode="numeric" pattern="[0-9]{4,10}" required placeholder="npr. 4821">
+              <input id="kPin" type="text" inputmode="numeric" pattern="[0-9]{4,10}" required>
             </div>
             <div class="field">
               <label for="kUloga">Uloga</label>
@@ -1292,7 +1292,7 @@
     <div id="postavkeDnevnik" class="postavke-sekcija">
 
       <div class="filter-bar">
-        <input type="search" id="dnevnikPretraga" placeholder="Pretraži dnevnik po korisniku, gazdinstvu ili radnji..." oninput="renderDnevnik()">
+        <input type="search" id="dnevnikPretraga" placeholder="Pretraga" oninput="renderDnevnik()">
         <select id="dnevnikKorisnik" onchange="renderDnevnik()">
           <option value="">Svi korisnici</option>
         </select>
@@ -1318,7 +1318,7 @@
 // Jedino mjesto gdje se broj verzije mijenja — prikazuje se u topbaru,
 // na prijavi i u Postavkama, i mora biti usklađen sa CACHE_NAME u sw.js
 // (nova verzija = novi CACHE_NAME = preglednik povuče svježe fajlove).
-const APP_VERZIJA = '1.12';
+const APP_VERZIJA = '1.13';
 for(const id of ['verzijaTopbar', 'verzijaLogin', 'verzijaPostavke']){
   const el = document.getElementById(id);
   if(el) el.textContent = 'v' + APP_VERZIJA;
@@ -2902,11 +2902,11 @@ function dodajStokaRed(vrsta, broj = '', markice = ''){
   red.className = 'stoka-red';
   red.innerHTML = `
     <div class="redak-gore">
-      <input class="vrsta-stoke" list="stokaVrsteList" placeholder="${pcelar ? 'Vrsta (npr. LR košnice)' : 'Vrsta (npr. Govedo)'}">
+      <input class="vrsta-stoke" list="stokaVrsteList" placeholder="Vrsta">
       <input class="broj-stoke" type="number" min="0" step="1" placeholder="${pcelar ? 'Broj košnica' : 'Broj grla'}">
       <button type="button" class="small secondary" title="Ukloni ovu vrstu">×</button>
     </div>
-    <textarea class="markice-stoke" placeholder="ID brojevi / markice — opciono, jedan po redu (npr. BA 4201 184333)"></textarea>`;
+    <textarea class="markice-stoke" placeholder="ID brojevi / markice (opciono)"></textarea>`;
   red.querySelector('.vrsta-stoke').value = vrsta;
   red.querySelector('.broj-stoke').value = broj;
   red.querySelector('.markice-stoke').value = markice;
@@ -3089,8 +3089,8 @@ function dodajPolje(naziv = '', vrijednost = ''){
   const red = document.createElement('div');
   red.className = 'dodatno-red';
   red.innerHTML = `
-    <input class="naziv" placeholder="Naziv (npr. Nadmorska visina)">
-    <input class="vrijednost" placeholder="Vrijednost (npr. 640 m)">
+    <input class="naziv" placeholder="Naziv">
+    <input class="vrijednost" placeholder="Vrijednost">
     <button type="button" class="small secondary" title="Ukloni ovo polje">×</button>`;
   red.querySelector('.naziv').value = naziv;
   red.querySelector('.vrijednost').value = vrijednost;
