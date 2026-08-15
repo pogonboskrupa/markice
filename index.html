@@ -722,6 +722,25 @@
   .badge.due{background:var(--red-bg);color:var(--red);border-color:var(--red-line);}
 
   /* ---------- map ---------- */
+  /* Kompaktna traka iznad karte: filteri uvijek dijele jedan red (po 50%), a
+     dugmad idu u vodoravno-klizajuću traku umjesto da se ređaju svako u svoj
+     red — inače na uskom ekranu (telefon) zaglavlje odgurne kartu daleko dolje
+     prije nego se uopšte vidi. */
+  .map-toolbar{
+    display:flex;flex-direction:column;gap:8px;
+    margin-bottom:14px;
+    font-family:'Helvetica Neue',Arial,sans-serif;font-size:12px;
+  }
+  .map-toolbar-filters{display:flex;gap:8px;}
+  .map-toolbar-filters select{flex:1 1 0;min-width:0;}
+  .map-toolbar-actions{
+    display:flex;gap:8px;align-items:center;flex-wrap:nowrap;
+    overflow-x:auto;-webkit-overflow-scrolling:touch;
+    padding-bottom:3px;   /* razmak od eventualne scroll trake */
+    scrollbar-width:thin;
+  }
+  .map-toolbar-actions button, .map-toolbar-actions .count-pill{flex:0 0 auto;white-space:nowrap;}
+
   #map{
     height:520px;
     border:1px solid var(--line);
@@ -1112,20 +1131,24 @@
 
   <section id="tab-karta" class="tab-panel" role="tabpanel">
 
-    <div class="row-actions map-toolbar" style="margin-bottom:14px;">
-      <select id="mapFilter" onchange="renderMap()">
-        <option value="sve">Sva gazdinstva</option>
-        <option value="farma">Samo farme</option>
-        <option value="pcelar">Samo pčelari</option>
-      </select>
-      <select id="mapGradFilter" onchange="renderMap()">
-        <option value="">Svi gradovi</option>
-      </select>
-      <button class="small secondary" onclick="lociranjeSvih()" id="lociranjeBtn">Pronađi lokacije koje nedostaju</button>
-      <button class="small secondary" onclick="napraviRutu()" id="rutaBtn">Napravi rutu obilaska</button>
-      <button class="small secondary" onclick="ukloniRutu()" id="ukloniRutuBtn" style="display:none;">Ukloni rutu</button>
-      <button class="small secondary" onclick="window.print()">Štampaj kartu</button>
-      <span class="count-pill" id="mapStatus"></span>
+    <div class="map-toolbar">
+      <div class="map-toolbar-filters">
+        <select id="mapFilter" onchange="renderMap()">
+          <option value="sve">Sva gazdinstva</option>
+          <option value="farma">Samo farme</option>
+          <option value="pcelar">Samo pčelari</option>
+        </select>
+        <select id="mapGradFilter" onchange="renderMap()">
+          <option value="">Svi gradovi</option>
+        </select>
+      </div>
+      <div class="map-toolbar-actions">
+        <button class="small secondary" onclick="lociranjeSvih()" id="lociranjeBtn">Pronađi lokacije koje nedostaju</button>
+        <button class="small secondary" onclick="napraviRutu()" id="rutaBtn">Napravi rutu obilaska</button>
+        <button class="small secondary" onclick="ukloniRutu()" id="ukloniRutuBtn" style="display:none;">Ukloni rutu</button>
+        <button class="small secondary" onclick="window.print()">Štampaj kartu</button>
+        <span class="count-pill" id="mapStatus"></span>
+      </div>
     </div>
 
     <div id="map"></div>
@@ -1243,7 +1266,7 @@
 // Jedino mjesto gdje se broj verzije mijenja — prikazuje se u topbaru,
 // na prijavi i u Postavkama, i mora biti usklađen sa CACHE_NAME u sw.js
 // (nova verzija = novi CACHE_NAME = preglednik povuče svježe fajlove).
-const APP_VERZIJA = '1.8';
+const APP_VERZIJA = '1.9';
 for(const id of ['verzijaTopbar', 'verzijaLogin', 'verzijaPostavke']){
   const el = document.getElementById(id);
   if(el) el.textContent = 'v' + APP_VERZIJA;
