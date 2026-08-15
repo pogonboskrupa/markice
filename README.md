@@ -30,12 +30,12 @@ Dva načina unosa:
 - **ručna bilješka** — slobodan tekst uz datum (npr. "Teren: 3 gazdinstva u Cazinu"), dugme "Dodaj bilješku"
 - **preuzimanje zakazane posjete** — kod gazdinstva koje ima zakazan "dan iduće posjete", dugme **"+ U moju šihtaricu"** (u obrascu za uređivanje gazdinstva) ili **"+ Šihtarica"** (u redu na Pregledu) doda taj termin u šihtaricu, sa datumom posjete i nazivom gazdinstva. Ne može se dodati dvaput.
 
-Zapisi su grupisani po danu, sa oznakom je li riječ o bilješci ili preuzetoj posjeti; posjeta ima dugme "Otvori" koje vodi pravo na to gazdinstvo. Filter po mjesecu, izvoz u Excel i štampa su tu isto dostupni.
+Zapisi su grupisani po danu, sa oznakom je li riječ o bilješci ili preuzetoj posjeti; posjeta ima dugme "Otvori" koje vodi pravo na to gazdinstvo, svaki zapis se može i obrisati. Filter po mjesecu, izvoz u Excel i štampa su tu isto dostupni — sve poštuje odabrani mjesec.
 
 ## Dnevnik izmjena
 Podtab **Dnevnik izmjena** u Postavkama hronološki bilježi svaku radnju: ko se prijavio/odjavio, ko je dodao, izmijenio ili obrisao gazdinstvo, ko je pomjerio lokaciju na karti i ko je dodao ili obrisao korisnika. Kod izmjena se vidi i **tačno koje polje je promijenjeno i iz čega u šta** (npr. `Broj grla/košnica: "520" → "545"`).
 
-Dnevnik se može pretraživati, filtrirati po korisniku i po danu, izvesti u Excel i odštampati. Uz to, svaki red u spisku gazdinstava i svaki marker na karti pokazuju „Unio: … / Izmijenio: …". Dnevnik čuva zadnjih 2000 zapisa.
+Dnevnik se može pretraživati, filtrirati po korisniku i po danu, izvesti u Excel i odštampati — izvoz i štampa poštuju trenutne filtere, isto kao kod gazdinstava i posjeta. Uz to, svaki red u spisku gazdinstava i svaki marker na karti pokazuju „Unio: … / Izmijenio: …". Dnevnik čuva zadnjih 2000 zapisa.
 
 ## Tabovi u aplikaciji
 1. **Pregled** — prvi ekran nakon prijave: gazdinstva kojima je pregled istekao ili predstoji, po danima i gradovima

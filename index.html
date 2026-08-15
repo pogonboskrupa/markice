@@ -1223,6 +1223,7 @@
 
     <div class="row-actions" style="margin:14px 0 10px;">
       <span class="count-pill" id="shCount"></span>
+      <button class="small secondary" onclick="exportSihtarica()">Izvezi (Excel)</button>
       <button class="small secondary" onclick="window.print()">Štampaj šihtaricu</button>
     </div>
 
@@ -1318,7 +1319,7 @@
 // Jedino mjesto gdje se broj verzije mijenja — prikazuje se u topbaru,
 // na prijavi i u Postavkama, i mora biti usklađen sa CACHE_NAME u sw.js
 // (nova verzija = novi CACHE_NAME = preglednik povuče svježe fajlove).
-const APP_VERZIJA = '1.13';
+const APP_VERZIJA = '1.14';
 for(const id of ['verzijaTopbar', 'verzijaLogin', 'verzijaPostavke']){
   const el = document.getElementById(id);
   if(el) el.textContent = 'v' + APP_VERZIJA;
@@ -2275,7 +2276,7 @@ function renderPregled(){
       <td>${adresaHtml(g, escapeHtml(g.grad) + (punaAdresa(g) ? '<br><span class="cell-sub">' + escapeHtml(punaAdresa(g)) + '</span>' : ''))}</td>
       <td class="actions">
         <button class="small secondary" onclick="otvoriGazdinstvo('${g.id}')">Otvori</button>
-        ${g.danIducePosjete ? '<button class="small secondary" onclick="dodajUSihtaricuIzPregleda(\'' + g.id + '\')">+ Šihtarica</button>' : ''}
+        ${g.danIducePosjete ? '<button class="small secondary" onclick="dodajUSihtaricuIzPregleda(\'' + g.id + '\', this)">+ Šihtarica</button>' : ''}
       </td>
     </tr>`;
   };
@@ -2580,14 +2581,16 @@ function dodajUSihtaricuIzForme(){
     : 'Dodano u tvoju šihtaricu za ' + formatDatum(datum) + '.';
 }
 
-function dodajUSihtaricuIzPregleda(gazdinstvoId){
+function dodajUSihtaricuIzPregleda(gazdinstvoId, btn){
   const g = loadGazdinstva().find(x => x.id === gazdinstvoId);
   const status = document.getElementById('pregledStatus');
-  if(!g || !g.danIducePosjete || !status) return;
+  if(!g || !g.danIducePosjete) return;
   const rezultat = dodajUSihtaricu(g.id, g.danIducePosjete, g.gazdinstvo);
-  status.textContent = rezultat === 'postoji'
+  const poruka = rezultat === 'postoji'
     ? '"' + g.gazdinstvo + '" je već u tvojoj šihtarici za ' + formatDatum(g.danIducePosjete) + '.'
     : '"' + g.gazdinstvo + '" dodano u tvoju šihtaricu za ' + formatDatum(g.danIducePosjete) + '.';
+  if(status) status.textContent = poruka;
+  if(btn){ btn.textContent = rezultat === 'postoji' ? 'Već u šihtarici' : '✓ Dodano'; btn.disabled = true; }
 }
 
 function dodajSihtaricaBiljesku(event){
@@ -2617,11 +2620,33 @@ function obrisiSihtaricaStavku(id){
   renderSihtarica();
 }
 
+function mojaSihtarica(){
+  if(!trenutniKorisnik) return [];
+  return loadSihtarica().filter(z => z.korisnik === trenutniKorisnik.ime);
+}
+
+function filtriranaSihtarica(){
+  const mjesec = document.getElementById('shMjesecFilter').value;
+  return mojaSihtarica()
+    .filter(z => !mjesec || z.datum.slice(0,7) === mjesec)
+    .sort((a,b) => b.datum.localeCompare(a.datum) || b.kreirano.localeCompare(a.kreirano));
+}
+
+function exportSihtarica(){
+  const filtrirano = filtriranaSihtarica().slice().reverse();
+  if(!filtrirano.length){ document.getElementById('shCount').textContent = 'Nema zapisa za izvoz.'; return; }
+  const rows = [['Datum','Vrsta','Gazdinstvo / bilješka']];
+  for(const z of filtrirano){
+    rows.push([z.datum, z.vrsta === 'posjeta' ? 'Posjeta' : 'Bilješka', csvCisto(z.vrsta === 'posjeta' ? z.gazdinstvo : z.tekst)]);
+  }
+  preuzmiXlsx('sihtarica.xlsx', 'Šihtarica', rows);
+}
+
 function renderSihtarica(){
   const wrap = document.getElementById('sihtaricaWrap');
   if(!wrap || !trenutniKorisnik) return;
 
-  const moje = loadSihtarica().filter(z => z.korisnik === trenutniKorisnik.ime);
+  const moje = mojaSihtarica();
 
   const mjeseci = [...new Set(moje.map(z => z.datum.slice(0,7)))].sort().reverse();
   const selMjesec = document.getElementById('shMjesecFilter');
@@ -2630,9 +2655,7 @@ function renderSihtarica(){
     mjeseci.map(m => `<option value="${m}">${mjesecOznaka(m + '-01').naziv}</option>`).join('');
   selMjesec.value = mjeseci.includes(trenutniMjesec) ? trenutniMjesec : '';
 
-  const filtrirano = moje
-    .filter(z => !selMjesec.value || z.datum.slice(0,7) === selMjesec.value)
-    .sort((a,b) => b.datum.localeCompare(a.datum) || b.kreirano.localeCompare(a.kreirano));
+  const filtrirano = filtriranaSihtarica();
 
   document.getElementById('shCount').textContent =
     filtrirano.length + (filtrirano.length === 1 ? ' zapis' : ' zapisa');
@@ -2696,6 +2719,22 @@ function ocistiFiltereDnevnika(){
   renderDnevnik();
 }
 
+function filtriraniDnevnik(){
+  const sviUnosi = loadDnevnik();
+  const korisnik = document.getElementById('dnevnikKorisnik').value;
+  const pojam = document.getElementById('dnevnikPretraga').value.trim().toLowerCase();
+  const dan = document.getElementById('dnevnikDan').value;
+  return sviUnosi.filter(z => {
+    if(korisnik && z.korisnik !== korisnik) return false;
+    if(dan && z.vrijeme.slice(0,10) !== dan) return false;
+    if(pojam){
+      const tekst = [z.korisnik, z.akcija, z.entitet, z.naziv, z.detalji].join(' ').toLowerCase();
+      if(!tekst.includes(pojam)) return false;
+    }
+    return true;
+  }).reverse();   // najnovije prvo
+}
+
 function renderDnevnik(){
   const wrap = document.getElementById('dnevnikWrap');
   if(!wrap) return;
@@ -2708,17 +2747,7 @@ function renderDnevnik(){
     imena.map(i => `<option value="${escapeHtml(i)}">${escapeHtml(i)}</option>`).join('');
   selKorisnik.value = imena.includes(trenutni) ? trenutni : '';
 
-  const pojam = document.getElementById('dnevnikPretraga').value.trim().toLowerCase();
-  const dan = document.getElementById('dnevnikDan').value;
-  const filtrirani = sviUnosi.filter(z => {
-    if(selKorisnik.value && z.korisnik !== selKorisnik.value) return false;
-    if(dan && z.vrijeme.slice(0,10) !== dan) return false;
-    if(pojam){
-      const tekst = [z.korisnik, z.akcija, z.entitet, z.naziv, z.detalji].join(' ').toLowerCase();
-      if(!tekst.includes(pojam)) return false;
-    }
-    return true;
-  }).reverse();   // najnovije prvo
+  const filtrirani = filtriraniDnevnik();
 
   document.getElementById('dnevnikCount').textContent =
     filtrirani.length + (filtrirani.length === 1 ? ' zapis' : ' zapisa');
@@ -2741,7 +2770,7 @@ function renderDnevnik(){
 }
 
 function exportDnevnik(){
-  const zapisi = loadDnevnik().slice().reverse();
+  const zapisi = filtriraniDnevnik();
   if(!zapisi.length){ document.getElementById('dnevnikCount').textContent = 'Nema zapisa za izvoz.'; return; }
   const rows = [['Vrijeme','Korisnik','Radnja','Vrsta stavke','Stavka','Detalji']];
   for(const z of zapisi){
@@ -3894,7 +3923,7 @@ function popupHtml(g){
     <span class="pop-row">${VRSTA_LABEL[g.vrsta] || ''} · ${escapeHtml(g.vlasnik)}</span><br>
     ${g.telefon ? '<span class="pop-row"><a href="tel:' + escapeHtml(g.telefon.replace(/\s+/g,'')) + '">' + escapeHtml(g.telefon) + '</a></span><br>' : ''}
     <span class="pop-row">${adresaHtml(g, escapeHtml([punaAdresa(g), g.grad].filter(Boolean).join(', ')))}</span><br>
-    ${stokaSazetak(g) ? '<span class="pop-row">Stoka: <b>' + escapeHtml(stokaSazetak(g)) + '</b>' + (stokaMarkiceUkupno(g) ? ' · ' + stokaMarkiceUkupno(g) + ' markica evidentirano' : '') + '</span><br>' : ''}
+    ${stokaSazetak(g) ? '<span class="pop-row">' + (g.vrsta === 'pcelar' ? 'Košnice' : 'Stoka') + ': <b>' + escapeHtml(stokaSazetak(g)) + '</b>' + (stokaMarkiceUkupno(g) ? ' · ' + stokaMarkiceUkupno(g) + ' markica evidentirano' : '') + '</span><br>' : ''}
     <span class="pop-row">Zadnja posjeta: ${formatDatum(zadnjaPosjeta(g))} · Iduća: ${formatDatum(g.danIducePosjete)}</span><br>
     ${g.napomena ? '<span class="pop-row">' + escapeHtml(g.napomena) + '</span><br>' : ''}
     ${dodatna.length ? '<span class="pop-row">' + dodatna.map(p => escapeHtml(p.naziv + ': ' + p.vrijednost)).join(' · ') + '</span><br>' : ''}
