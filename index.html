@@ -1062,11 +1062,11 @@
             <button type="button" class="small secondary" id="gSihtaricaBtn" style="align-self:flex-start;margin-top:2px;" onclick="dodajUSihtaricuIzForme()" hidden>+ U moju šihtaricu</button>
           </div>
           <div class="field wide">
-            <label id="stokaNaslov">Grla na gazdinstvu</label>
+            <label id="stokaNaslov">Grla prijavljena za poticaje</label>
             <datalist id="stokaVrsteList"></datalist>
             <div id="stokaLista"></div>
             <button type="button" class="small secondary" id="dodajStokuBtn" style="align-self:flex-start;margin-top:2px;" onclick="dodajStokaRed()">+ Dodaj vrstu stoke</button>
-            <p class="stoka-hint" id="stokaHint">Za svaku vrstu unesi broj grla i, opciono, ID brojeve/markice — jedan po redu.</p>
+            <p class="stoka-hint" id="stokaHint">Broj sa apliciranja korisnika za poticaje (od njega zavisi visina poticaja) — unesi broj grla po vrsti i, opciono, ID brojeve/markice, jedan po redu.</p>
           </div>
           <div class="field wide">
             <label>Obavljene posjete</label>
@@ -1374,7 +1374,7 @@
 // Jedino mjesto gdje se broj verzije mijenja — prikazuje se u topbaru,
 // na prijavi i u Postavkama, i mora biti usklađen sa CACHE_NAME u sw.js
 // (nova verzija = novi CACHE_NAME = preglednik povuče svježe fajlove).
-const APP_VERZIJA = '1.17';
+const APP_VERZIJA = '1.18';
 for(const id of ['verzijaTopbar', 'verzijaLogin', 'verzijaPostavke']){
   const el = document.getElementById(id);
   if(el) el.textContent = 'v' + APP_VERZIJA;
@@ -2053,9 +2053,9 @@ function stampajProfil(id){
 
   const stokaBlok = stoka.length ? `
     <div class="results profil-section">
-      <h3>Stoka na gazdinstvu <span>${stoka.length}</span></h3>
+      <h3>${g.vrsta === 'pcelar' ? 'Košnice prijavljene za poticaje' : 'Grla prijavljena za poticaje'} <span>${stoka.length}</span></h3>
       <table>
-        <thead><tr><th>Vrsta</th><th>Broj grla</th><th>ID brojevi / markice</th></tr></thead>
+        <thead><tr><th>Vrsta</th><th>${g.vrsta === 'pcelar' ? 'Broj košnica' : 'Broj grla'}</th><th>ID brojevi / markice</th></tr></thead>
         <tbody>${stoka.map(s => `<tr>
           <td>${escapeHtml(s.vrsta || '—')}</td>
           <td>${escapeHtml(s.broj || '—')}</td>
@@ -3155,18 +3155,18 @@ function osvjeziVrstuPolja(){
   document.getElementById('dodajStokuBtn').textContent =
     pcelar ? '+ Dodaj košnice' : '+ Dodaj vrstu stoke (goveda, ovce...)';
   document.getElementById('stokaNaslov').textContent =
-    pcelar ? 'Košnice na gazdinstvu' : 'Grla na gazdinstvu';
+    pcelar ? 'Košnice prijavljene za poticaje' : 'Grla prijavljena za poticaje';
   document.getElementById('stokaHint').textContent = pcelar
-    ? 'Za svaku vrstu košnice unesi broj košnica i, opciono, ID brojeve/markice — jedan po redu.'
-    : 'Za svaku vrstu unesi broj grla i, opciono, ID brojeve/markice — jedan po redu.';
+    ? 'Broj sa apliciranja korisnika za poticaje (od njega zavisi visina poticaja) — unesi broj košnica po vrsti i, opciono, ID brojeve/markice, jedan po redu.'
+    : 'Broj sa apliciranja korisnika za poticaje (od njega zavisi visina poticaja) — unesi broj grla po vrsti i, opciono, ID brojeve/markice, jedan po redu.';
   document.getElementById('stokaVrsteList').innerHTML =
     STOKA_VRSTE[pcelar ? 'pcelar' : 'farma'].map(v => `<option value="${v}"></option>`).join('');
 
   // Postojeći redovi (npr. otvoreni za uređivanje prije promjene vrste) dobiju
   // ispravne placeholdere umjesto da ostanu na onima od prethodne vrste.
   for(const red of document.querySelectorAll('#stokaLista .stoka-red')){
-    red.querySelector('.vrsta-stoke').placeholder = pcelar ? 'Vrsta (npr. LR košnice)' : 'Vrsta (npr. Govedo)';
-    red.querySelector('.broj-stoke').placeholder = pcelar ? 'Broj košnica' : 'Broj grla';
+    red.querySelector('.vrsta-stoke').placeholder = 'Vrsta';
+    red.querySelector('.broj-stoke').placeholder = pcelar ? 'Broj košnica (poticaji)' : 'Broj grla (poticaji)';
   }
 }
 
@@ -3184,7 +3184,7 @@ function dodajStokaRed(vrsta, broj = '', markice = ''){
   red.innerHTML = `
     <div class="redak-gore">
       <input class="vrsta-stoke" list="stokaVrsteList" placeholder="Vrsta">
-      <input class="broj-stoke" type="number" min="0" step="1" placeholder="${pcelar ? 'Broj košnica' : 'Broj grla'}">
+      <input class="broj-stoke" type="number" min="0" step="1" placeholder="${pcelar ? 'Broj košnica (poticaji)' : 'Broj grla (poticaji)'}">
       <button type="button" class="small secondary" title="Ukloni ovu vrstu">×</button>
     </div>
     <textarea class="markice-stoke" placeholder="ID brojevi / markice (opciono)"></textarea>`;
