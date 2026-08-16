@@ -206,3 +206,11 @@ Svaka markica upisana uz stoku na nekom gazdinstvu (polje "ID brojevi / markice"
 - Nakon "Uporedi liste", svaka markica koja se poklapa sa nekim gazdinstvom je klikabilna i pokazuje naziv vlasnika direktno na "čipu"; klik otvara to gazdinstvo na uređivanje. Markice bez poznatog vlasnika ostaju obične (nisu klikabilne).
 
 Poređenje formata brojeva (razmaci, mala/velika slova, novi red) je isto kao i kod uvoza liste, tako da se "BA 4201 111111" i "BA4201111111" prepoznaju kao ista markica.
+
+### Treće poređenje — zvanični spiskovi naspram gazdinstava
+Osim poređenja Liste 1 i Liste 2 međusobno, "Uporedi liste" pokazuje i gdje se zvanični spiskovi razilaze sa onim što je upisano po gazdinstvima:
+
+- **"U spiskovima, bez upisanog vlasnika"** — markica postoji u Listi 1 i/ili Listi 2, ali nije upisana ni na jednom gazdinstvu. Treba pronaći i upisati vlasnika.
+- **"Upisano na gazdinstvu, van spiskova"** — markica je upisana uz stoku na nekom gazdinstvu, ali se ne pojavljuje ni u jednoj od dvije zvanične liste (moguća greška u unosu, ili tek treba stići u zvanični spisak). Klikabilno, isto kao podudarne markice — klik otvara gazdinstvo.
+
+I ove dvije kategorije ulaze u "Izvezi neusklađene (Excel)" (sa kolonom Gazdinstvo gdje je poznato) i u "Štampaj izvještaj".

@@ -30,6 +30,8 @@
     --red-bg:#f5ddd6;
     --red-line:#e1b6ac;
     --gold:#c8912f;
+    --gold-bg:#f7ecd6;
+    --gold-line:#e0c68f;
   }
   *{box-sizing:border-box;}
   html{-webkit-text-size-adjust:100%;}
@@ -334,6 +336,9 @@
     background:var(--red-bg);color:var(--red);border-color:var(--red-line);
     animation:pulse 1.5s ease-in-out infinite;
   }
+  /* Upisano na gazdinstvu ali van zvaničnih spiskova — informativno, ne greška,
+     pa bez pulsiranja koje je rezervisano za "traži pažnju odmah" (crveno). */
+  .tag.amber{background:var(--gold-bg);color:var(--gold);border-color:var(--gold-line);}
   @keyframes pulse{
     0%,100%{box-shadow:0 0 0 0 rgba(178,58,46,.35);}
     50%{box-shadow:0 0 0 4px rgba(178,58,46,0);}
@@ -1220,7 +1225,7 @@
   <div id="summaryWrap"></div>
   <div id="resultsWrap"></div>
 
-  <p class="footer-note">Zeleno = markica postoji u obje liste · Crveno (treperi) = markica postoji samo u jednoj listi<br>Sačuvane liste ostaju dostupne na ovom uređaju i bez interneta.</p>
+  <p class="footer-note">Zeleno = markica postoji u obje liste · Crveno (treperi) = markica postoji samo u jednoj listi ili nema upisanog vlasnika · Žuto = upisano na gazdinstvu ali van zvaničnih spiskova<br>Sačuvane liste ostaju dostupne na ovom uređaju i bez interneta.</p>
 
   </section>
 
@@ -1375,7 +1380,7 @@
 // Jedino mjesto gdje se broj verzije mijenja — prikazuje se u topbaru,
 // na prijavi i u Postavkama, i mora biti usklađen sa CACHE_NAME u sw.js
 // (nova verzija = novi CACHE_NAME = preglednik povuče svježe fajlove).
-const APP_VERZIJA = '1.19';
+const APP_VERZIJA = '1.20';
 for(const id of ['verzijaTopbar', 'verzijaLogin', 'verzijaPostavke']){
   const el = document.getElementById(id);
   if(el) el.textContent = 'v' + APP_VERZIJA;
@@ -1626,7 +1631,15 @@ function compareLists(){
   const onlyIn2 = l2.filter(x => !set1.has(x)).sort();
   const mismatchTotal = onlyIn1.length + onlyIn2.length;
 
-  lastCompare = { matched, onlyIn1, onlyIn2 };
+  // Treće poređenje: zvanični spiskovi (Lista 1 + Lista 2) naspram markica
+  // upisanih po gazdinstvima — pokazuje gdje su ta dva izvora neusklađena,
+  // umjesto da se to otkriva ručno.
+  const indeks = markicaIndeks();
+  const svihSpiskova = new Set([...set1, ...set2]);
+  const nepovezane = [...svihSpiskova].filter(x => !indeks.has(x)).sort();
+  const vanSpiska = [...indeks.keys()].filter(x => !svihSpiskova.has(x)).sort();
+
+  lastCompare = { matched, onlyIn1, onlyIn2, nepovezane, vanSpiska };
 
   document.getElementById('summaryWrap').innerHTML = `
     <div class="summary">
@@ -1638,7 +1651,6 @@ function compareLists(){
 
   // Markice koje su registrovane na nekom gazdinstvu (u tabu Gazdinstva) su
   // klikabilne i pokazuju kome pripadaju — poveznica sa evidencijom gazdinstava.
-  const indeks = markicaIndeks();
   const tagsHtml = (arr, cls) => arr.length
     ? arr.map(x => {
         const vlasnici = indeks.get(x);
@@ -1658,18 +1670,30 @@ function compareLists(){
       <h3>Samo u Listi 1 (nedostaje u Listi 2) <span>${onlyIn1.length}</span></h3>
       <div class="grid-tags">${tagsHtml(onlyIn1,'red')}</div>
     </div>
-    <div class="results">
+    <div class="results" style="margin-bottom:16px;">
       <h3>Samo u Listi 2 (nedostaje u Listi 1) <span>${onlyIn2.length}</span></h3>
       <div class="grid-tags">${tagsHtml(onlyIn2,'red')}</div>
+    </div>
+    <div class="results" style="margin-bottom:16px;">
+      <h3>U spiskovima, bez upisanog vlasnika <span>${nepovezane.length}</span></h3>
+      <div class="grid-tags">${tagsHtml(nepovezane,'red')}</div>
+    </div>
+    <div class="results">
+      <h3>Upisano na gazdinstvu, van spiskova <span>${vanSpiska.length}</span></h3>
+      <div class="grid-tags">${tagsHtml(vanSpiska,'amber')}</div>
     </div>
   `;
 }
 
 function exportMismatches(){
   if(!lastCompare){ document.getElementById('status').textContent = 'Prvo uporedi liste.'; return; }
-  const rows = [['Markica','Status']];
-  lastCompare.onlyIn1.forEach(t => rows.push([t, 'Samo u Listi 1']));
-  lastCompare.onlyIn2.forEach(t => rows.push([t, 'Samo u Listi 2']));
+  const indeks = markicaIndeks();
+  const vlasnik = t => csvCisto((indeks.get(t) || []).map(g => g.gazdinstvo).join(', '));
+  const rows = [['Markica','Status','Gazdinstvo']];
+  lastCompare.onlyIn1.forEach(t => rows.push([t, 'Samo u Listi 1', vlasnik(t)]));
+  lastCompare.onlyIn2.forEach(t => rows.push([t, 'Samo u Listi 2', vlasnik(t)]));
+  lastCompare.nepovezane.forEach(t => rows.push([t, 'U spiskovima, bez upisanog vlasnika', '']));
+  lastCompare.vanSpiska.forEach(t => rows.push([t, 'Upisano na gazdinstvu, van spiskova', vlasnik(t)]));
   preuzmiXlsx('neuskladjene-markice.xlsx', 'Neusklađene markice', rows);
 }
 
