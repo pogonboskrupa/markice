@@ -6,6 +6,7 @@
 
 ## Nedavno urađeno
 
+- **Potvrde veterinarske stanice (slika + OCR)** — u obrascu gazdinstva, slika "Potvrde o provedenim mjerama" ili "Potvrde o stanju životinja" se odmah čita OCR-om (potpuno lokalno, bez interneta) i predloži podatke (vlasnik, broj imanja, ukupan broj, spisak markica...) — sve izmjenjivo prije snimanja.
 - **Povezivanje markica sa gazdinstvom** — pretraga markice po broju (tab Markice) i klikabilni rezultati poređenja odmah pokazuju kojem gazdinstvu markica pripada.
 - **Fotografije sa terena** — dodavanje fotografija uz gazdinstvo (automatski smanjene radi uštede prostora), sa sličicom u tabeli, na karti i u obrascu.
 - **Pravi .xlsx izvoz** — svi izvozi (gazdinstva, dnevnik, registar posjeta, neusklađene markice) sada daju pravi Excel dokument umjesto CSV-a.

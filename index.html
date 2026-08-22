@@ -14,6 +14,7 @@
 <meta name="apple-mobile-web-app-title" content="Markice USK">
 <link rel="stylesheet" href="vendor/leaflet.css">
 <script src="vendor/leaflet.js" defer></script>
+<script src="vendor/tesseract/tesseract.min.js" defer></script>
 <style>
   :root{
     --paper:#f7f3e8;
@@ -179,7 +180,8 @@
     font-size:11px;color:var(--ink-soft);line-height:1.5;
     flex:1 1 220px;min-width:0;
   }
-  input[type=file]#xlsxFile, input[type=file]#fotoInput{display:none;}
+  input[type=file]#xlsxFile, input[type=file]#fotoInput,
+  input[type=file]#potvrdaMjereInput, input[type=file]#potvrdaStanjeInput{display:none;}
 
   .cards{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
   @media (max-width:720px){ .cards{grid-template-columns:1fr;} }
@@ -693,12 +695,12 @@
   /* dodatno-red (ostale činjenice, posjete) and stoka-red (stoka) are the same
      idea — one removable row of a repeatable list — styled as a single family
      of light "item cards" so the form doesn't mix three different looks. */
-  .dodatno-red, .stoka-red{
+  .dodatno-red, .stoka-red, .potvrda-red{
     border:1px solid var(--line);border-radius:3px;
     padding:9px 10px;margin-bottom:7px;background:var(--paper);
     transition:border-color .15s ease;
   }
-  .dodatno-red:hover, .stoka-red:hover{border-color:var(--line-strong);}
+  .dodatno-red:hover, .stoka-red:hover, .potvrda-red:hover{border-color:var(--line-strong);}
   .dodatno-red{display:flex;gap:6px;align-items:center;}
   .dodatno-red input, .stoka-red input{
     font-family:'Helvetica Neue',Arial,sans-serif;font-size:12.5px;
@@ -719,6 +721,34 @@
     border-radius:2px;color:var(--ink);
   }
   .stoka-hint{font-size:10px;color:var(--ink-soft);margin:2px 0 0;}
+
+  .potvrda-red .potvrda-glava{display:flex;gap:8px;align-items:center;margin-bottom:8px;}
+  .potvrda-red .potvrda-glava img{
+    width:44px;height:44px;object-fit:cover;flex:0 0 auto;
+    border:1px solid var(--line);border-radius:3px;
+  }
+  .potvrda-glava-desni{flex:1 1 auto;display:flex;flex-direction:column;gap:3px;min-width:0;}
+  .potvrda-glava-desni b{font-family:'Helvetica Neue',Arial,sans-serif;font-size:11.5px;}
+  .potvrda-glava-desni input.datum{
+    font-family:'Helvetica Neue',Arial,sans-serif;font-size:12px;
+    padding:5px 8px;border:1px solid var(--line);background:#fff;
+    border-radius:2px;color:var(--ink);align-self:flex-start;
+  }
+  .potvrda-red .potvrda-polja{margin-bottom:4px;}
+  .potvrda-red textarea.potvrda-markice{
+    width:100%;min-height:60px;resize:vertical;margin-top:4px;
+    font-family:'SFMono-Regular',Consolas,monospace;font-size:11.5px;
+    padding:7px 9px;border:1px solid var(--line);background:#fff;
+    border-radius:2px;color:var(--ink);
+  }
+  .potvrda-ocr-raw{margin-top:8px;font-size:10.5px;color:var(--ink-soft);}
+  .potvrda-ocr-raw summary{cursor:pointer;}
+  .potvrda-ocr-raw pre{
+    white-space:pre-wrap;word-break:break-word;margin:6px 0 0;
+    font-family:'SFMono-Regular',Consolas,monospace;font-size:10.5px;
+    background:var(--paper-dim);border-radius:2px;padding:6px 8px;
+    max-height:140px;overflow-y:auto;
+  }
 
   .foto-galerija{
     display:flex;flex-wrap:wrap;gap:8px;
@@ -1091,6 +1121,18 @@
             <p class="stoka-hint" id="fotoStatus"></p>
           </div>
           <div class="field wide">
+            <label>Potvrde veterinarske stanice</label>
+            <input type="file" id="potvrdaMjereInput" accept="image/*" capture="environment" onchange="dodajPotvrduSaSlikom(event,'mjere')">
+            <input type="file" id="potvrdaStanjeInput" accept="image/*" capture="environment" onchange="dodajPotvrduSaSlikom(event,'stanje')">
+            <div class="row-actions" style="margin-top:2px;">
+              <button type="button" class="small secondary" onclick="document.getElementById('potvrdaMjereInput').click()">+ Slika: Potvrda o provedenim mjerama</button>
+              <button type="button" class="small secondary" onclick="document.getElementById('potvrdaStanjeInput').click()">+ Slika: Potvrda o stanju životinja</button>
+            </div>
+            <div id="potvrdeLista"></div>
+            <p class="stoka-hint" id="potvrdeStatus"></p>
+            <p class="stoka-hint">Slika se čita OCR-om (prepoznavanje teksta) i predloži podatke — uvijek provjeri i po potrebi ispravi prije snimanja gazdinstva. Za "Potvrdu o stanju" provjerenu listu markica prekopiraj u polje "ID brojevi / markice" kod odgovarajuće vrste stoke iznad.</p>
+          </div>
+          <div class="field wide">
             <label>Ostale činjenice</label>
             <div id="dodatnaPolja"></div>
             <button type="button" class="small secondary" style="align-self:flex-start;margin-top:6px;" onclick="dodajPolje()">+ Dodaj polje</button>
@@ -1380,7 +1422,7 @@
 // Jedino mjesto gdje se broj verzije mijenja — prikazuje se u topbaru,
 // na prijavi i u Postavkama, i mora biti usklađen sa CACHE_NAME u sw.js
 // (nova verzija = novi CACHE_NAME = preglednik povuče svježe fajlove).
-const APP_VERZIJA = '1.20';
+const APP_VERZIJA = '1.21';
 for(const id of ['verzijaTopbar', 'verzijaLogin', 'verzijaPostavke']){
   const el = document.getElementById(id);
   if(el) el.textContent = 'v' + APP_VERZIJA;
@@ -3324,17 +3366,17 @@ function ucitajSliku(file){
   });
 }
 
-async function smanjiSliku(file){
+async function smanjiSliku(file, maxDimenzija = FOTO_MAX_DIMENZIJA, kvalitet = FOTO_KVALITET){
   const img = await ucitajSliku(file);
   let { width, height } = img;
-  if(width > FOTO_MAX_DIMENZIJA || height > FOTO_MAX_DIMENZIJA){
-    if(width >= height){ height = Math.round(height * FOTO_MAX_DIMENZIJA / width); width = FOTO_MAX_DIMENZIJA; }
-    else{ width = Math.round(width * FOTO_MAX_DIMENZIJA / height); height = FOTO_MAX_DIMENZIJA; }
+  if(width > maxDimenzija || height > maxDimenzija){
+    if(width >= height){ height = Math.round(height * maxDimenzija / width); width = maxDimenzija; }
+    else{ width = Math.round(width * maxDimenzija / height); height = maxDimenzija; }
   }
   const canvas = document.createElement('canvas');
   canvas.width = width; canvas.height = height;
   canvas.getContext('2d').drawImage(img, 0, 0, width, height);
-  return canvas.toDataURL('image/jpeg', FOTO_KVALITET);
+  return canvas.toDataURL('image/jpeg', kvalitet);
 }
 
 async function dodajFotografije(event){
@@ -3388,6 +3430,173 @@ function fotoCelijaHtml(g){
   return '<a href="' + foto[0].dataUrl + '" target="_blank" rel="noopener" title="' + foto.length + (foto.length === 1 ? ' fotografija' : ' fotografije/a') + ' — otvori">' +
     '<img class="foto-mini" src="' + foto[0].dataUrl + '" alt=""></a>' +
     (foto.length > 1 ? '<span class="cell-sub"> +' + (foto.length - 1) + '</span>' : '');
+}
+
+// ---------- potvrde veterinarske stanice (slika + OCR) ----------
+// Dvije vrste: "mjere" (Potvrda o provedenim mjerama — vakcinacija, ukupan broj)
+// i "stanje" (Potvrda o stanju životinja — spisak pojedinačnih markica). OCR radi
+// potpuno lokalno u pregledniku (Tesseract.js, vendor/tesseract/), ništa se ne
+// šalje na internet. Obrasci su uniformni pa se ključna polja mogu prepoznati
+// pretragom teksta, ali OCR nikad nije savršen — sve izvučeno je samo prijedlog
+// koji korisnik pregleda i ispravi prije snimanja gazdinstva, nikad se ne
+// prihvata "na slijepo" (bitno jer ovi brojevi utiču na visinu poticaja).
+const POTVRDA_MAX_DIMENZIJA = 1800;
+const POTVRDA_KVALITET = 0.8;
+const POTVRDA_NAZIV = { mjere: 'Potvrda o provedenim mjerama', stanje: 'Potvrda o stanju životinja' };
+
+let tesseractWorker = null;
+async function dobaviTesseractWorker(){
+  if(tesseractWorker) return tesseractWorker;
+  tesseractWorker = await Tesseract.createWorker('eng', 1, {
+    workerPath: 'vendor/tesseract/worker.min.js',
+    corePath: 'vendor/tesseract/tesseract-core-lstm.wasm.js',
+    langPath: 'vendor/tesseract/',
+    gzip: true,
+    workerBlobURL: false
+  });
+  return tesseractWorker;
+}
+
+function ocrIzvuciPoljaMjere(tekst){
+  const t = tekst.replace(/\r/g, '');
+  const polja = [];
+  const vlasnik = t.match(/vlasnika?\s*[:.]?\s*([A-ZČĆŽŠĐ][\wČĆŽŠĐčćžšđ.'\- ]{2,40}?)(?:,|\n|broj imanja)/i);
+  if(vlasnik) polja.push({ naziv: 'Vlasnik', vrijednost: vlasnik[1].trim() });
+  const brojImanja = t.match(/\bBA\s?\d[\d ]{8,15}\d\b/);
+  if(brojImanja) polja.push({ naziv: 'Broj imanja', vrijednost: brojImanja[0].replace(/\s+/g, '') });
+  const bolesti = ['BRUCELOZA', 'TUBERKULOZA', 'ENZOOTSKA LEUKOZA', 'ENZOTSKA LEUKOZA', 'ANTRAKS', 'KUGA'];
+  const nadjeneBolesti = bolesti.filter(b => new RegExp(b, 'i').test(t));
+  if(nadjeneBolesti.length) polja.push({ naziv: 'Bolest', vrijednost: nadjeneBolesti.join(', ') });
+  const vrste = ['Ovca', 'Govedo', 'Koza', 'Konj', 'Svinja', 'Živina'];
+  const nadjeneVrste = vrste.filter(v => new RegExp('\\b' + v + '\\w*', 'i').test(t));
+  if(nadjeneVrste.length) polja.push({ naziv: 'Vrsta životinja', vrijednost: nadjeneVrste.join(', ') });
+  const ukupno = t.match(/ukupan\s*broj[^\d\n]{0,20}(\d{1,5})/i);
+  if(ukupno) polja.push({ naziv: 'Ukupan broj životinja', vrijednost: ukupno[1] });
+  const datum = t.match(/\b\d{1,2}[.\/]\d{1,2}[.\/]\d{2,4}\.?\b/);
+  if(datum) polja.push({ naziv: 'Datum vakcinacije', vrijednost: datum[0] });
+  return polja;
+}
+
+function ocrIzvuciPoljaStanje(tekst){
+  const t = tekst.replace(/\r/g, '');
+  const polja = [];
+  const brojImanja = t.match(/\bBA\d{10,15}\b/);
+  if(brojImanja) polja.push({ naziv: 'Šifra imanja', vrijednost: brojImanja[0] });
+  const datum = t.match(/\b\d{1,2}[.\/]\d{1,2}[.\/]\d{2,4}\.?\b/);
+  if(datum) polja.push({ naziv: 'Datum izdavanja', vrijednost: datum[0] });
+  return polja;
+}
+
+async function dodajPotvrduSaSlikom(event, tip){
+  const file = event.target.files[0];
+  event.target.value = '';
+  if(!file) return;
+  const status = document.getElementById('potvrdeStatus');
+  if(!file.type.startsWith('image/')){ status.textContent = 'Odabrani fajl nije slika.'; return; }
+
+  status.textContent = 'Obrađujem sliku...';
+  let dataUrl;
+  try{
+    dataUrl = await smanjiSliku(file, POTVRDA_MAX_DIMENZIJA, POTVRDA_KVALITET);
+  }catch(e){
+    console.warn(e);
+    status.textContent = 'Nije uspjelo učitavanje slike.';
+    return;
+  }
+
+  status.textContent = 'Čitam tekst sa slike (OCR)… ovo može potrajati par sekundi.';
+  let tekst = '';
+  try{
+    const worker = await dobaviTesseractWorker();
+    const rezultat = await worker.recognize(dataUrl);
+    tekst = rezultat.data.text || '';
+  }catch(e){
+    console.warn(e);
+  }
+
+  const polja = tip === 'mjere' ? ocrIzvuciPoljaMjere(tekst) : ocrIzvuciPoljaStanje(tekst);
+  let markice = '';
+  if(tip === 'stanje'){
+    const brojImanjaPolje = polja.find(p => p.naziv === 'Šifra imanja');
+    let lista = normalize(tekst);
+    if(brojImanjaPolje) lista = lista.filter(x => x !== brojImanjaPolje.vrijednost);
+    markice = lista.join('\n');
+  }
+
+  dodajPotvrdaRed({
+    tip, foto: dataUrl, datum: new Date().toISOString().slice(0, 10),
+    polja, markice, tekstOCR: tekst
+  });
+  status.textContent = tekst
+    ? 'Potvrda dodana — provjeri izvučene podatke prije snimanja.'
+    : 'Potvrda dodana, ali OCR nije prepoznao tekst — popuni podatke ručno.';
+}
+
+function potvrdaPoljeElement(naziv, vrijednost){
+  const red = document.createElement('div');
+  red.className = 'dodatno-red';
+  red.innerHTML = `
+    <input class="naziv" placeholder="Naziv">
+    <input class="vrijednost" placeholder="Vrijednost">
+    <button type="button" class="small secondary" title="Ukloni polje">×</button>`;
+  red.querySelector('.naziv').value = naziv || '';
+  red.querySelector('.vrijednost').value = vrijednost || '';
+  red.querySelector('button').onclick = () => red.remove();
+  return red;
+}
+
+function dodajPotvrdaPoljeRed(dugme){
+  dugme.previousElementSibling.appendChild(potvrdaPoljeElement('', ''));
+}
+
+function dodajPotvrdaRed(potvrda){
+  const red = document.createElement('div');
+  red.className = 'potvrda-red';
+  red.dataset.id = potvrda.id || ('pv' + Date.now() + Math.random().toString(36).slice(2, 6));
+  red.dataset.tip = potvrda.tip;
+  red.dataset.foto = potvrda.foto || '';
+  red.dataset.tekstOcr = potvrda.tekstOCR || '';
+  red.innerHTML = `
+    <div class="potvrda-glava">
+      ${potvrda.foto ? `<a href="${potvrda.foto}" target="_blank" rel="noopener"><img src="${potvrda.foto}" alt=""></a>` : ''}
+      <div class="potvrda-glava-desni">
+        <b>${escapeHtml(POTVRDA_NAZIV[potvrda.tip] || potvrda.tip)}</b>
+        <input type="date" class="datum">
+      </div>
+      <button type="button" class="small secondary" title="Ukloni potvrdu" onclick="this.closest('.potvrda-red').remove()">×</button>
+    </div>
+    <div class="potvrda-polja"></div>
+    <button type="button" class="small secondary" onclick="dodajPotvrdaPoljeRed(this)">+ Dodaj polje</button>
+    ${potvrda.tip === 'stanje' ? `
+      <label class="stoka-hint" style="display:block;margin-top:8px;">Izvučene markice (provjeri sa slikom prije snimanja)</label>
+      <textarea class="potvrda-markice" placeholder="BA..."></textarea>
+    ` : ''}
+    ${potvrda.tekstOCR ? '<details class="potvrda-ocr-raw"><summary>Sirovi OCR tekst (za provjeru)</summary><pre></pre></details>' : ''}`;
+
+  red.querySelector('.datum').value = potvrda.datum || new Date().toISOString().slice(0, 10);
+  const poljaWrap = red.querySelector('.potvrda-polja');
+  const polja = (potvrda.polja && potvrda.polja.length) ? potvrda.polja : [{ naziv: '', vrijednost: '' }];
+  for(const p of polja) poljaWrap.appendChild(potvrdaPoljeElement(p.naziv, p.vrijednost));
+  if(potvrda.tip === 'stanje') red.querySelector('.potvrda-markice').value = potvrda.markice || '';
+  if(potvrda.tekstOCR) red.querySelector('.potvrda-ocr-raw pre').textContent = potvrda.tekstOCR;
+
+  document.getElementById('potvrdeLista').appendChild(red);
+}
+
+function procitajPotvrde(){
+  return [...document.querySelectorAll('#potvrdeLista .potvrda-red')].map(red => {
+    const tip = red.dataset.tip;
+    const polja = [...red.querySelectorAll('.potvrda-polja .dodatno-red')]
+      .map(pr => ({ naziv: pr.querySelector('.naziv').value.trim(), vrijednost: pr.querySelector('.vrijednost').value.trim() }))
+      .filter(p => p.naziv || p.vrijednost);
+    const obj = {
+      id: red.dataset.id, tip, foto: red.dataset.foto || '',
+      datum: red.querySelector('.datum').value, polja,
+      tekstOCR: red.dataset.tekstOcr || ''
+    };
+    if(tip === 'stanje') obj.markice = red.querySelector('.potvrda-markice').value.trim();
+    return obj;
+  });
 }
 
 // ---------- custom fields ("ostale činjenice") ----------
@@ -3759,6 +3968,8 @@ function resetGazdForm(){
   trenutneFotografije = [];
   renderFotoGalerija();
   document.getElementById('fotoStatus').textContent = '';
+  document.getElementById('potvrdeLista').innerHTML = '';
+  document.getElementById('potvrdeStatus').textContent = '';
   document.getElementById('gVrsta').value = aktivnaVrsta === 'sve' ? 'farma' : aktivnaVrsta;
   osvjeziVrstuPolja();
   document.getElementById('gSubmitBtn').textContent = 'Sačuvaj gazdinstvo';
@@ -3796,6 +4007,7 @@ function submitGazdinstvo(event){
     danIducePosjete: document.getElementById('gIduca').value,
     napomena: document.getElementById('gNapomena').value.trim(),
     fotografije: trenutneFotografije,
+    potvrde: procitajPotvrde(),
     dodatna: procitajDodatna()
   };
 
@@ -3878,6 +4090,7 @@ function editGazdinstvo(id){
   document.getElementById('gNapomena').value = g.napomena || '';
   trenutneFotografije = (g.fotografije || []).slice();
   renderFotoGalerija();
+  for(const p of (g.potvrde || [])) dodajPotvrdaRed(p);
   for(const p of (g.dodatna || [])) dodajPolje(p.naziv, p.vrijednost);
   document.getElementById('gSubmitBtn').textContent = 'Sačuvaj izmjene';
   document.getElementById('gPonistiBtn').textContent = 'Otkaži uređivanje';

@@ -5,7 +5,7 @@
 - `manifest.json` — omogućava instalaciju kao aplikacija (desktop i mobitel)
 - `sw.js` — service worker, keširа fajlove za offline rad
 - `icons/` — ikone aplikacije
-- `vendor/` — Leaflet (biblioteka za kartu, BSD-2 licenca, uključena lokalno da radi i bez interneta)
+- `vendor/` — Leaflet (biblioteka za kartu, BSD-2 licenca) i Tesseract.js (OCR biblioteka za čitanje potvrda, Apache-2.0 licenca) — obje uključene lokalno da rade i bez interneta
 - `TODO.md` — šta je planirano a još nije urađeno, i najvažnije napomene o tome kako podaci žive u aplikaciji
 
 ## Prijava i korisnici
@@ -63,6 +63,7 @@ Za svako gazdinstvo se unosi:
 - dan iduće posjete, napomena
 - **obavljene posjete** — dugme "Zabilježi posjetu" dodaje red sa datumom, kolegom koji je bio na terenu (opciono) i nalazom; gazdinstvo može imati koliko god posjeta, sve ostaju u historiji (ništa se ne briše/prepisuje). Tok podataka: pri unosu gazdinstva upisuje se broj grla/košnica **sa prijave za poticaje**; "Nalaz" kod posjete je **zapisnik sa terena** — tu se bilježi stvarno utvrđeno stanje ako se pri provjeri razlikuje od prijavljenog.
 - **fotografije sa terena** — dugme "+ Dodaj fotografiju" (radi i sa kamerom na mobitelu). Slika se prije čuvanja automatski smanji (najviše 1000px, JPEG) da ne troši previše prostora — vidi napomenu o localStorage ispod. Prva fotografija se prikazuje kao mala sličica u tabeli i na karti; klik na nju otvara sliku u punoj veličini.
+- **potvrde veterinarske stanice** — vidi poglavlje "Potvrde veterinarske stanice (slika + OCR)" ispod
 - **ostale činjenice** — vlastita polja gdje sam upišeš naziv i vrijednost (npr. "Nadmorska visina: 640 m"), koliko god ih treba po gazdinstvu
 
 Podtabovi **Farme**, **Pčelari** i **Sve** filtriraju spisak po vrsti; u pogledu "Sve" tabela dobija i kolonu Vrsta. Unosi se mogu uređivati, brisati, izvesti u Excel i štampati. Telefon je klikabilan — na mobitelu pokreće poziv. Grad/adresa je klikabilna i otvara lokaciju u Google Maps (u tabeli, na Pregledu i u popup-u na karti).
@@ -82,6 +83,16 @@ Izvoz u Excel izvozi tačno ono što je trenutno prikazano, pa filtrirani spisak
 Dok je gazdinstvo otvoreno za uređivanje, dugme **"Štampaj profil"** (pored "Sačuvaj izmjene") daje jedan uredan list sa svim podacima o TOM gazdinstvu — posebno zaglavlje sa pečatom, osnovni podaci (vlasnik, telefon, adresa, ID, status), tabela stoke sa markicama, kompletna historija posjeta, ostale činjenice i napomena. Za razliku od "Štampaj spisak" (cijela tabela, jedan red po gazdinstvu), ovo je pogodno za predaju vlasniku ili arhivu jednog dosjea.
 
 **Svaki sačuvani unos automatski završava na Karti** — aplikacija u pozadini potraži koordinate za unesenu adresu (preko OpenStreetMap Nominatim servisa) i postavi gazdinstvo na mapu.
+
+## Potvrde veterinarske stanice (slika + OCR)
+U obrascu gazdinstva, dugmad **"+ Slika: Potvrda o provedenim mjerama"** i **"+ Slika: Potvrda o stanju životinja"** dodaju sliku odgovarajuće potvrde (foto ili uvoz sa uređaja). Aplikacija odmah pročita tekst sa slike (OCR — prepoznavanje teksta) **potpuno lokalno u pregledniku**, bez slanja bilo čega na internet, i predloži izvučene podatke:
+
+- **Potvrda o provedenim mjerama** (vakcinacija) — pokušava prepoznati vlasnika, broj imanja, bolest, vrstu životinja, ukupan broj životinja i datum vakcinacije.
+- **Potvrda o stanju životinja** — pokušava prepoznati šifru imanja, datum izdavanja, i **spisak svih pojedinačnih markica** iz tabele (isto prepoznavanje formata kao kod uvoza liste u tabu Markice).
+
+**OCR nikad nije savršen** — sva izvučena polja i spisak markica su prijedlog u običnim poljima za unos, potpuno izmjenjiv prije snimanja gazdinstva (dodaj/ukloni polje, ispravi bilo koju vrijednost). Sirovi OCR tekst ostaje dostupan ispod (razvij "Sirovi OCR tekst") za ručnu provjeru kad prepoznavanje omane. Za "Potvrdu o stanju", provjerenu listu markica prekopiraj u polje "ID brojevi / markice" kod odgovarajuće vrste stoke da uđe u evidenciju i u poređenja u tabu Markice.
+
+Gazdinstvo može imati koliko god potvrda obje vrste (npr. iz različitih godina) — ništa se ne briše/prepisuje, svaka ostaje uz svoju sliku i datum. OCR biblioteka (Tesseract.js) je uključena lokalno u `vendor/tesseract/` — prvi put kad se potvrda doda, preglednik preuzme ~7 MB (jednom, pa ostaje keširano za offline rad).
 
 ## Karta korisnika usluga
 Boje markera se računaju automatski iz datuma:
