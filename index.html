@@ -342,6 +342,7 @@
   /* Upisano na gazdinstvu ali van zvaničnih spiskova — informativno, ne greška,
      pa bez pulsiranja koje je rezervisano za "traži pažnju odmah" (crveno). */
   .tag.amber{background:var(--gold-bg);color:var(--gold);border-color:var(--gold-line);}
+  .tag.neutral{background:var(--paper-dim);color:var(--ink-soft);border-color:var(--line);}
   @keyframes pulse{
     0%,100%{box-shadow:0 0 0 0 rgba(178,58,46,.35);}
     50%{box-shadow:0 0 0 4px rgba(178,58,46,0);}
@@ -1308,11 +1309,46 @@
       <p class="stoka-hint" id="pgOdabranoInfo"></p>
     </div>
 
+    <div class="card" style="margin-bottom:16px;">
+      <h2>Ili dodaj novo gazdinstvo</h2>
+      <p class="hint">Osnovni podaci sa potvrde (vlasnik, broj imanja, adresa) — stoku, posjete i ostalo dopuni kasnije u tabu Gazdinstva.</p>
+      <div class="form-grid">
+        <div class="field">
+          <label for="pgNovoVrsta">Vrsta</label>
+          <select id="pgNovoVrsta"><option value="farma">Farma</option><option value="pcelar">Pčelar</option></select>
+        </div>
+        <div class="field">
+          <label for="pgNovoNaziv">Gazdinstvo</label>
+          <input id="pgNovoNaziv">
+        </div>
+        <div class="field">
+          <label for="pgNovoVlasnik">Vlasnik</label>
+          <input id="pgNovoVlasnik">
+        </div>
+        <div class="field">
+          <label for="pgNovoGrad">Grad / mjesto</label>
+          <input id="pgNovoGrad" list="gradoviList">
+        </div>
+        <div class="field">
+          <label for="pgNovoAdresa">Adresa</label>
+          <input id="pgNovoAdresa">
+        </div>
+        <div class="field">
+          <label for="pgNovoId">ID gazdinstva (JIB)</label>
+          <input id="pgNovoId">
+        </div>
+      </div>
+      <div class="row-actions" style="margin-top:10px;">
+        <button type="button" onclick="pgDodajNovoGazdinstvo()">Sačuvaj i izaberi</button>
+        <span class="count-pill" id="pgNovoStatus"></span>
+      </div>
+    </div>
+
     <div id="pgSadrzaj" hidden>
       <div class="cards">
         <div class="card">
           <h2>Spisak grla gazdinstva</h2>
-          <p class="hint">Iz evidencije gazdinstva — za izmjenu otvori gazdinstvo u tabu Gazdinstva.</p>
+          <p class="hint">Zeleno = vakcinisano, crveno = nije vakcinisano (prema spisku desno). Za izmjenu spiska grla otvori gazdinstvo u tabu Gazdinstva.</p>
           <div class="grid-tags" id="pgRosterTags"></div>
           <div class="row-actions" style="margin-top:10px;">
             <button type="button" class="small secondary" onclick="otvoriGazdinstvo(pgOdabranoId)">Otvori u Gazdinstva</button>
@@ -1322,7 +1358,7 @@
         <div class="card">
           <h2>Spisak vakcinisanih grla (od veterinara)</h2>
           <p class="hint">Zalijepi/upiši spisak, ili dodaj sliku potvrde — čita se OCR-om, potpuno lokalno.</p>
-          <textarea id="pgVakcinisano"></textarea>
+          <textarea id="pgVakcinisano" oninput="pgRenderRoster()"></textarea>
           <input type="file" id="pgSlikaInput" accept="image/*" capture="environment" onchange="pgDodajSlikuOCR(event)">
           <div class="row-actions">
             <button type="button" class="small secondary" onclick="document.getElementById('pgSlikaInput').click()">+ Slika (OCR)</button>
@@ -1494,7 +1530,7 @@
 // Jedino mjesto gdje se broj verzije mijenja — prikazuje se u topbaru,
 // na prijavi i u Postavkama, i mora biti usklađen sa CACHE_NAME u sw.js
 // (nova verzija = novi CACHE_NAME = preglednik povuče svježe fajlove).
-const APP_VERZIJA = '1.22';
+const APP_VERZIJA = '1.23';
 for(const id of ['verzijaTopbar', 'verzijaLogin', 'verzijaPostavke']){
   const el = document.getElementById(id);
   if(el) el.textContent = 'v' + APP_VERZIJA;
@@ -1813,10 +1849,66 @@ function exportMismatches(){
 
 // ---------- markice po gazdinstvu (spisak grla naspram vakcinisanih, za JEDNO gazdinstvo) ----------
 let pgOdabranoId = null;
+let pgRosterOznake = [];
 
 function pgPopuniListu(){
   document.getElementById('pgGazdinstvaList').innerHTML = loadGazdinstva()
     .map(g => `<option value="${escapeHtml(g.gazdinstvo + ' — ' + g.vlasnik)}">`).join('');
+}
+
+// Brzi unos osnovnih podataka gazdinstva (kao sa potvrde: vlasnik, broj
+// imanja, adresa) bez napuštanja taba Markice. Stoka/posjete/ostalo se
+// dopunjuju kasnije u tabu Gazdinstva preko punog obrasca.
+function pgDodajNovoGazdinstvo(){
+  const status = document.getElementById('pgNovoStatus');
+  const naziv = document.getElementById('pgNovoNaziv').value.trim();
+  const vlasnik = document.getElementById('pgNovoVlasnik').value.trim();
+  if(!naziv || !vlasnik){ status.textContent = 'Upiši bar naziv gazdinstva i vlasnika.'; return; }
+
+  const sada = new Date().toISOString();
+  const ko = trenutniKorisnik ? trenutniKorisnik.ime : 'nepoznat';
+  const g = {
+    id: 'g' + Date.now() + Math.random().toString(36).slice(2, 7),
+    vrsta: document.getElementById('pgNovoVrsta').value,
+    gazdinstvo: naziv, vlasnik,
+    telefon: '', grad: document.getElementById('pgNovoGrad').value.trim(),
+    adresa: document.getElementById('pgNovoAdresa').value.trim(), adresaBroj: '',
+    idGazdinstva: document.getElementById('pgNovoId').value.trim(),
+    lat: null, lng: null, rucnoPomjeren: false,
+    stoka: [], posjete: [], danIducePosjete: '', napomena: '',
+    fotografije: [], potvrde: [], dodatna: [],
+    kreiraoIme: ko, kreirano: sada, izmijenioIme: ko, izmijenjeno: sada
+  };
+  const list = loadGazdinstva();
+  list.push(g);
+  saveGazdinstva(list);
+  zabiljezi('dodao', 'gazdinstvo', g.gazdinstvo, [VRSTA_LABEL[g.vrsta], g.vlasnik, g.grad].filter(Boolean).join(', '));
+  renderDnevnik();
+  // Poravnaj i tabelu u tabu Gazdinstva — isto ponašanje kao glavni obrazac,
+  // da novi unos ne "nestane" ako je podtab tamo trenutno na drugoj vrsti.
+  // Ne diramo resetGazdForm()/toggleGazdForm() ovdje (za razliku od showVrsta())
+  // jer bi to obrisalo eventualno nedovršeno uređivanje na tabu Gazdinstva —
+  // korisnik je trenutno na tabu Markice, taj obrazac mu nije ni vidljiv.
+  if(aktivnaVrsta !== 'sve' && aktivnaVrsta !== g.vrsta){
+    aktivnaVrsta = g.vrsta;
+    for(const btn of document.querySelectorAll('#tab-gazdinstva .subtabs button')){
+      btn.setAttribute('aria-selected', String(btn.dataset.vrsta === aktivnaVrsta));
+    }
+  }
+  renderGazdTable();
+
+  for(const id of ['pgNovoNaziv', 'pgNovoVlasnik', 'pgNovoGrad', 'pgNovoAdresa', 'pgNovoId']){
+    document.getElementById(id).value = '';
+  }
+  status.textContent = '';
+
+  pgPopuniListu();
+  document.getElementById('pgPretraga').value = g.gazdinstvo + ' — ' + g.vlasnik;
+  pgOdaberiPoTekstu();
+  document.getElementById('pgOdabranoInfo').textContent += ' — tražim lokaciju na karti...';
+  if(g.adresa || g.grad){
+    geocodeUnos(g.id).then(() => { renderMap(); });
+  }
 }
 
 function pgOdaberiPoTekstu(){
@@ -1826,20 +1918,35 @@ function pgOdaberiPoTekstu(){
   const info = document.getElementById('pgOdabranoInfo');
   if(!g){
     pgOdabranoId = null;
+    pgRosterOznake = [];
     sadrzaj.hidden = true;
     info.textContent = '';
     return;
   }
   pgOdabranoId = g.id;
+  pgRosterOznake = stokaZaGazdinstvo(g).flatMap(s => normalize(s.markice || ''));
   sadrzaj.hidden = false;
   info.textContent = 'Izabrano: ' + g.gazdinstvo + ' (' + g.vlasnik + ')';
-  const roster = stokaZaGazdinstvo(g).flatMap(s => normalize(s.markice || ''));
-  document.getElementById('pgRosterTags').innerHTML = roster.length
-    ? roster.map(t => `<span class="tag green">${escapeHtml(t)}</span>`).join('')
-    : '<span style="font-family:Helvetica Neue,Arial,sans-serif;font-size:12px;color:var(--ink-soft);">Gazdinstvo nema upisanih markica.</span>';
   document.getElementById('pgVakcinisano').value = '';
   document.getElementById('pgVakcinisanoStatus').textContent = '';
   document.getElementById('pgRezultati').innerHTML = '';
+  pgRenderRoster();
+}
+
+// Boji spisak grla uživo prema trenutnom sadržaju polja "vakcinisano" —
+// zeleno = vakcinisano, crveno = nije, sivo (neutralno) dok ništa nije uneseno
+// (da prazan spisak ne izgleda kao "sve je vakcinisano").
+function pgRenderRoster(){
+  const wrap = document.getElementById('pgRosterTags');
+  if(!wrap) return;
+  if(!pgRosterOznake.length){
+    wrap.innerHTML = '<span style="font-family:Helvetica Neue,Arial,sans-serif;font-size:12px;color:var(--ink-soft);">Gazdinstvo nema upisanih markica.</span>';
+    return;
+  }
+  const vakSet = new Set(uniqueList(normalize(document.getElementById('pgVakcinisano').value)));
+  wrap.innerHTML = pgRosterOznake.map(t =>
+    `<span class="tag ${vakSet.size ? (vakSet.has(t) ? 'green' : 'red') : 'neutral'}">${escapeHtml(t)}</span>`
+  ).join('');
 }
 
 async function pgDodajSlikuOCR(event){
@@ -1860,6 +1967,7 @@ async function pgDodajSlikuOCR(event){
     const polje = document.getElementById('pgVakcinisano');
     const postojece = polje.value.trim();
     polje.value = postojece ? postojece + '\n' + lista.join('\n') : lista.join('\n');
+    pgRenderRoster();
     status.textContent = lista.length
       ? 'Dodano ' + lista.length + ' sa slike — provjeri spisak prije poređenja.'
       : 'OCR nije prepoznao nijednu markicu na slici.';
@@ -1871,34 +1979,20 @@ async function pgDodajSlikuOCR(event){
 
 function pgUporedi(){
   if(!pgOdabranoId) return;
-  const g = loadGazdinstva().find(x => x.id === pgOdabranoId);
-  if(!g) return;
-  const roster = new Set(stokaZaGazdinstvo(g).flatMap(s => normalize(s.markice || '')));
+  // Spisak grla se već boji uživo (zeleno/crveno) dok se kuca/lijepi —
+  // ovdje se samo osvježi (za slučaj OCR/programatske promjene) i doda
+  // grupa za markice koje su vakcinisane ali nisu upisane ni na jednom
+  // grlu u spisku (mogući višak/greška u unosu).
+  pgRenderRoster();
+  const rosterSet = new Set(pgRosterOznake);
   const vakcinisano = uniqueList(normalize(document.getElementById('pgVakcinisano').value));
-  const vakSet = new Set(vakcinisano);
-
-  const matched = [...roster].filter(x => vakSet.has(x)).sort();
-  const nijeVakcinisano = [...roster].filter(x => !vakSet.has(x)).sort();
-  const nijeUSpisku = vakcinisano.filter(x => !roster.has(x)).sort();
+  const nijeUSpisku = vakcinisano.filter(x => !rosterSet.has(x)).sort();
 
   const tagsHtml = (arr, cls) => arr.length
     ? arr.map(x => `<span class="tag ${cls}">${escapeHtml(x)}</span>`).join('')
     : '<span style="font-family:Helvetica Neue,Arial,sans-serif;font-size:12px;color:var(--ink-soft);">— nema —</span>';
 
   document.getElementById('pgRezultati').innerHTML = `
-    <div class="summary" style="margin:16px 0;">
-      <div class="stat match"><div class="n">${matched.length}</div><div class="l">Vakcinisano i u spisku</div></div>
-      <div class="stat mismatch"><div class="n">${nijeVakcinisano.length}</div><div class="l">U spisku, nije vakcinisano</div></div>
-      <div class="stat"><div class="n">${nijeUSpisku.length}</div><div class="l">Vakcinisano, van spiska grla</div></div>
-    </div>
-    <div class="results" style="margin-bottom:16px;">
-      <h3>Vakcinisano i u spisku grla <span>${matched.length}</span></h3>
-      <div class="grid-tags">${tagsHtml(matched,'green')}</div>
-    </div>
-    <div class="results" style="margin-bottom:16px;">
-      <h3>U spisku grla, NIJE vakcinisano <span>${nijeVakcinisano.length}</span></h3>
-      <div class="grid-tags">${tagsHtml(nijeVakcinisano,'red')}</div>
-    </div>
     <div class="results">
       <h3>Vakcinisano, van spiska grla <span>${nijeUSpisku.length}</span></h3>
       <div class="grid-tags">${tagsHtml(nijeUSpisku,'amber')}</div>
