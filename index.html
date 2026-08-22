@@ -783,6 +783,8 @@
   .cell-sub{font-size:11px;color:var(--ink-soft);}
   .cell-sub a{color:var(--ink-soft);}
   a.adresa-link{color:inherit;text-decoration:none;border-bottom:1px dotted var(--line-strong);}
+  a.pg-red{color:inherit;text-decoration:none;font-weight:700;border-bottom:1px dotted var(--line-strong);}
+  a.pg-red:hover{color:var(--green);border-bottom-color:var(--green);}
   a.adresa-link:hover{color:var(--green);border-bottom-color:var(--green);}
   td .num{font-variant-numeric:tabular-nums;font-weight:700;}
 
@@ -1302,15 +1304,7 @@
   <div id="usporedbaGazdinstvo" class="postavke-sekcija">
 
     <div class="card" style="margin-bottom:16px;">
-      <h2>Izaberi gazdinstvo</h2>
-      <p class="hint">Poredi spisak grla TOG gazdinstva (iz tab Gazdinstva) sa spiskom vakcinisanih grla koji stigne od veterinara — isto poređenje kao "Cijela oblast", samo za jedno gazdinstvo.</p>
-      <input type="text" id="pgPretraga" list="pgGazdinstvaList" placeholder="Pretraži po nazivu ili vlasniku..." oninput="pgOdaberiPoTekstu()">
-      <datalist id="pgGazdinstvaList"></datalist>
-      <p class="stoka-hint" id="pgOdabranoInfo"></p>
-    </div>
-
-    <div class="card" style="margin-bottom:16px;">
-      <h2>Ili dodaj novo gazdinstvo</h2>
+      <h2>Dodaj novo gazdinstvo</h2>
       <p class="hint">Osnovni podaci sa potvrde (vlasnik, broj imanja, adresa) — stoku, posjete i ostalo dopuni kasnije u tabu Gazdinstva.</p>
       <div class="form-grid">
         <div class="field">
@@ -1343,6 +1337,19 @@
         <span class="count-pill" id="pgNovoStatus"></span>
       </div>
     </div>
+
+    <div class="card" style="margin-bottom:16px;">
+      <h2>Pregled svih gazdinstava</h2>
+      <p class="hint">Klikni na Gazdinstvo ili Vlasnika da otvoriš poređenje njegovog spiska grla sa spiskom vakcinisanih od veterinara.</p>
+      <input type="search" id="pgTabelaPretraga" placeholder="Pretraga" oninput="pgRenderTabela()">
+      <div class="table-wrap" style="margin-top:10px;">
+        <table>
+          <thead><tr><th>Gazdinstvo</th><th>Vlasnik</th><th>Grad</th><th>Grla</th><th>Zadnji popis vakcinisanih</th></tr></thead>
+          <tbody id="pgTabelaBody"></tbody>
+        </table>
+      </div>
+    </div>
+    <p class="stoka-hint" id="pgOdabranoInfo"></p>
 
     <div id="pgSadrzaj" hidden>
       <div class="cards">
@@ -1530,7 +1537,7 @@
 // Jedino mjesto gdje se broj verzije mijenja — prikazuje se u topbaru,
 // na prijavi i u Postavkama, i mora biti usklađen sa CACHE_NAME u sw.js
 // (nova verzija = novi CACHE_NAME = preglednik povuče svježe fajlove).
-const APP_VERZIJA = '1.23';
+const APP_VERZIJA = '1.24';
 for(const id of ['verzijaTopbar', 'verzijaLogin', 'verzijaPostavke']){
   const el = document.getElementById(id);
   if(el) el.textContent = 'v' + APP_VERZIJA;
@@ -1851,9 +1858,52 @@ function exportMismatches(){
 let pgOdabranoId = null;
 let pgRosterOznake = [];
 
-function pgPopuniListu(){
-  document.getElementById('pgGazdinstvaList').innerHTML = loadGazdinstva()
-    .map(g => `<option value="${escapeHtml(g.gazdinstvo + ' — ' + g.vlasnik)}">`).join('');
+// Pregled svih gazdinstava — klik na Gazdinstvo ili Vlasnika bira ga za
+// poređenje ispod, umjesto ranijeg pretraživanja gdje se moralo pogoditi
+// tačan tekst u polju.
+function pgRenderTabela(){
+  const pojam = document.getElementById('pgTabelaPretraga').value.trim().toLowerCase();
+  const svi = loadGazdinstva()
+    .filter(g => !pojam || (g.gazdinstvo + ' ' + g.vlasnik + ' ' + g.grad).toLowerCase().includes(pojam))
+    .sort((a, b) => a.gazdinstvo.localeCompare(b.gazdinstvo, 'bs'));
+  const tijelo = document.getElementById('pgTabelaBody');
+  if(!svi.length){
+    tijelo.innerHTML = '<tr><td colspan="5" class="empty">Nema gazdinstava koja odgovaraju pretrazi.</td></tr>';
+    return;
+  }
+  tijelo.innerHTML = svi.map(g => {
+    const roster = stokaZaGazdinstvo(g).flatMap(s => normalize(s.markice || ''));
+    const zadnjiVak = (g.potvrde || []).filter(p => p.tip === 'vakcinisano').sort((a, b) => b.datum.localeCompare(a.datum))[0];
+    return `<tr>
+      <td><a href="javascript:void(0)" class="pg-red" onclick="pgIzaberi('${g.id}')">${escapeHtml(g.gazdinstvo)}</a></td>
+      <td><a href="javascript:void(0)" class="pg-red" onclick="pgIzaberi('${g.id}')">${escapeHtml(g.vlasnik)}</a></td>
+      <td>${escapeHtml(g.grad || '—')}</td>
+      <td>${roster.length}</td>
+      <td>${zadnjiVak ? formatDatum(zadnjiVak.datum) : '<span class="cell-sub">—</span>'}</td>
+    </tr>`;
+  }).join('');
+}
+
+function pgIzaberi(id){
+  const g = loadGazdinstva().find(x => x.id === id);
+  const sadrzaj = document.getElementById('pgSadrzaj');
+  const info = document.getElementById('pgOdabranoInfo');
+  if(!g){
+    pgOdabranoId = null;
+    pgRosterOznake = [];
+    sadrzaj.hidden = true;
+    info.textContent = '';
+    return;
+  }
+  pgOdabranoId = g.id;
+  pgRosterOznake = stokaZaGazdinstvo(g).flatMap(s => normalize(s.markice || ''));
+  sadrzaj.hidden = false;
+  info.textContent = 'Izabrano: ' + g.gazdinstvo + ' (' + g.vlasnik + ')';
+  document.getElementById('pgVakcinisano').value = '';
+  document.getElementById('pgVakcinisanoStatus').textContent = '';
+  document.getElementById('pgRezultati').innerHTML = '';
+  pgRenderRoster();
+  sadrzaj.scrollIntoView({ block: 'start', behavior: 'smooth' });
 }
 
 // Brzi unos osnovnih podataka gazdinstva (kao sa potvrde: vlasnik, broj
@@ -1902,35 +1952,12 @@ function pgDodajNovoGazdinstvo(){
   }
   status.textContent = '';
 
-  pgPopuniListu();
-  document.getElementById('pgPretraga').value = g.gazdinstvo + ' — ' + g.vlasnik;
-  pgOdaberiPoTekstu();
+  pgRenderTabela();
+  pgIzaberi(g.id);
   document.getElementById('pgOdabranoInfo').textContent += ' — tražim lokaciju na karti...';
   if(g.adresa || g.grad){
     geocodeUnos(g.id).then(() => { renderMap(); });
   }
-}
-
-function pgOdaberiPoTekstu(){
-  const tekst = document.getElementById('pgPretraga').value;
-  const g = loadGazdinstva().find(x => (x.gazdinstvo + ' — ' + x.vlasnik) === tekst);
-  const sadrzaj = document.getElementById('pgSadrzaj');
-  const info = document.getElementById('pgOdabranoInfo');
-  if(!g){
-    pgOdabranoId = null;
-    pgRosterOznake = [];
-    sadrzaj.hidden = true;
-    info.textContent = '';
-    return;
-  }
-  pgOdabranoId = g.id;
-  pgRosterOznake = stokaZaGazdinstvo(g).flatMap(s => normalize(s.markice || ''));
-  sadrzaj.hidden = false;
-  info.textContent = 'Izabrano: ' + g.gazdinstvo + ' (' + g.vlasnik + ')';
-  document.getElementById('pgVakcinisano').value = '';
-  document.getElementById('pgVakcinisanoStatus').textContent = '';
-  document.getElementById('pgRezultati').innerHTML = '';
-  pgRenderRoster();
 }
 
 // Boji spisak grla uživo prema trenutnom sadržaju polja "vakcinisano" —
@@ -3492,7 +3519,7 @@ function showUsporedbaSekciju(name){
   for(const sekcija of document.querySelectorAll('#tab-usporedba .postavke-sekcija')){
     sekcija.classList.toggle('active', sekcija.id === USPOREDBA_SEKCIJA_ID[name]);
   }
-  if(name === 'gazdinstvo') pgPopuniListu();
+  if(name === 'gazdinstvo') pgRenderTabela();
 }
 
 function toggleGazdForm(otvori){
