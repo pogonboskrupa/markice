@@ -50,7 +50,7 @@ Dnevnik se može pretraživati, filtrirati po korisniku i po danu, izvesti u Exc
 1. **Pregled** — prvi ekran nakon prijave: gazdinstva kojima je pregled istekao ili predstoji, po danima i gradovima
 2. **Gazdinstva** — evidencija farmi i pčelara (podtabovi **Farme**, **Pčelari**, **Sve**)
 3. **Karta** — sva gazdinstva na mapi, obojena po statusu posjete
-4. **Markice** — poređenje dva spiska ušnih markica (uvoz iz Excela ili Google Sheetsa, izvoz i štampa)
+4. **Markice** — poređenje dva spiska ušnih markica za cijelu oblast (uvoz iz Excela ili Google Sheetsa, izvoz i štampa), ili isto poređenje za jedno gazdinstvo (podtab "Po gazdinstvu")
 5. **Posjete** — registar obavljenih posjeta po mjesecima i po korisniku
 6. **Šihtarica** — lični radni dnevnik prijavljenog korisnika (bilješke + preuzete zakazane posjete)
 7. **Postavke** — sigurnosna kopija podataka i Dnevnik izmjena (svima), upravljanje korisnicima (samo administratoru)
@@ -84,15 +84,26 @@ Dok je gazdinstvo otvoreno za uređivanje, dugme **"Štampaj profil"** (pored "S
 
 **Svaki sačuvani unos automatski završava na Karti** — aplikacija u pozadini potraži koordinate za unesenu adresu (preko OpenStreetMap Nominatim servisa) i postavi gazdinstvo na mapu.
 
-## Potvrde veterinarske stanice (slika + OCR)
-U obrascu gazdinstva, dugmad **"+ Slika: Potvrda o provedenim mjerama"** i **"+ Slika: Potvrda o stanju životinja"** dodaju sliku odgovarajuće potvrde (foto ili uvoz sa uređaja). Aplikacija odmah pročita tekst sa slike (OCR — prepoznavanje teksta) **potpuno lokalno u pregledniku**, bez slanja bilo čega na internet, i predloži izvučene podatke:
+## Potvrde veterinarske stanice (slika + OCR, ili ručni unos)
+U obrascu gazdinstva, za svaku od tri vrste potvrde postoje dva dugmeta — **"+ Slika (OCR)"** dodaje sliku (foto ili uvoz sa uređaja) i odmah pročita tekst sa slike **potpuno lokalno u pregledniku**, bez slanja bilo čega na internet; **"+ Ručni unos"** dodaje praznu potvrdu bez slike, za kad fotografija nije pri ruci ili nije praktična — polja se onda popune ručno na isti način kao kod pregleda OCR prijedloga.
 
+Tri vrste potvrde:
 - **Potvrda o provedenim mjerama** (vakcinacija) — pokušava prepoznati vlasnika, broj imanja, bolest, vrstu životinja, ukupan broj životinja i datum vakcinacije.
 - **Potvrda o stanju životinja** — pokušava prepoznati šifru imanja, datum izdavanja, i **spisak svih pojedinačnih markica** iz tabele (isto prepoznavanje formata kao kod uvoza liste u tabu Markice).
+- **Popis vakcinisanih grla** — spisak pojedinačnih markica na kojima su provedene mjere (odvojeno od "Potvrde o stanju" jer je to drugi obrazac — samo vakcinisana grla, ne cijeli popis stanja).
 
-**OCR nikad nije savršen** — sva izvučena polja i spisak markica su prijedlog u običnim poljima za unos, potpuno izmjenjiv prije snimanja gazdinstva (dodaj/ukloni polje, ispravi bilo koju vrijednost). Sirovi OCR tekst ostaje dostupan ispod (razvij "Sirovi OCR tekst") za ručnu provjeru kad prepoznavanje omane. Za "Potvrdu o stanju", provjerenu listu markica prekopiraj u polje "ID brojevi / markice" kod odgovarajuće vrste stoke da uđe u evidenciju i u poređenja u tabu Markice.
+**OCR nikad nije savršen** — sva izvučena polja i spisak markica su prijedlog u običnim poljima za unos, potpuno izmjenjiv prije snimanja gazdinstva (dodaj/ukloni polje, ispravi bilo koju vrijednost). Sirovi OCR tekst ostaje dostupan ispod (razvij "Sirovi OCR tekst") za ručnu provjeru kad prepoznavanje omane. Za "Potvrdu o stanju" i "Popis vakcinisanih", provjerenu listu markica prekopiraj u polje "ID brojevi / markice" kod odgovarajuće vrste stoke da uđe u evidenciju i u poređenja u tabu Markice.
 
-Gazdinstvo može imati koliko god potvrda obje vrste (npr. iz različitih godina) — ništa se ne briše/prepisuje, svaka ostaje uz svoju sliku i datum. OCR biblioteka (Tesseract.js) je uključena lokalno u `vendor/tesseract/` — prvi put kad se potvrda doda, preglednik preuzme ~7 MB (jednom, pa ostaje keširano za offline rad).
+Gazdinstvo može imati koliko god potvrda sve tri vrste (npr. iz različitih godina) — ništa se ne briše/prepisuje, svaka ostaje uz svoju sliku (ako je ima) i datum. OCR biblioteka (Tesseract.js) je uključena lokalno u `vendor/tesseract/` — prvi put kad se doda potvrda ili slika u tabu Markice, preglednik preuzme ~7 MB (jednom, pa ostaje keširano za offline rad).
+
+### Markice po gazdinstvu (tab Markice → "Po gazdinstvu")
+Uz postojeće poređenje "Cijela oblast" (Lista 1 naspram Liste 2, za cijelu oblast odjednom), podtab **"Po gazdinstvu"** radi isto poređenje ali za JEDNO gazdinstvo:
+
+1. Pretraži i izaberi gazdinstvo (po nazivu ili vlasniku).
+2. Vidi **njegov spisak grla** — markice već upisane u tabu Gazdinstva (samo za pregled; izmjena ide preko dugmeta "Otvori u Gazdinstva").
+3. Unesi **spisak vakcinisanih grla od veterinara** — zalijepi/upiši tekst, ili dodaj sliku potvrde (čita se OCR-om, isto kao gore).
+4. **"Uporedi"** pokaže tri grupe: vakcinisano i u spisku grla (zeleno), u spisku grla ali nije vakcinisano (crveno — treba pažnju), vakcinisano ali van spiska grla (žuto — možda greška u unosu ili grlo koje treba dodati).
+5. **"Sačuvaj kao potvrdu uz gazdinstvo"** trajno zapiše uneseni spisak vakcinisanih grla kao "Popis vakcinisanih grla" na tom gazdinstvu (vidljivo i u tabu Gazdinstva), sa datumom — postaje dio historije.
 
 ## Karta korisnika usluga
 Boje markera se računaju automatski iz datuma:
