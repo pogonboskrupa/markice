@@ -96,14 +96,16 @@ Tri vrste potvrde:
 
 Gazdinstvo može imati koliko god potvrda sve tri vrste (npr. iz različitih godina) — ništa se ne briše/prepisuje, svaka ostaje uz svoju sliku (ako je ima) i datum. OCR biblioteka (Tesseract.js) je uključena lokalno u `vendor/tesseract/` — prvi put kad se doda potvrda ili slika u tabu Markice, preglednik preuzme ~7 MB (jednom, pa ostaje keširano za offline rad).
 
-### Markice po gazdinstvu (tab Markice → "Po gazdinstvu")
-Uz postojeće poređenje "Cijela oblast" (Lista 1 naspram Liste 2, za cijelu oblast odjednom), podtab **"Po gazdinstvu"** radi isto poređenje ali za JEDNO gazdinstvo — u biti, jedan spisak je **spisak vlasnikovih grla** (iz Gazdinstva), drugi je **spisak vakcinisanih po markicama** (od veterinara):
+### Markice po gazdinstvu (tab Markice → "Po gazdinstvu", podrazumijevani podtab)
+Kad se otvori tab Markice, prvo se vidi **"Po gazdinstvu"** (ne "Cijela oblast") — poređenje za JEDNO gazdinstvo/vlasnika je uobičajeniji tok posla: **spisak vlasnikovih grla** naspram **spiska vakcinisanih po markicama** (od veterinara):
 
 1. Podtab ima dvije jasno odvojene cjeline: kartica **"Dodaj novo gazdinstvo"** za brzi unos (vrsta, naziv, vlasnik, grad, adresa, ID gazdinstva/JIB, tačno ono što piše na potvrdi) — stoku, posjete i ostalo dopuniš kasnije u tabu Gazdinstva; i kartica **"Pregled svih gazdinstava"**, tabela svih gazdinstava s pretragom, gdje **klik na naziv Gazdinstva ili na Vlasnika** otvara poređenje za taj unos (isto važi i za novododano gazdinstvo — bira se odmah).
-2. Vidi **njegov spisak grla** — markice već upisane u tabu Gazdinstva (samo za pregled; izmjena ide preko dugmeta "Otvori u Gazdinstva").
-3. Unesi **spisak vakcinisanih grla od veterinara** — zalijepi/upiši tekst, ili dodaj sliku potvrde (čita se OCR-om, isto kao gore).
-4. Spisak grla se **odmah boji** dok kucaš/lijepiš — **zeleno** = ta markica jeste u spisku vakcinisanih, **crveno** = nije (prije bilo kakvog unosa, sve je neutralno/sivo, ne zeleno, da prazan spisak vakcinisanih ne izgleda kao da je "sve gotovo"). Dugme **"Uporedi"** ispod još pokaže i markice koje SU vakcinisane a nisu upisane ni u jednom grlu na spisku (žuto — možda greška u unosu ili grlo koje treba dodati).
-5. **"Sačuvaj kao potvrdu uz gazdinstvo"** trajno zapiše uneseni spisak vakcinisanih grla kao "Popis vakcinisanih grla" na tom gazdinstvu (vidljivo i u tabu Gazdinstva), sa datumom — postaje dio historije.
+2. Oba spiska su **slobodno izmjenjiva textarea polja** (markica po redu), popunjiva na tri načina — svaki nezavisno za spisak grla i za spisak vakcinisanih:
+   - **ručno** — zalijepi ili upiši spisak; spisak grla se za pogodnost predpopuni iz podataka već upisanih u tabu Gazdinstva, ali ostaje slobodno izmjenjiv ovdje (ne piše se nazad automatski — za trajnu izmjenu službenog spiska stoke ide se preko "Otvori u Gazdinstva"),
+   - **slika (OCR)** — dugme "+ Slika (OCR)" uz svaki od dva spiska, čita se potpuno lokalno, isto kao kod potvrda,
+   - **Excel, jedan fajl za oba spiska** — dugme "Uvezi iz Excela (2 lista)" učita **prvi list u fajlu kao spisak grla, drugi list kao spisak vakcinisanih** (bez obzira na naziv lista — po redoslijedu); druga kolona (B) se čita kao markice, prva (A, obično redni broj) se ignoriše.
+3. Spisak grla se **odmah boji** dok kucaš/lijepiš/uvoziš — **zeleno** = ta markica jeste u spisku vakcinisanih, **crveno** = nije (prije bilo kakvog unosa u spisak vakcinisanih, sve je neutralno/sivo, da prazan spisak ne izgleda kao da je "sve gotovo"). Dugme **"Uporedi"** ispod još pokaže i markice koje SU vakcinisane a nisu upisane ni u jednom grlu na spisku (žuto — možda greška u unosu ili grlo koje treba dodati).
+4. **"Sačuvaj kao potvrdu uz gazdinstvo"** trajno zapiše oba unesena spiska (koji god od njih ima sadržaj) kao potvrde na tom gazdinstvu — spisak grla kao "Potvrda o stanju", spisak vakcinisanih kao "Popis vakcinisanih grla" (oba vidljiva i u tabu Gazdinstva), sa datumom — postaju dio historije.
 
 ## Karta korisnika usluga
 Boje markera se računaju automatski iz datuma:
