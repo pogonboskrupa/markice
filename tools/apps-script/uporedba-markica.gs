@@ -443,6 +443,11 @@ function upisiRezultat_(ss, listovi, podaci, rezultat, stanjeMapa, vakMapa, pres
     sheet.clearFormats();
     var postojeciFilter = sheet.getFilter();
     if (postojeciFilter) postojeciFilter.remove();
+    // Skroluj standardno, bez zamrznutih redova/kolona — clear()/clearFormats()
+    // ne dira zamrznuto stanje, pa se ono mora eksplicitno ukinuti i za listove
+    // koje je neka ranija verzija skripte već zamrznula.
+    sheet.setFrozenRows(0);
+    sheet.setFrozenColumns(0);
   } else {
     sheet = ss.insertSheet(NAZIV_IZLAZNOG_LISTA);
   }
@@ -579,7 +584,6 @@ function upisiRezultat_(ss, listovi, podaci, rezultat, stanjeMapa, vakMapa, pres
   if (!rezultat.roster.length && !rezultat.nijeUSpisku.length) {
     sheet.getRange(sljedeciRed, 1).setValue('Nema podataka za prikaz — provjeri da listovi Stanje/Vakcinisano imaju popunjene redove.')
       .setFontFamily(FONT_TEKST).setFontStyle('italic').setFontColor(BOJE.inkSoft);
-    sheet.setFrozenRows(3);
     return;
   }
 
@@ -597,9 +601,6 @@ function upisiRezultat_(ss, listovi, podaci, rezultat, stanjeMapa, vakMapa, pres
       zaglavljeTabele, rezultat.nijeUSpisku, stanjeMapa, vakMapa, false
     );
   }
-
-  sheet.setFrozenRows(glavnaTabela.zaglavljeRed);
-  sheet.setFrozenColumns(1);
 }
 
 // Ispisuje naslov sekcije + tabelu markica počevši od zadanog reda, vraća

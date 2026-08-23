@@ -66,9 +66,9 @@ List je oblikovan u istoj paleti boja i fontovima kao web aplikacija (tamni
 "Vakcinisano" ima i mali tekstualni bar ispod postotka, list dobija i zlatnu
 boju jezička i postaje prvi jezičak u fajlu) — mrežne linije su sakrivene i
 zamijenjene vlastitim ivicama (uz posebnu liniju koja odvaja "ko je grlo"
-kolone od kolona bolesti), zaglavlje tabele i prva kolona (Markica) ostaju
-zamrznuti dok se skrola kroz duži spisak. Spisak grla ide redoslijedom Rb
-(kao na originalnoj Potvrdi o stanju), ne abecedno po markici.
+kolone od kolona bolesti). Skrolanje je standardno, bez zamrznutih
+redova/kolona. Spisak grla ide redoslijedom Rb (kao na originalnoj Potvrdi
+o stanju), ne abecedno po markici.
 
 Pokreni ponovo kad god se Stanje ili Vakcinisano promijene — list "Uporedba
 markica" se svaki put potpuno osvježi (staro se briše i piše iznova), pa je
