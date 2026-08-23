@@ -34,10 +34,16 @@ osvježi, ako već postoji) list **Uporedba markica** sa:
 
 - rekapom sa statistikom (broj grla na spisku, broj i postotak vakcinisanih,
   broj nevakcinisanih, broj vakcinisanih van spiska),
-- punom tabelom markica (Markica, Status, Pol, Vrsta, i po jedna kolona za
-  svaku od 5 bolesti/mjera), obojenom isto kao u web aplikaciji — **zeleno**
-  = vakcinisano, **crveno** = nije vakcinisano, **žuto** = vakcinisano ali
-  nije na spisku grla (mogući višak/greška u unosu),
+- punom tabelom markica (Markica, **Rb (Potvrda o stanju)**, Status, Pol,
+  Vrsta, i po jedna kolona za svaku od 5 bolesti/mjera), obojenom isto kao u
+  web aplikaciji — **zeleno** = vakcinisano, **crveno** = nije vakcinisano,
+  **žuto** = vakcinisano ali nije na spisku grla (mogući višak/greška u
+  unosu). Kolona **Rb** je redni broj tog grla onako kako stoji u koloni
+  "Rb"/"Redni broj" na listu Stanje (Potvrda o stanju) — isti broj kao na
+  originalnom listu, ne prebrojano iznova — da se grlo lakše pronađe tamo.
+  Ako list nema tu kolonu, koristi se prirodna pozicija reda umjesto nje; za
+  grlo koje se pojavljuje samo u spisku vakcinisanih (van spiska), Rb
+  ostaje prazan jer ga nema na listu Stanje.
 - upozorenjem ako neki red ima markicu u neprepoznatom obliku (očekuje se
   "BA" + brojevi) — taj red se preskoči i broji, isto kao kod uvoza u web
   aplikaciju.

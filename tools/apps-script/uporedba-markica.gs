@@ -16,7 +16,8 @@
  * vakcinisanih, broj nevakcinisanih, broj vakcinisanih van spiska) i punu
  * tabelu markica sa statusom i po-bolest kolonama, obojenu isto kao u
  * aplikaciji (zeleno = vakcinisano, crveno = nije, žuto = vakcinisano ali
- * van spiska grla).
+ * van spiska grla). Svako grlo iz spiska nosi i svoj redni broj (Rb) iz
+ * Potvrde o stanju, da se lakše pronađe na originalnom listu.
  *
  * Instalacija: Extensions/Proširenja → Apps Script u ovom Google Sheets
  * fajlu, prekopiraj ovaj fajl kao Code.gs (ili dodaj kao novi .gs fajl),
@@ -29,7 +30,8 @@ var NAZIV_IZLAZNOG_LISTA = 'Uporedba markica';
 var SPEC_STANJE = [
   { key: 'markica', kw: ['markic', 'identifikacij'] },
   { key: 'vrsta', kw: ['vrsta'] },
-  { key: 'pol', kw: ['pol', 'spol'] }
+  { key: 'pol', kw: ['pol', 'spol'] },
+  { key: 'rb', kw: ['redni broj', 'rbr', 'r.br', 'rb'] }
 ];
 var SPEC_VAK_OSNOVNO = [
   { key: 'drzava', kw: ['drzava'] },
@@ -227,6 +229,19 @@ function redImaSadrzaj_(red) {
   return false;
 }
 
+// Redni broj iz kolone "Rb"/"Redni broj" u listu Stanje, ako postoji — da se
+// grlo lakše pronađe na originalnoj Potvrdi o stanju (ti brojevi znaju biti
+// preneseni s fizičkog obrasca, npr. nastavljati se 381, 382... a ne kretati
+// od 1). Ako kolona ne postoji ili je baš ta ćelija prazna, koristi se
+// prirodna pozicija reda u listu (1, 2, 3...) kao razuman zamjenski broj.
+function ocitajRedniBroj_(kolone, red, pozicija) {
+  if (kolone.rb !== undefined) {
+    var vrijednost = red[kolone.rb];
+    if (vrijednost !== '' && vrijednost !== null && vrijednost !== undefined) return String(vrijednost).trim();
+  }
+  return String(pozicija);
+}
+
 // ---------- čitanje listova ----------
 
 // "Podaci" je parametar/vrijednost tabela (kolona A = naziv polja, B =
@@ -268,7 +283,8 @@ function procitajStanje_(sheet) {
     if (!mapa[markica]) {
       mapa[markica] = {
         pol: kolone.pol !== undefined ? normalizujPol_(red[kolone.pol]) : '',
-        vrsta: kolone.vrsta !== undefined ? String(red[kolone.vrsta] || '').trim() : ''
+        vrsta: kolone.vrsta !== undefined ? String(red[kolone.vrsta] || '').trim() : '',
+        redniBroj: ocitajRedniBroj_(kolone, red, i)
       };
     }
   }
@@ -352,7 +368,7 @@ function upisiRezultat_(ss, listovi, podaci, rezultat, stanjeMapa, vakMapa, pres
     sheet = ss.insertSheet(NAZIV_IZLAZNOG_LISTA);
   }
 
-  var brojKolona = 4 + BOLESTI.length; // Markica, Status, Pol, Vrsta + 5 bolesti
+  var brojKolona = 5 + BOLESTI.length; // Markica, Rb, Status, Pol, Vrsta + 5 bolesti
 
   // Gola tabela sa zadanim Sheets linijama izgleda kao sirovi izvještaj —
   // sakrivena mreža + vlastite ivice/pozadine daju izgled "papir i tinta"
@@ -361,10 +377,11 @@ function upisiRezultat_(ss, listovi, podaci, rezultat, stanjeMapa, vakMapa, pres
   try { sheet.setTabColor(BOJE.gold); } catch (e) { /* starije Sheets API verzije bez tab boje */ }
 
   sheet.setColumnWidth(1, 150);
-  sheet.setColumnWidth(2, 210);
-  sheet.setColumnWidth(3, 55);
-  sheet.setColumnWidth(4, 115);
-  for (var c = 5; c <= brojKolona; c++) sheet.setColumnWidth(c, 120);
+  sheet.setColumnWidth(2, 70);
+  sheet.setColumnWidth(3, 210);
+  sheet.setColumnWidth(4, 55);
+  sheet.setColumnWidth(5, 115);
+  for (var c = 6; c <= brojKolona; c++) sheet.setColumnWidth(c, 120);
 
   // ---- banner naslova (puna širina, ink pozadina) ----
   var naslov = 'Uporedba markica' + (podaci.vlasnik ? ' — ' + podaci.vlasnik : '');
@@ -397,18 +414,24 @@ function upisiRezultat_(ss, listovi, podaci, rezultat, stanjeMapa, vakMapa, pres
   var redLabela = 5, redVrijednosti = 6;
   sheet.setRowHeight(redLabela, 22);
   sheet.setRowHeight(redVrijednosti, 38);
+  // Kartice dijele ukupnu širinu tabele u 4 (skoro) jednaka dijela — zadnja
+  // pokupi ostatak, tako da se raspoređuju lijepo bez obzira koliko kolona
+  // tabela ukupno ima (npr. kad se doda još jedna kolona kao Rb).
+  var osnovniRaspon = Math.floor(brojKolona / kartice.length);
+  var kolStart = 1;
   kartice.forEach(function (k, idx) {
-    var kolStart = idx * 2 + 1;
-    var labelOpseg = sheet.getRange(redLabela, kolStart, 1, 2).merge();
+    var raspon = idx === kartice.length - 1 ? (brojKolona - kolStart + 1) : osnovniRaspon;
+    var labelOpseg = sheet.getRange(redLabela, kolStart, 1, raspon).merge();
     labelOpseg.setValue(k.naziv).setBackground(k.bg).setFontColor(k.fg)
       .setFontFamily(FONT_TEKST).setFontSize(9).setFontWeight('bold')
       .setHorizontalAlignment('center').setVerticalAlignment('middle');
-    var vrijednostOpseg = sheet.getRange(redVrijednosti, kolStart, 1, 2).merge();
+    var vrijednostOpseg = sheet.getRange(redVrijednosti, kolStart, 1, raspon).merge();
     vrijednostOpseg.setValue(k.vrijednost).setBackground(k.bg).setFontColor(k.fg)
       .setFontFamily(FONT_NASLOV).setFontSize(20).setFontWeight('bold')
       .setHorizontalAlignment('center').setVerticalAlignment('middle');
-    sheet.getRange(redLabela, kolStart, 2, 2)
+    sheet.getRange(redLabela, kolStart, 2, raspon)
       .setBorder(true, true, true, true, false, false, k.linija, SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
+    kolStart += raspon;
   });
 
   var sljedeciRed = redVrijednosti + 1;
@@ -431,7 +454,7 @@ function upisiRezultat_(ss, listovi, podaci, rezultat, stanjeMapa, vakMapa, pres
 
   sljedeciRed += 1;
 
-  var zaglavljeTabele = ['Markica', 'Status', 'Pol', 'Vrsta'].concat(BOLESTI.map(function (b) { return b.naziv; }));
+  var zaglavljeTabele = ['Markica', 'Rb (Potvrda o stanju)', 'Status', 'Pol', 'Vrsta'].concat(BOLESTI.map(function (b) { return b.naziv; }));
 
   if (!rezultat.roster.length && !rezultat.nijeUSpisku.length) {
     sheet.getRange(sljedeciRed, 1).setValue('Nema podataka za prikaz — provjeri da listovi Stanje/Vakcinisano imaju popunjene redove.')
@@ -490,7 +513,10 @@ function upisiTabeluMarkica_(sheet, red, naslovSekcije, zaglavlje, markiceLista,
       return vakInfo && vakInfo.bolesti ? (vakInfo.bolesti[b.key] || '') : '';
     });
     return {
-      red: [markica, status, izvor.pol || '', izvor.vrsta || ''].concat(bolestiVrijednosti),
+      // Rb dolazi isključivo iz Potvrde o stanju (stanjeInfo) — grlo koje je
+      // samo "vakcinisano, van spiska" tamo se uopšte ne nalazi, pa ćelija
+      // ostaje prazna (i to je korisna informacija, ne greška).
+      red: [markica, stanjeInfo ? stanjeInfo.redniBroj : '', status, izvor.pol || '', izvor.vrsta || ''].concat(bolestiVrijednosti),
       vakcinisano: vakcinisano
     };
   });
@@ -506,7 +532,8 @@ function upisiTabeluMarkica_(sheet, red, naslovSekcije, zaglavlje, markiceLista,
       var cijeliRed = sheet.getRange(red + i, 1, 1, brojKolona);
       cijeliRed.setBackground(BOJE.paperRaised);
       sheet.getRange(red + i, 1).setFontFamily(FONT_KOD).setFontWeight('bold').setFontColor(BOJE.ink);
-      sheet.getRange(red + i, 2).setBackground(boje.bg).setFontColor(boje.fg).setFontWeight('bold');
+      sheet.getRange(red + i, 2).setFontColor(BOJE.inkSoft).setHorizontalAlignment('center');
+      sheet.getRange(red + i, 3).setBackground(boje.bg).setFontColor(boje.fg).setFontWeight('bold');
       sheet.setRowHeight(red + i, 21);
     }
   } else {
@@ -518,7 +545,7 @@ function upisiTabeluMarkica_(sheet, red, naslovSekcije, zaglavlje, markiceLista,
   cijelaTabela.setBorder(true, true, true, true, false, false, BOJE.lineStrong, SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
   sheet.getRange(zaglavljeRed + 1, 1, brojRedova, brojKolona)
     .setBorder(false, false, false, false, false, true, BOJE.line, SpreadsheetApp.BorderStyle.SOLID);
-  sheet.getRange(zaglavljeRed, 2, brojRedova + 1, 1)
+  sheet.getRange(zaglavljeRed, 3, brojRedova + 1, 1)
     .setBorder(false, true, false, true, false, false, BOJE.lineStrong, SpreadsheetApp.BorderStyle.SOLID);
 
   return { sljedeciRed: zaglavljeRed + brojRedova + 1, zaglavljeRed: zaglavljeRed };
