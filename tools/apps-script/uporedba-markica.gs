@@ -17,7 +17,10 @@
  * tabelu markica sa statusom i po-bolest kolonama, obojenu isto kao u
  * aplikaciji (zeleno = vakcinisano, crveno = nije, žuto = vakcinisano ali
  * van spiska grla). Svako grlo iz spiska nosi i svoj redni broj (Rb) iz
- * Potvrde o stanju, da se lakše pronađe na originalnom listu.
+ * Potvrde o stanju, da se lakše pronađe na originalnom listu. Isti status
+ * (svijetlo zeleno/crveno) se upiše i direktno na sam list Stanje (Potvrda
+ * o stanju), na pozadinu cijelog reda svakog grla — bez potrebe da se
+ * prebacuje na "Uporedba markica" da bi se vidjelo koje grlo nedostaje.
  *
  * Instalacija: Extensions/Proširenja → Apps Script u ovom Google Sheets
  * fajlu, prekopiraj ovaj fajl kao Code.gs (ili dodaj kao novi .gs fajl),
@@ -100,6 +103,7 @@ function uporediMarkice() {
     var rezultat = izracunajUporedbu_(stanje.mapa, vak.mapa);
 
     upisiRezultat_(ss, listovi, podaci, rezultat, stanje.mapa, vak.mapa, stanje.preskoceno, vak.preskoceno);
+    oznaciListStanja_(listovi.stanje, stanje.redovi, vak.mapa);
 
     var izlazniList = ss.getSheetByName(NAZIV_IZLAZNOG_LISTA);
     ss.setActiveSheet(izlazniList);
@@ -109,7 +113,8 @@ function uporediMarkice() {
     prikaziPoruku_(
       'Gotovo',
       'Upisano u list "' + NAZIV_IZLAZNOG_LISTA + '": ' + rezultat.roster.length + ' grla na spisku, ' +
-      rezultat.podudara.length + ' vakcinisano (' + rezultat.postotak + '%).'
+      rezultat.podudara.length + ' vakcinisano (' + rezultat.postotak + '%).' +
+      (listovi.stanje ? ' List "' + listovi.stanje.getName() + '" je i sam obojen po istom statusu (zeleno/crveno).' : '')
     );
   } catch (e) {
     prikaziPoruku_('Greška', 'Uporedba nije uspjela: ' + e.message);
@@ -272,9 +277,13 @@ function procitajPodatke_(sheet) {
 function procitajStanje_(sheet) {
   var mapa = {};
   var preskoceno = 0;
-  if (!sheet) return { mapa: mapa, preskoceno: preskoceno };
+  // Svaki uspješno pročitan red (i ponovljeni upisi iste markice) — koristi
+  // se za bojenje samog lista Stanje po stvarnom redu na listu, ne samo
+  // deduplicirane podatke iz mape.
+  var redovi = [];
+  if (!sheet) return { mapa: mapa, preskoceno: preskoceno, redovi: redovi };
   var lastRow = sheet.getLastRow(), lastCol = sheet.getLastColumn();
-  if (lastRow < 2 || lastCol < 1) return { mapa: mapa, preskoceno: preskoceno };
+  if (lastRow < 2 || lastCol < 1) return { mapa: mapa, preskoceno: preskoceno, redovi: redovi };
   var podaci = sheet.getRange(1, 1, lastRow, lastCol).getValues();
   var kolone = pronadjiKolone_(podaci[0], SPEC_STANJE);
   for (var i = 1; i < podaci.length; i++) {
@@ -283,6 +292,7 @@ function procitajStanje_(sheet) {
     var markice = izvuciMarkice_(sirovaMarkica);
     if (!markice.length) { if (redImaSadrzaj_(red)) preskoceno++; continue; }
     var markica = markice[0];
+    redovi.push({ redSaLista: i + 1, markica: markica });
     if (!mapa[markica]) {
       mapa[markica] = {
         pol: kolone.pol !== undefined ? normalizujPol_(red[kolone.pol]) : '',
@@ -291,7 +301,7 @@ function procitajStanje_(sheet) {
       };
     }
   }
-  return { mapa: mapa, preskoceno: preskoceno };
+  return { mapa: mapa, preskoceno: preskoceno, redovi: redovi };
 }
 
 // Vraća {mapa: {markica: {pol, vrsta, bolesti:{...}}}, preskoceno}. Markica
@@ -370,6 +380,23 @@ function izracunajUporedbu_(stanjeMapa, vakMapa) {
     nijeUSpisku: nijeUSpisku,
     postotak: postotak
   };
+}
+
+// Oboji direktno sam list Stanje (Potvrda o stanju) — svijetlo zeleno grla
+// koja jesu vakcinisana, svijetlo crveno ona koja nisu — da se vidi na prvi
+// pogled i na originalnom listu, ne samo u listu "Uporedba markica". Boji se
+// samo pozadina (ne i tekst), da se ne dira ništa drugo na tuđem listu. Prvo
+// se poništi prethodno bojenje cijelog opsega podataka, pa se boji iznova
+// (svaki put osvježi, isto kao i "Uporedba markica" list).
+function oznaciListStanja_(sheet, redovi, vakMapa) {
+  if (!sheet) return;
+  var lastRow = sheet.getLastRow(), lastCol = sheet.getLastColumn();
+  if (lastRow < 2 || lastCol < 1) return;
+  sheet.getRange(2, 1, lastRow - 1, lastCol).setBackground(null);
+  redovi.forEach(function (r) {
+    var boja = vakMapa[r.markica] ? BOJE.zelenaBg : BOJE.crvenaBg;
+    sheet.getRange(r.redSaLista, 1, 1, lastCol).setBackground(boja);
+  });
 }
 
 // ---------- ispis rezultata ----------

@@ -44,6 +44,13 @@ osvježi, ako već postoji) list **Uporedba markica** sa:
   Ako list nema tu kolonu, koristi se prirodna pozicija reda umjesto nje; za
   grlo koje se pojavljuje samo u spisku vakcinisanih (van spiska), Rb
   ostaje prazan jer ga nema na listu Stanje.
+- **bojenjem samog lista Stanje (Potvrda o stanju)** — pozadina cijelog reda
+  svakog grla na tom listu se oboji svijetlo zeleno ako je vakcinisano, ili
+  svijetlo crveno ako nije (samo pozadina, tekst ostaje nepromijenjen; redovi
+  sa neprepoznatom markicom ostaju bez boje). Ne treba prebacivati na
+  "Uporedba markica" da bi se vidjelo koje grlo nedostaje — vidi se odmah na
+  originalnom listu. Boji se iznova pri svakom pokretanju (staro bojenje se
+  prvo poništi), pa prati trenutno stanje bez ostataka od prošlog pokretanja,
 - upozorenjem ako neki red ima markicu u neprepoznatom obliku (očekuje se
   "BA" + brojevi) — taj red se preskoči i broji, isto kao kod uvoza u web
   aplikaciju.
