@@ -175,7 +175,7 @@
   input[type=file]#potvrdaMjereInput, input[type=file]#potvrdaStanjeInput,
   input[type=file]#potvrdaVakcinisanoInput,
   input[type=file]#pgRosterSlikaInput, input[type=file]#pgVakSlikaInput,
-  input[type=file]#pgRosterXlsxInput, input[type=file]#pgVakXlsxInput{display:none;}
+  input[type=file]#pgKompletanXlsxInput{display:none;}
 
   .cards{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
   @media (max-width:720px){ .cards{grid-template-columns:1fr;} }
@@ -1205,6 +1205,16 @@
         </table>
       </div>
     </div>
+    <div class="card" style="margin-bottom:16px;">
+      <h2>Uvezi kompletan Excel fajl</h2>
+      <p class="hint">Jedan fajl za jednog vlasnika, sa listovima <b>Podaci</b> (vlasnik, adresa, šifra imanja…), <b>Stanje</b> (spisak grla) i <b>Vakcinisano</b> (spisak od veterinarske stanice) — kolone se prepoznaju po nazivu u zaglavlju, ne po fiksnoj poziciji. Ako gazdinstvo još nije izabrano, pronalazi ga po šifri imanja ili vlasniku iz lista Podaci. Čita se na uređaju, ništa se ne šalje na internet.</p>
+      <input type="file" id="pgKompletanXlsxInput" accept=".xlsx" onchange="pgUvezKompletanExcel(event)">
+      <div class="row-actions">
+        <button type="button" class="small secondary" onclick="document.getElementById('pgKompletanXlsxInput').click()">Uvezi iz Excela</button>
+        <span class="count-pill" id="pgKompletanXlsxStatus"></span>
+      </div>
+    </div>
+
     <p class="stoka-hint" id="pgOdabranoInfo"></p>
 
     <div id="pgSadrzaj" hidden>
@@ -1215,7 +1225,6 @@
           <div class="subtabs" role="tablist" id="pgRosterMetodTabs">
             <button role="tab" aria-selected="true" data-metod="rucno" onclick="pgPostaviMetod('roster','rucno')">Ručno</button>
             <button role="tab" aria-selected="false" data-metod="ocr" onclick="pgPostaviMetod('roster','ocr')">Slika (OCR)</button>
-            <button role="tab" aria-selected="false" data-metod="excel" onclick="pgPostaviMetod('roster','excel')">Excel</button>
           </div>
 
           <div id="pgRosterRucno" class="postavke-sekcija active">
@@ -1237,16 +1246,7 @@
             </div>
           </div>
 
-          <div id="pgRosterExcel" class="postavke-sekcija" style="margin-top:10px;">
-            <p class="hint">Kolone: B = markica, C = pol, D = vrsta (kolona A je redni broj, ignoriše se). Čita se prvi list u fajlu, na uređaju — ništa se ne šalje na internet.</p>
-            <input type="file" id="pgRosterXlsxInput" accept=".xlsx" onchange="pgUvezRedIzXlsx('roster', event)">
-            <div class="row-actions">
-              <button type="button" class="small secondary" onclick="document.getElementById('pgRosterXlsxInput').click()">Uvezi iz Excela</button>
-              <span class="count-pill" id="pgRosterXlsxStatus"></span>
-            </div>
-          </div>
-
-          <p class="hint" style="margin-top:14px;">Zeleno = vakcinisano, crveno = nije vakcinisano (prema spisku desno).</p>
+          <p class="hint" style="margin-top:14px;">Zeleno = vakcinisano, crveno = nije vakcinisano (prema spisku desno). Excel uvoz za oba spiska je iznad, u kartici "Uvezi kompletan Excel fajl".</p>
           <div class="grid-tags" id="pgRosterTags"></div>
           <div class="row-actions" style="margin-top:10px;">
             <button type="button" class="small secondary" onclick="otvoriGazdinstvo(pgOdabranoId)">Otvori u Gazdinstva</button>
@@ -1258,7 +1258,6 @@
           <div class="subtabs" role="tablist" id="pgVakMetodTabs">
             <button role="tab" aria-selected="true" data-metod="rucno" onclick="pgPostaviMetod('vak','rucno')">Ručno</button>
             <button role="tab" aria-selected="false" data-metod="ocr" onclick="pgPostaviMetod('vak','ocr')">Slika (OCR)</button>
-            <button role="tab" aria-selected="false" data-metod="excel" onclick="pgPostaviMetod('vak','excel')">Excel</button>
           </div>
 
           <div id="pgVakRucno" class="postavke-sekcija active">
@@ -1280,14 +1279,6 @@
             </div>
           </div>
 
-          <div id="pgVakExcel" class="postavke-sekcija" style="margin-top:10px;">
-            <p class="hint">Kolone: B = markica, C = pol, D = vrsta, E–I = Bruceloza / Enzotska leukoza / TBC / CMT / Antrax (kolona A je redni broj, ignoriše se). Čita se prvi list u fajlu, na uređaju.</p>
-            <input type="file" id="pgVakXlsxInput" accept=".xlsx" onchange="pgUvezRedIzXlsx('vak', event)">
-            <div class="row-actions">
-              <button type="button" class="small secondary" onclick="document.getElementById('pgVakXlsxInput').click()">Uvezi iz Excela</button>
-              <span class="count-pill" id="pgVakXlsxStatus"></span>
-            </div>
-          </div>
         </div>
       </div>
 
@@ -1455,7 +1446,7 @@
 // Jedino mjesto gdje se broj verzije mijenja — prikazuje se u topbaru,
 // na prijavi i u Postavkama, i mora biti usklađen sa CACHE_NAME u sw.js
 // (nova verzija = novi CACHE_NAME = preglednik povuče svježe fajlove).
-const APP_VERZIJA = '1.29';
+const APP_VERZIJA = '1.30';
 for(const id of ['verzijaTopbar', 'verzijaLogin', 'verzijaPostavke']){
   const el = document.getElementById(id);
   if(el) el.textContent = 'v' + APP_VERZIJA;
@@ -1738,7 +1729,7 @@ function pgIzaberi(id){
   pgRenderRedove('vak');
   pgRenderTagovi();
 
-  for(const id of ['pgRosterOcrStatus', 'pgRosterXlsxStatus', 'pgVakOcrStatus', 'pgVakXlsxStatus', 'pgSaveStatus']){
+  for(const id of ['pgRosterOcrStatus', 'pgVakOcrStatus', 'pgKompletanXlsxStatus', 'pgSaveStatus']){
     document.getElementById(id).textContent = '';
   }
   document.getElementById('pgRezultati').innerHTML = '';
@@ -1777,8 +1768,8 @@ function pgOznakeIzRedova(redovi){
 }
 
 const PG_METOD_SEKCIJA_ID = {
-  roster: { rucno: 'pgRosterRucno', ocr: 'pgRosterOcr', excel: 'pgRosterExcel' },
-  vak: { rucno: 'pgVakRucno', ocr: 'pgVakOcr', excel: 'pgVakExcel' }
+  roster: { rucno: 'pgRosterRucno', ocr: 'pgRosterOcr' },
+  vak: { rucno: 'pgVakRucno', ocr: 'pgVakOcr' }
 };
 function pgPostaviMetod(cilj, metod){
   const tabsId = cilj === 'vak' ? 'pgVakMetodTabs' : 'pgRosterMetodTabs';
@@ -1890,54 +1881,183 @@ async function pgOcrURed(cilj, event){
   }
 }
 
-const PG_XLSX_KOLONE_ROSTER = { B: 'markica', C: 'pol', D: 'vrsta' };
-const PG_XLSX_KOLONE_VAK = { B: 'markica', C: 'pol', D: 'vrsta', E: 'bruceloza', F: 'leukoza', G: 'tbc', H: 'cmt', I: 'antraks' };
-
+// Prihvata i kratke oznake ("M"/"Ž"/"Z") i pune riječi ("Muško"/"Žensko") —
+// stvarni fajlovi veterinarskih stanica koriste oboje, čak i različito u
+// listu Stanje naspram lista Vakcinisano unutar istog fajla.
 function pgNormalizujPol(sirovo){
-  const s = (sirovo || '').trim().toUpperCase();
-  if(s === 'M') return 'M';
-  if(s === 'Ž' || s === 'Z') return 'Ž';
+  const s = pgOcistiTekst(sirovo);
+  if(s === 'm' || s.startsWith('musk')) return 'M';
+  if(s === 'z' || s === 'ž' || s.startsWith('zensk')) return 'Ž';
   return '';
 }
 
-// Uvoz iz .xlsx za JEDAN spisak (grla ili vakcinisanih) — čita prvi list u
-// fajlu po fiksnim kolonama (vidi PG_XLSX_KOLONE_*), dodaje nove redove.
-async function pgUvezRedIzXlsx(cilj, event){
-  const status = document.getElementById(cilj === 'vak' ? 'pgVakXlsxStatus' : 'pgRosterXlsxStatus');
+// Kolone stvarnih fajlova veterinarskih stanica se razlikuju po rasporedu
+// (npr. Pol nekad prije, nekad poslije Vrste) pa se prepoznaju po NAZIVU u
+// zaglavlju (prvi red lista), bez dijakritika i malim slovima — ne po
+// fiksnoj poziciji kolone.
+function pgOcistiTekst(s){
+  return (s || '').toString().normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+}
+
+function pgPronadjiList(sheets, kljucneRijeci){
+  return sheets.find(s => kljucneRijeci.some(k => pgOcistiTekst(s.name).includes(k))) || null;
+}
+
+// Vraća {kljuc: slovoKolone} za prvi red podudaranja po nizu {key, kw:[...]}
+// spec-ova — svaka kolona zaglavlja se testira protiv svih ključnih riječi
+// jednom (prvo poklapanje "pobjeđuje", slijeva udesno).
+function pgPronadjiKolone(zaglavljeReda, spec){
+  const rezultat = {};
+  for(const slovo in zaglavljeReda){
+    const cist = pgOcistiTekst(zaglavljeReda[slovo]);
+    for(const s of spec){
+      if(rezultat[s.key]) continue;
+      if(s.kw.some(k => cist.includes(k))) rezultat[s.key] = slovo;
+    }
+  }
+  return rezultat;
+}
+
+const PG_SPEC_ROSTER = [
+  { key: 'markica', kw: ['markic', 'identifikacij'] },
+  { key: 'vrsta', kw: ['vrsta'] },
+  { key: 'pol', kw: ['pol', 'spol'] }
+];
+const PG_SPEC_VAK_OSNOVNO = [
+  { key: 'drzava', kw: ['drzava'] },
+  { key: 'markica', kw: ['markic'] },
+  { key: 'broj', kw: ['identifikacij'] },
+  { key: 'vrsta', kw: ['vrsta'] },
+  { key: 'pol', kw: ['pol', 'spol'] }
+];
+const PG_BOLESTI_KEYWORDS = [
+  { key: 'bruceloza', kw: ['brucel'] },
+  { key: 'leukoza', kw: ['leukoz'] },
+  { key: 'tbc', kw: ['tbc', 'tuberkuloz'] },
+  { key: 'cmt', kw: ['cmt'] },
+  { key: 'antraks', kw: ['antraks', 'anthrax'] }
+];
+
+async function pgUcitajListDoc(zip, rels, list){
+  if(!list) return null;
+  const path = sheetPathFor(rels, list);
+  if(!path) return null;
+  return bytesToXmlDoc(await zip.extract(path));
+}
+
+// Jedan fajl za jednog vlasnika, sa do tri lista: "Podaci" (vlasnik, adresa,
+// šifra imanja…), "Stanje" (spisak grla) i "Vakcinisano" (spisak od
+// veterinarske stanice). Listovi se prepoznaju po nazivu (ne po redoslijedu),
+// kolone unutar njih po nazivu u zaglavlju (vidi pgPronadjiKolone). Ako
+// gazdinstvo još nije izabrano, pokušava se pronaći po šifri imanja ili
+// vlasniku iz lista Podaci.
+async function pgUvezKompletanExcel(event){
+  const status = document.getElementById('pgKompletanXlsxStatus');
   const file = event.target.files[0];
   event.target.value = '';
   if(!file) return;
-  if(!pgOdabranoId){ status.textContent = 'Prvo izaberi gazdinstvo.'; return; }
   if(typeof DecompressionStream === 'undefined'){
     status.textContent = 'Ovaj browser ne podržava direktno čitanje Excel fajla. Koristi noviju verziju Chrome/Edge/Safari, ili prekopiraj podatke ručno.';
     return;
   }
   status.textContent = 'Učitavam iz ' + file.name + '...';
   try{
-    const kolone = cilj === 'vak' ? PG_XLSX_KOLONE_VAK : PG_XLSX_KOLONE_ROSTER;
-    const redoviIzFajla = await ucitajPrviListPoKolonama(await file.arrayBuffer(), kolone);
-    if(!redoviIzFajla || !redoviIzFajla.length){
-      status.textContent = 'Nije pronađen nijedan red u fajlu ' + file.name + '.';
+    const zip = await readZipEntries(await file.arrayBuffer());
+    const { sheets, rels } = await ucitajWorkbookSheets(zip);
+    const sharedStrings = parseSharedStrings(bytesToXmlDoc(await zip.extract('xl/sharedStrings.xml')));
+
+    const listPodaci = pgPronadjiList(sheets, ['podaci', 'vlasnik']);
+    const listStanje = pgPronadjiList(sheets, ['stanj', 'roster', 'grla']);
+    const listVak = pgPronadjiList(sheets, ['vakcin']);
+
+    let vlasnikIzFajla = '', sifraIzFajla = '';
+    if(listPodaci){
+      const doc = await pgUcitajListDoc(zip, rels, listPodaci);
+      const redovi = doc ? parseSheetCelije(doc, sharedStrings) : [];
+      for(const r of redovi){
+        const kljuc = pgOcistiTekst(r.A);
+        if(!vlasnikIzFajla && (kljuc.includes('vlasnik') || kljuc.includes('drzalac'))) vlasnikIzFajla = (r.B || '').trim();
+        if(!sifraIzFajla && kljuc.includes('sifra imanja')) sifraIzFajla = (r.B || '').trim();
+      }
+    }
+
+    if(!pgOdabranoId){
+      const farme = loadGazdinstva().filter(g => g.vrsta === 'farma');
+      let poklapanja = sifraIzFajla
+        ? farme.filter(g => g.idGazdinstva && pgOcistiTekst(g.idGazdinstva) === pgOcistiTekst(sifraIzFajla))
+        : [];
+      if(!poklapanja.length && vlasnikIzFajla){
+        poklapanja = farme.filter(g => pgOcistiTekst(g.vlasnik) === pgOcistiTekst(vlasnikIzFajla));
+      }
+      if(poklapanja.length === 1){
+        pgIzaberi(poklapanja[0].id);
+      }else if(!vlasnikIzFajla && !sifraIzFajla){
+        status.textContent = 'Prvo izaberi gazdinstvo (fajl nema list "Podaci" sa vlasnikom/šifrom da bi se samo pronašlo).';
+        return;
+      }else if(!poklapanja.length){
+        status.textContent = 'Vlasnik/šifra "' + (vlasnikIzFajla || sifraIzFajla) + '" iz fajla nije pronađen ni u jednom gazdinstvu. Prvo ga dodaj u tabu Gazdinstva, pa ponovo uvezi fajl.';
+        return;
+      }else{
+        status.textContent = 'Više gazdinstava odgovara "' + (vlasnikIzFajla || sifraIzFajla) + '" — izaberi ručno iz tabele iznad, pa ponovo uvezi fajl.';
+        return;
+      }
+    }
+
+    const poruke = [];
+
+    if(listStanje){
+      const doc = await pgUcitajListDoc(zip, rels, listStanje);
+      const celije = doc ? parseSheetCelije(doc, sharedStrings) : [];
+      const [zaglavlje, ...podaci] = celije;
+      const kolone = pgPronadjiKolone(zaglavlje || {}, PG_SPEC_ROSTER);
+      let dodano = 0;
+      for(const r of podaci){
+        const markice = normalize(kolone.markica ? (r[kolone.markica] || '') : '');
+        if(!markice.length) continue;
+        const red = pgPrazanRed('roster');
+        red.markica = markice[0];
+        red.vrsta = kolone.vrsta ? (r[kolone.vrsta] || '').trim() : '';
+        red.pol = pgNormalizujPol(kolone.pol ? r[kolone.pol] : '');
+        pgRosterRedovi.push(red);
+        dodano++;
+      }
+      poruke.push('spisak grla (' + dodano + ')');
+    }
+
+    if(listVak){
+      const doc = await pgUcitajListDoc(zip, rels, listVak);
+      const celije = doc ? parseSheetCelije(doc, sharedStrings) : [];
+      const [zaglavlje, ...podaci] = celije;
+      const kolone = pgPronadjiKolone(zaglavlje || {}, PG_SPEC_VAK_OSNOVNO);
+      const bolesti = pgPronadjiKolone(zaglavlje || {}, PG_BOLESTI_KEYWORDS);
+      let dodano = 0;
+      for(const r of podaci){
+        const sirovaMarkica = kolone.markica
+          ? (r[kolone.markica] || '')
+          : ((kolone.drzava ? (r[kolone.drzava] || '') : '') + (kolone.broj ? (r[kolone.broj] || '') : ''));
+        const markice = normalize(sirovaMarkica);
+        if(!markice.length) continue;
+        const red = pgPrazanRed('vak');
+        red.markica = markice[0];
+        red.vrsta = kolone.vrsta ? (r[kolone.vrsta] || '').trim() : '';
+        red.pol = pgNormalizujPol(kolone.pol ? r[kolone.pol] : '');
+        for(const b of PG_BOLESTI) red[b.key] = bolesti[b.key] ? (r[bolesti[b.key]] || '').trim() : '';
+        pgVakRedovi.push(red);
+        dodano++;
+      }
+      poruke.push('popis vakcinisanih (' + dodano + ')');
+    }
+
+    if(!listStanje && !listVak){
+      status.textContent = 'Fajl ' + file.name + ' nema list "Stanje" ni "Vakcinisano" — provjeri nazive listova.';
       return;
     }
-    const niz = pgNiz(cilj);
-    let dodano = 0;
-    for(const izvor of redoviIzFajla){
-      const markice = normalize(izvor.markica || '');
-      if(!markice.length) continue;
-      const red = pgPrazanRed(cilj);
-      red.markica = markice[0];
-      red.pol = pgNormalizujPol(izvor.pol);
-      red.vrsta = (izvor.vrsta || '').trim();
-      if(cilj === 'vak') for(const b of PG_BOLESTI) red[b.key] = (izvor[b.key] || '').trim();
-      niz.push(red);
-      dodano++;
-    }
-    pgRenderRedove(cilj);
+
+    pgRenderRedove('roster');
+    pgRenderRedove('vak');
     pgRenderTagovi();
-    status.textContent = dodano
-      ? 'Učitano ' + dodano + ' red(ova) iz ' + file.name + '.'
-      : 'Nijedan red u fajlu ' + file.name + ' nema prepoznatljivu markicu (kolona B).';
+    status.textContent = (vlasnikIzFajla ? 'Vlasnik u fajlu: ' + vlasnikIzFajla + '. ' : '')
+      + 'Učitano iz ' + file.name + ': ' + poruke.join(', ') + '.';
   }catch(e){
     console.error(e);
     status.textContent = 'Nije uspjelo čitanje fajla ' + file.name + '. Provjeri da je ispravan .xlsx dokument.';
@@ -2092,15 +2212,18 @@ function parseWorkbookRels(doc){
   return map;
 }
 
-// Čita proizvoljne kolone iz svih redova jednog lista (npr. B=markica,
-// C=pol, D=vrsta) — po slovu kolone iz Excel "r" reference (npr. "C7" je
-// kolona C, red 7). Vraća niz objekata poredanih po broju reda u fajlu.
-function parseSheetRows(doc, sharedStrings, kolone){
+// Čita SVE ćelije jednog lista, grupisane po redu i slovu kolone iz Excel
+// "r" reference (npr. "C7" je kolona C, red 7) — npr. red[3].B je ćelija B3.
+// Vraća niz objekata poredanih po broju reda u fajlu; prvi element je
+// zaglavlje (nazivi kolona), ostali su podaci. Koristi se zajedno sa
+// pgPronadjiKolone() da se kolone prepoznaju po nazivu, ne po fiksnoj
+// poziciji — stvarni fajlovi veterinarskih stanica se razlikuju u rasporedu.
+function parseSheetCelije(doc, sharedStrings){
   const redovi = {};
   for(const c of doc.getElementsByTagName('c')){
     const ref = c.getAttribute('r') || '';
     const m = ref.match(/^([A-Z]+)(\d+)$/);
-    if(!m || !(m[1] in kolone)) continue;
+    if(!m) continue;
     const t = c.getAttribute('t');
     const vNode = c.getElementsByTagName('v')[0];
     let value = '';
@@ -2114,7 +2237,7 @@ function parseSheetRows(doc, sharedStrings, kolone){
     }
     const red = m[2];
     if(!redovi[red]) redovi[red] = {};
-    redovi[red][kolone[m[1]]] = value;
+    redovi[red][m[1]] = value;
   }
   return Object.keys(redovi).sort((a,b) => Number(a) - Number(b)).map(r => redovi[r]);
 }
@@ -2136,19 +2259,6 @@ function sheetPathFor(rels, sheet){
   // vodeće kose crte.
   if(relTarget.startsWith('/')) return relTarget.slice(1);
   return 'xl/' + relTarget.replace(/^\.?\//, '');
-}
-
-// Čita PRVI list u .xlsx fajlu (bez obzira na naziv) po zadatoj mapi kolona
-// — koristi se za uvoz po gazdinstvu, gdje svaki spisak ima svoj fajl.
-async function ucitajPrviListPoKolonama(buffer, kolone){
-  const zip = await readZipEntries(buffer);
-  const { sheets, rels } = await ucitajWorkbookSheets(zip);
-  const sheetPath = sheetPathFor(rels, sheets[0]);
-  if(!sheetPath) return null;
-  const sheetDoc = bytesToXmlDoc(await zip.extract(sheetPath));
-  if(!sheetDoc) return null;
-  const sharedStrings = parseSharedStrings(bytesToXmlDoc(await zip.extract('xl/sharedStrings.xml')));
-  return parseSheetRows(sheetDoc, sharedStrings, kolone);
 }
 
 // ---------- print ----------
@@ -3818,7 +3928,7 @@ function csvCisto(s){
 // Zašto ručno: jedina verzija SheetJS-a dostupna preko npm registra ima
 // poznate visoko-rizične ranjivosti (prototype pollution, ReDoS) i nema
 // načina da se iz ove razvojne okoline dobije zakrpljena verzija — isti
-// razlog zbog kojeg je i .xlsx UVOZ ranije napisan ručno (vidi ucitajPrviListPoKolonama).
+// razlog zbog kojeg je i .xlsx UVOZ ranije napisan ručno (vidi parseSheetCelije).
 // Za PISANJE poznatih, internih podataka (ne parsiranje tuđeg fajla) ovo je
 // mnogo manji i lakše provjerljiv posao: .xlsx je ZIP sa par XML dijelova, a
 // stavke se pišu nekomprimovano ("stored", metoda 0) — potpuno validan ZIP
