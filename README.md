@@ -6,6 +6,7 @@
 - `sw.js` — service worker, keširа fajlove za offline rad
 - `icons/` — ikone aplikacije
 - `vendor/` — Leaflet (biblioteka za kartu, BSD-2 licenca) i Tesseract.js (OCR biblioteka za čitanje potvrda, Apache-2.0 licenca) — obje uključene lokalno da rade i bez interneta
+- `tools/apps-script/` — samostalna Google Apps Script skripta (`uporedba-markica.gs`) za direktnu uporedbu markica u samom Google Sheets fajlu vlasnika, bez ove aplikacije — vidi `tools/apps-script/README.md`
 - `TODO.md` — šta je planirano a još nije urađeno, i najvažnije napomene o tome kako podaci žive u aplikaciji
 
 ## Prijava i korisnici
