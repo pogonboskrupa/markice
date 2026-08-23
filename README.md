@@ -152,10 +152,12 @@ Prvi tab nakon prijave. Grupiše gazdinstva u:
 
 Dugme "Otvori" na svakom redu vodi pravo na uređivanje tog gazdinstva. "Štampaj plan obilaska" daje čist spisak za poneti na teren.
 
+Na mobitelu se svaki red prikazuje kao kartica (polja jedno ispod drugog, umjesto vodoravne tabele) — ovo je ekran koji se najviše koristi na terenu, pa dugme "Otvori" mora ostati na dohvat ruke bez vodoravnog skrolanja.
+
 ## Posjete (registar po mjesecima)
 Sve posjete iz svih gazdinstava, sabrane na jedno mjesto i grupisane po mjesecu (najnoviji mjesec prvi). Za svaku posjetu se vidi gazdinstvo (kod koga), korisnik koji je bio, kolega (ako je bio s nekim), i nalaz.
 
-Filter po korisniku se **pri otvaranju tabа sam postavi na tebe** — svako prvo vidi svoj registar, a filter lako prebaciš na kolegu ili na "Svi korisnici" da vidiš sve zajedno. Ima i filter po mjesecu i pretragu kroz sve podatke. Izvoz u Excel i štampa poštuju trenutne filtere.
+Filter po korisniku se **pri otvaranju tabа sam postavi na tebe** — svako prvo vidi svoj registar, a filter lako prebaciš na kolegu ili na "Svi korisnici" da vidiš sve zajedno. Ima i filter po mjesecu i pretragu kroz sve podatke. Izvoz u Excel i štampa poštuju trenutne filtere. Isto kao kod Pregleda, na mobitelu se svaki red prikazuje kao kartica umjesto vodoravne tabele.
 
 ## Postavke i sigurnosna kopija
 > ⚠️ **Najvažnije poglavlje ovog README-a.** Svi podaci (gazdinstva, posjete, korisnici, dnevnik) žive **samo u ovom pregledniku, na ovom uređaju**. Nema servera, nema sinhronizacije. Ako se uređaj pokvari, izgubi, ili neko obriše podatke preglednika (ili instalira aplikaciju iznova) — **sve nestaje bez mogućnosti povrata**, osim ako postoji kopija.

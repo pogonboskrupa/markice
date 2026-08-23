@@ -187,6 +187,12 @@
     padding:16px;
     position:relative;
     box-shadow:0 1px 3px rgba(31,42,31,.05), 0 1px 2px rgba(31,42,31,.03);
+    /* Grid items default to min-width:auto — bez ovoga se ne smiju skupiti
+       ispod širine svog sadržaja, pa je široka tabela unutra (npr. spisak
+       vakcinisanih sa 5 kolona bolesti) širila cijelu karticu, pa cijelu
+       stranicu preko ekrana na mobitelu, umjesto da samo njen .table-wrap
+       vodoravno skroluje unutar sebe. */
+    min-width:0;
   }
   .card h2{
     font-family:'Helvetica Neue',Arial,sans-serif;
@@ -256,6 +262,24 @@
   .summary{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px;}
   .summary.cols-4{grid-template-columns:repeat(4,1fr);}
   @media (max-width:600px){ .summary{grid-template-columns:1fr;} }
+
+  /* Pregled (agenda) i registar posjeta su ekrani koji se najviše koriste na
+     terenu, na telefonu — generalni obrazac za tabele u ostatku aplikacije
+     (vodoravno skrolanje kad ne stane) bi ovdje sakrio baš dugme "Otvori"
+     iza ivice ekrana, bez ikakvog znaka da tu ima još nešto. Zato se svaki
+     red na uskom ekranu pretvara u karticu (polja jedno ispod drugog),
+     umjesto da klizi vodoravno. */
+  @media (max-width:600px){
+    #pregledWrap table, #pregledWrap thead, #pregledWrap tbody, #pregledWrap tr, #pregledWrap td,
+    #posjeteRegistarWrap table, #posjeteRegistarWrap thead, #posjeteRegistarWrap tbody, #posjeteRegistarWrap tr, #posjeteRegistarWrap td
+    {display:block;width:100%;}
+    #pregledWrap thead, #posjeteRegistarWrap thead{display:none;}
+    #pregledWrap tbody tr, #posjeteRegistarWrap tbody tr{padding:10px 12px;border-bottom:1px solid var(--paper-dim);}
+    #pregledWrap tbody tr:last-child, #posjeteRegistarWrap tbody tr:last-child{border-bottom:none;}
+    #pregledWrap tbody td, #posjeteRegistarWrap tbody td{border-bottom:none;padding:3px 0;}
+    #pregledWrap td.actions, #posjeteRegistarWrap td.actions{white-space:normal;margin-top:8px;}
+    #pregledWrap td.actions button, #posjeteRegistarWrap td.actions button{margin:0 6px 6px 0;}
+  }
   .stat{
     border:1px solid var(--line);
     background:var(--paper-raised);
@@ -1494,7 +1518,7 @@
 // Jedino mjesto gdje se broj verzije mijenja — prikazuje se u topbaru,
 // na prijavi i u Postavkama, i mora biti usklađen sa CACHE_NAME u sw.js
 // (nova verzija = novi CACHE_NAME = preglednik povuče svježe fajlove).
-const APP_VERZIJA = '1.36';
+const APP_VERZIJA = '1.37';
 for(const id of ['verzijaTopbar', 'verzijaLogin', 'verzijaPostavke']){
   const el = document.getElementById(id);
   if(el) el.textContent = 'v' + APP_VERZIJA;
