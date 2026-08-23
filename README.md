@@ -57,7 +57,7 @@ Dnevnik se može pretraživati, filtrirati po korisniku i po danu, izvesti u Exc
 
 ## Gazdinstva (Farme / Pčelari / Sve)
 Za svako gazdinstvo se unosi:
-- vrsta (farma / pčelar), gazdinstvo, vlasnik, telefon
+- vrsta (farma / pčelar), gazdinstvo (opciono — ako se ostavi prazno, svuda gdje se naziv prikazuje koristi se ime i prezime vlasnika), vlasnik (obavezno), telefon
 - grad, adresa (ulica/zaselak i kućni broj su odvojena polja — tačniji unos i preciznije geokodiranje), ID gazdinstva (JIB)
 - **stoka prijavljena za poticaje** — broj grla/košnica koji se evidentira je broj sa apliciranja korisnika za poticaje (od njega zavisi visina poticaja), ne nužno trenutno stvarno stanje na terenu. Sekcija se prilagođava vrsti gazdinstva: za farme je to "Grla prijavljena za poticaje" sa prijedlozima goveda/ovce/koze/konji/svinje/živina, za pčelare "Košnice prijavljene za poticaje" sa prijedlozima tipova košnica (LR, Standard, AŽ) — bez miješanja jednih i drugih. Dugme "+ Dodaj..." dodaje red (slobodan tekst uz prijedloge, može i vlastita vrsta/tip); kod pčelara odmah upiše "Košnice" da ne mora ručno. Za svaku vrstu se unosi broj i, opciono, **ID brojevi / markice** — jedan po redu. Gazdinstvo može imati koliko god vrsta, svaka sa svojim brojem i markicama.
 - dan iduće posjete, napomena
@@ -99,7 +99,7 @@ Gazdinstvo može imati koliko god potvrda sve tri vrste (npr. iz različitih god
 ### Markice po gazdinstvu (tab Markice)
 Tab Markice radi isključivo poređenje **po gazdinstvu/vlasniku** — nema više poređenja "cijele oblasti" odjednom (ukinuto). Za odabranu farmu se porede **spisak grla na imanju** naspram **spiska vakcinisanih od veterinara**, oba u obliku tabele, red po red. **Markice su isključivo za farme** (ušne markice grla) — pčelari (košnice) se nigdje u tabu Markice ne uparuju sa markicama: ne pojavljuju se u pregledu, a brzi unos ne nudi izbor vrste (uvijek pravi farmu).
 
-1. Tab ima dvije jasno odvojene cjeline: kartica **"Dodaj novu farmu"** za brzi unos (naziv, vlasnik, grad, adresa, ID gazdinstva/JIB, tačno ono što piše na potvrdi) — stoku, posjete i ostalo dopuniš kasnije u tabu Gazdinstva; i kartica **"Pregled svih farmi"**, tabela farmi s pretragom, gdje **klik na naziv Gazdinstva ili na Vlasnika** otvara poređenje za taj unos (isto važi i za novododanu farmu — bira se odmah).
+1. Tab ima karticu **"Pregled svih farmi"**, tabela farmi s pretragom, gdje **klik na naziv Gazdinstva ili na Vlasnika** otvara poređenje za taj unos. Nova farma se dodaje isključivo u tabu **Gazdinstva** (polje "Gazdinstvo" tu je opciono — ako se ostavi prazno, svuda u aplikaciji se kao naziv prikazuje ime i prezime vlasnika).
 2. Oba spiska su **tabele sa kolonama Markica, Pol, Vrsta** (spisak vakcinisanih ima uz to i 5 kolona bolesti — vidi ispod) — redni broj se ne upisuje, uvijek se sam dodjeljuje po poziciji u tabeli. Svaki spisak ima svoja **tri podtaba** za popunjavanje, nezavisno jedan od drugog:
    - **Ručno** — tabela sa dugmetom "+ Dodaj red" za novi red; spisak grla se za pogodnost predpopuni markicama već upisanim u tabu Gazdinstva, ali ostaje slobodno izmjenjiv ovdje (ne piše se nazad automatski — za trajnu izmjenu službenog spiska stoke ide se preko "Otvori u Gazdinstva"),
    - **Slika (OCR)** — dodaje sliku potvrde, čita se potpuno lokalno (isto kao kod potvrda u obrascu gazdinstva) i dodaje prepoznate markice kao nove redove; pol/vrsta/bolesti se po potrebi dopune ručno,

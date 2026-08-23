@@ -1026,8 +1026,8 @@
             </select>
           </div>
           <div class="field">
-            <label for="gNaziv">Gazdinstvo</label>
-            <input id="gNaziv" required>
+            <label for="gNaziv">Gazdinstvo (opciono)</label>
+            <input id="gNaziv" placeholder="Ako je prazno, koristi se ime i prezime vlasnika">
           </div>
           <div class="field">
             <label for="gVlasnik">Vlasnik</label>
@@ -1195,39 +1195,8 @@
   <div id="usporedbaGazdinstvo">
 
     <div class="card" style="margin-bottom:16px;">
-      <h2>Dodaj novu farmu</h2>
-      <p class="hint">Osnovni podaci sa potvrde (vlasnik, broj imanja, adresa) — stoku, posjete i ostalo dopuni kasnije u tabu Gazdinstva. Markice su isključivo za farme (grla), pa ovaj brzi unos ne nudi pčelare.</p>
-      <div class="form-grid">
-        <div class="field">
-          <label for="pgNovoNaziv">Gazdinstvo</label>
-          <input id="pgNovoNaziv">
-        </div>
-        <div class="field">
-          <label for="pgNovoVlasnik">Vlasnik</label>
-          <input id="pgNovoVlasnik">
-        </div>
-        <div class="field">
-          <label for="pgNovoGrad">Grad / mjesto</label>
-          <input id="pgNovoGrad" list="gradoviList">
-        </div>
-        <div class="field">
-          <label for="pgNovoAdresa">Adresa</label>
-          <input id="pgNovoAdresa">
-        </div>
-        <div class="field">
-          <label for="pgNovoId">ID gazdinstva (JIB)</label>
-          <input id="pgNovoId">
-        </div>
-      </div>
-      <div class="row-actions" style="margin-top:10px;">
-        <button type="button" onclick="pgDodajNovoGazdinstvo()">Sačuvaj i izaberi</button>
-        <span class="count-pill" id="pgNovoStatus"></span>
-      </div>
-    </div>
-
-    <div class="card" style="margin-bottom:16px;">
       <h2>Pregled svih farmi</h2>
-      <p class="hint">Klikni na Gazdinstvo ili Vlasnika da otvoriš poređenje njegovog spiska grla sa spiskom vakcinisanih od veterinara. Pčelari se ovdje ne prikazuju — markice su isključivo za grla, ne za košnice.</p>
+      <p class="hint">Klikni na Gazdinstvo ili Vlasnika da otvoriš poređenje njegovog spiska grla sa spiskom vakcinisanih od veterinara. Nova farma se dodaje u tabu Gazdinstva. Pčelari se ovdje ne prikazuju — markice su isključivo za grla, ne za košnice.</p>
       <input type="search" id="pgTabelaPretraga" placeholder="Pretraga" oninput="pgRenderTabela()">
       <div class="table-wrap" style="margin-top:10px;">
         <table>
@@ -1486,7 +1455,7 @@
 // Jedino mjesto gdje se broj verzije mijenja — prikazuje se u topbaru,
 // na prijavi i u Postavkama, i mora biti usklađen sa CACHE_NAME u sw.js
 // (nova verzija = novi CACHE_NAME = preglednik povuče svježe fajlove).
-const APP_VERZIJA = '1.28';
+const APP_VERZIJA = '1.29';
 for(const id of ['verzijaTopbar', 'verzijaLogin', 'verzijaPostavke']){
   const el = document.getElementById(id);
   if(el) el.textContent = 'v' + APP_VERZIJA;
@@ -1722,8 +1691,8 @@ function pgRenderTabela(){
   // uparuju sa markicama, pa se i ne prikazuju u ovom pregledu.
   const svi = loadGazdinstva()
     .filter(g => g.vrsta === 'farma')
-    .filter(g => !pojam || (g.gazdinstvo + ' ' + g.vlasnik + ' ' + g.grad).toLowerCase().includes(pojam))
-    .sort((a, b) => a.gazdinstvo.localeCompare(b.gazdinstvo, 'bs'));
+    .filter(g => !pojam || (nazivGazdinstva(g) + ' ' + g.vlasnik + ' ' + g.grad).toLowerCase().includes(pojam))
+    .sort((a, b) => nazivGazdinstva(a).localeCompare(nazivGazdinstva(b), 'bs'));
   const tijelo = document.getElementById('pgTabelaBody');
   if(!svi.length){
     tijelo.innerHTML = '<tr><td colspan="5" class="empty">Nema farmi koje odgovaraju pretrazi.</td></tr>';
@@ -1733,7 +1702,7 @@ function pgRenderTabela(){
     const roster = stokaZaGazdinstvo(g).flatMap(s => normalize(s.markice || ''));
     const zadnjiVak = (g.potvrde || []).filter(p => p.tip === 'vakcinisano').sort((a, b) => b.datum.localeCompare(a.datum))[0];
     return `<tr>
-      <td><a href="javascript:void(0)" class="pg-red" onclick="pgIzaberi('${g.id}')">${escapeHtml(g.gazdinstvo)}</a></td>
+      <td><a href="javascript:void(0)" class="pg-red" onclick="pgIzaberi('${g.id}')">${escapeHtml(nazivGazdinstva(g))}</a></td>
       <td><a href="javascript:void(0)" class="pg-red" onclick="pgIzaberi('${g.id}')">${escapeHtml(g.vlasnik)}</a></td>
       <td>${escapeHtml(g.grad || '—')}</td>
       <td>${roster.length}</td>
@@ -1754,7 +1723,7 @@ function pgIzaberi(id){
   }
   pgOdabranoId = g.id;
   sadrzaj.hidden = false;
-  info.textContent = 'Izabrano: ' + g.gazdinstvo + ' (' + g.vlasnik + ')';
+  info.textContent = 'Izabrano: ' + nazivGazdinstva(g) + (g.gazdinstvo ? ' (' + g.vlasnik + ')' : '');
 
   // Spisak grla se predpopuni iz tab Gazdinstva (pogodnost, samo markice —
   // pol/vrsta po grlu se ovdje ne vode), ali ostaje slobodno izmjenjiv ovdje —
@@ -1774,60 +1743,6 @@ function pgIzaberi(id){
   }
   document.getElementById('pgRezultati').innerHTML = '';
   sadrzaj.scrollIntoView({ block: 'start', behavior: 'smooth' });
-}
-
-// Brzi unos osnovnih podataka gazdinstva (kao sa potvrde: vlasnik, broj
-// imanja, adresa) bez napuštanja taba Markice. Stoka/posjete/ostalo se
-// dopunjuju kasnije u tabu Gazdinstva preko punog obrasca.
-function pgDodajNovoGazdinstvo(){
-  const status = document.getElementById('pgNovoStatus');
-  const naziv = document.getElementById('pgNovoNaziv').value.trim();
-  const vlasnik = document.getElementById('pgNovoVlasnik').value.trim();
-  if(!naziv || !vlasnik){ status.textContent = 'Upiši bar naziv gazdinstva i vlasnika.'; return; }
-
-  const sada = new Date().toISOString();
-  const ko = trenutniKorisnik ? trenutniKorisnik.ime : 'nepoznat';
-  const g = {
-    id: 'g' + Date.now() + Math.random().toString(36).slice(2, 7),
-    vrsta: 'farma',
-    gazdinstvo: naziv, vlasnik,
-    telefon: '', grad: document.getElementById('pgNovoGrad').value.trim(),
-    adresa: document.getElementById('pgNovoAdresa').value.trim(), adresaBroj: '',
-    idGazdinstva: document.getElementById('pgNovoId').value.trim(),
-    lat: null, lng: null, rucnoPomjeren: false,
-    stoka: [], posjete: [], danIducePosjete: '', napomena: '',
-    fotografije: [], potvrde: [], dodatna: [],
-    kreiraoIme: ko, kreirano: sada, izmijenioIme: ko, izmijenjeno: sada
-  };
-  const list = loadGazdinstva();
-  list.push(g);
-  saveGazdinstva(list);
-  zabiljezi('dodao', 'gazdinstvo', g.gazdinstvo, [VRSTA_LABEL[g.vrsta], g.vlasnik, g.grad].filter(Boolean).join(', '));
-  renderDnevnik();
-  // Poravnaj i tabelu u tabu Gazdinstva — isto ponašanje kao glavni obrazac,
-  // da novi unos ne "nestane" ako je podtab tamo trenutno na drugoj vrsti.
-  // Ne diramo resetGazdForm()/toggleGazdForm() ovdje (za razliku od showVrsta())
-  // jer bi to obrisalo eventualno nedovršeno uređivanje na tabu Gazdinstva —
-  // korisnik je trenutno na tabu Markice, taj obrazac mu nije ni vidljiv.
-  if(aktivnaVrsta !== 'sve' && aktivnaVrsta !== g.vrsta){
-    aktivnaVrsta = g.vrsta;
-    for(const btn of document.querySelectorAll('#tab-gazdinstva .subtabs button')){
-      btn.setAttribute('aria-selected', String(btn.dataset.vrsta === aktivnaVrsta));
-    }
-  }
-  renderGazdTable();
-
-  for(const id of ['pgNovoNaziv', 'pgNovoVlasnik', 'pgNovoGrad', 'pgNovoAdresa', 'pgNovoId']){
-    document.getElementById(id).value = '';
-  }
-  status.textContent = '';
-
-  pgRenderTabela();
-  pgIzaberi(g.id);
-  document.getElementById('pgOdabranoInfo').textContent += ' — tražim lokaciju na karti...';
-  if(g.adresa || g.grad){
-    geocodeUnos(g.id).then(() => { renderMap(); });
-  }
 }
 
 // Svaki red = { markica, pol, vrsta } za spisak grla, i uz to 5 polja za
@@ -2091,9 +2006,9 @@ function pgSacuvajKaoPotvrdu(){
   if(!sacuvano.length){ status.textContent = 'Nema unesenog spiska za snimanje.'; return; }
 
   saveGazdinstva(list);
-  zabiljezi('izmijenio', 'gazdinstvo', g.gazdinstvo, 'Dodano iz taba Markice: ' + sacuvano.join(', '));
+  zabiljezi('izmijenio', 'gazdinstvo', nazivGazdinstva(g), 'Dodano iz taba Markice: ' + sacuvano.join(', '));
   renderDnevnik();
-  status.textContent = 'Sačuvano uz gazdinstvo "' + g.gazdinstvo + '": ' + sacuvano.join(', ') + '.';
+  status.textContent = 'Sačuvano uz gazdinstvo "' + nazivGazdinstva(g) + '": ' + sacuvano.join(', ') + '.';
 }
 
 // ---------- Excel (.xlsx) local file import ----------
@@ -2305,7 +2220,7 @@ function stampajProfil(id){
     <div class="profil-header">
       <div class="profil-header-left">
         <p class="eyebrow">Poljoprivredni zavod Unsko-sanskog kantona</p>
-        <h1>${escapeHtml(g.gazdinstvo || g.vlasnik)}</h1>
+        <h1>${escapeHtml(nazivGazdinstva(g))}</h1>
         <p class="sub">Profil gazdinstva — ${escapeHtml(VRSTA_LABEL[g.vrsta] || '')}</p>
       </div>
       <div class="seal" aria-hidden="true">
@@ -2719,7 +2634,7 @@ function renderPregled(){
       d === 1 ? 'sutra' : 'za ' + d + ' dana';
     return `<tr>
       <td style="white-space:nowrap;"><b>${formatDatum(g.danIducePosjete)}</b><br><span class="cell-sub">${kada}</span></td>
-      <td><b>${escapeHtml(g.gazdinstvo)}</b><br><span class="cell-sub">${VRSTA_LABEL[g.vrsta] || ''}${stokaSazetak(g) ? ' · ' + escapeHtml(stokaSazetak(g)) : ''}</span></td>
+      <td><b>${escapeHtml(nazivGazdinstva(g))}</b><br><span class="cell-sub">${VRSTA_LABEL[g.vrsta] || ''}${stokaSazetak(g) ? ' · ' + escapeHtml(stokaSazetak(g)) : ''}</span></td>
       <td>${escapeHtml(g.vlasnik)}${g.telefon ? '<br><span class="cell-sub"><a href="tel:' + escapeHtml(g.telefon.replace(/\s+/g,'')) + '">' + escapeHtml(g.telefon) + '</a></span>' : ''}</td>
       <td>${adresaHtml(g, escapeHtml(g.grad) + (punaAdresa(g) ? '<br><span class="cell-sub">' + escapeHtml(punaAdresa(g)) + '</span>' : ''))}</td>
       <td class="actions">
@@ -2764,7 +2679,7 @@ function sviPosjeti(){
       if(!p.datum) continue;
       out.push({
         datum: p.datum, ko: p.ko || '', kolega: p.kolega || '', nalaz: p.nalaz || '',
-        gazdinstvoId: g.id, gazdinstvo: g.gazdinstvo, vlasnik: g.vlasnik,
+        gazdinstvoId: g.id, gazdinstvo: nazivGazdinstva(g), vlasnik: g.vlasnik,
         grad: g.grad, vrsta: g.vrsta
       });
     }
@@ -3033,10 +2948,10 @@ function dodajUSihtaricuIzPregleda(gazdinstvoId, btn){
   const g = loadGazdinstva().find(x => x.id === gazdinstvoId);
   const status = document.getElementById('pregledStatus');
   if(!g || !g.danIducePosjete) return;
-  const rezultat = dodajUSihtaricu(g.id, g.danIducePosjete, g.gazdinstvo);
+  const rezultat = dodajUSihtaricu(g.id, g.danIducePosjete, nazivGazdinstva(g));
   const poruka = rezultat === 'postoji'
-    ? '"' + g.gazdinstvo + '" je već u tvojoj šihtarici za ' + formatDatum(g.danIducePosjete) + '.'
-    : '"' + g.gazdinstvo + '" dodano u tvoju šihtaricu za ' + formatDatum(g.danIducePosjete) + '.';
+    ? '"' + nazivGazdinstva(g) + '" je već u tvojoj šihtarici za ' + formatDatum(g.danIducePosjete) + '.'
+    : '"' + nazivGazdinstva(g) + '" dodano u tvoju šihtaricu za ' + formatDatum(g.danIducePosjete) + '.';
   if(status) status.textContent = poruka;
   if(btn){ btn.textContent = rezultat === 'postoji' ? 'Već u šihtarici' : '✓ Dodano'; btn.disabled = true; }
 }
@@ -3803,6 +3718,14 @@ function saveGazdinstva(list){
   localStorage.setItem(GAZD_KEY, JSON.stringify(list));
 }
 
+// Polje "Gazdinstvo" (naziv) je opciono — ako je prazno, gazdinstvo/vlasnik
+// su isto lice, pa se svuda gdje se naziv prikazuje koristi ime i prezime
+// vlasnika umjesto praznog teksta. Sam upisan (možda prazan) g.gazdinstvo
+// ostaje netaknut u podacima — ovo je samo za prikaz.
+function nazivGazdinstva(g){
+  return (g.gazdinstvo && g.gazdinstvo.trim()) || g.vlasnik || '';
+}
+
 // ---------- status ----------
 function parseDatum(s){
   if(!s) return null;
@@ -4141,7 +4064,7 @@ function submitGazdinstvo(event){
     if(adresaPromijenjena && !unos.rucnoPomjeren){ unos.lat = null; unos.lng = null; }
     unos.izmijenioIme = ko;
     unos.izmijenjeno = sada;
-    zabiljezi('izmijenio', 'gazdinstvo', unos.gazdinstvo, promjene || 'bez izmjena u poljima');
+    zabiljezi('izmijenio', 'gazdinstvo', nazivGazdinstva(unos), promjene || 'bez izmjena u poljima');
   }else{
     unos = Object.assign({
       id: 'g' + Date.now() + Math.random().toString(36).slice(2,7),
@@ -4150,7 +4073,7 @@ function submitGazdinstvo(event){
       izmijenioIme: ko, izmijenjeno: sada
     }, podaci);
     list.push(unos);
-    zabiljezi('dodao', 'gazdinstvo', unos.gazdinstvo,
+    zabiljezi('dodao', 'gazdinstvo', nazivGazdinstva(unos),
       [VRSTA_LABEL[unos.vrsta], unos.vlasnik, unos.grad].filter(Boolean).join(', '));
   }
 
@@ -4211,7 +4134,7 @@ function editGazdinstvo(id){
   for(const p of (g.dodatna || [])) dodajPolje(p.naziv, p.vrijednost);
   document.getElementById('gSubmitBtn').textContent = 'Sačuvaj izmjene';
   document.getElementById('gPonistiBtn').textContent = 'Otkaži uređivanje';
-  document.getElementById('formNaslov').textContent = 'Uređivanje: ' + (g.gazdinstvo || g.vlasnik);
+  document.getElementById('formNaslov').textContent = 'Uređivanje: ' + nazivGazdinstva(g);
   document.getElementById('gazdStatus').textContent = '';
   document.getElementById('gazdFormCard').classList.add('editing');
   document.getElementById('editBadge').hidden = false;
@@ -4226,9 +4149,9 @@ function deleteGazdinstvo(id){
   const list = loadGazdinstva();
   const g = list.find(x => x.id === id);
   if(!g) return;
-  if(!confirm('Obrisati gazdinstvo "' + (g.gazdinstvo || g.vlasnik) + '"?')) return;
+  if(!confirm('Obrisati gazdinstvo "' + nazivGazdinstva(g) + '"?')) return;
   saveGazdinstva(list.filter(x => x.id !== id));
-  zabiljezi('obrisao', 'gazdinstvo', g.gazdinstvo,
+  zabiljezi('obrisao', 'gazdinstvo', nazivGazdinstva(g),
     [VRSTA_LABEL[g.vrsta], g.vlasnik, g.grad].filter(Boolean).join(', '));
   renderGazdTable();
   renderMap();
@@ -4255,7 +4178,7 @@ function tragHtml(g){
 // categories and ear-tag/ID numbers included.
 function tekstZaPretragu(g){
   return [
-    g.gazdinstvo, g.vlasnik, g.telefon, g.grad, g.adresa, g.adresaBroj,
+    nazivGazdinstva(g), g.vlasnik, g.telefon, g.grad, g.adresa, g.adresaBroj,
     g.idGazdinstva, g.napomena,
     VRSTA_LABEL[g.vrsta],
     ...(g.dodatna || []).flatMap(p => [p.naziv, p.vrijednost]),
@@ -4305,7 +4228,7 @@ function renderGazdTable(){
       ${prikaziVrstu ? `<td>${VRSTA_LABEL[g.vrsta] || ''}</td>` : ''}
       <td>
         ${fotoCelijaHtml(g)}
-        <b>${escapeHtml(g.gazdinstvo)}</b>
+        <b>${escapeHtml(nazivGazdinstva(g))}</b>
         ${g.idGazdinstva ? '<br><span class="cell-sub">ID: ' + escapeHtml(g.idGazdinstva) + '</span>' : ''}
         ${g.napomena ? '<br><span class="cell-sub">' + escapeHtml(g.napomena) + '</span>' : ''}
         ${dodatna.length ? '<br><span class="cell-sub">' + dodatna.map(p => escapeHtml(p.naziv + ': ' + p.vrijednost)).join(' · ') + '</span>' : ''}
@@ -4354,7 +4277,7 @@ function exportGazdinstva(){
     const stoka = stokaZaGazdinstvo(g);
     rows.push([
       VRSTA_LABEL[g.vrsta] || '',
-      csvCisto(g.gazdinstvo), csvCisto(g.idGazdinstva), csvCisto(g.vlasnik), csvCisto(g.telefon),
+      csvCisto(nazivGazdinstva(g)), csvCisto(g.idGazdinstva), csvCisto(g.vlasnik), csvCisto(g.telefon),
       csvCisto(g.grad), csvCisto(punaAdresa(g)),
       stoka.map(s => (s.broj ? s.broj + ' ' : '') + s.vrsta).filter(Boolean).map(csvCisto).join(' | '),
       stoka.flatMap(s => markiceIzStoke(s)).map(csvCisto).join(' '),
@@ -4462,7 +4385,7 @@ function zapocniRucnoPostavljanje(id){
   rucnoPostavljanjeId = id;
   mapa.getContainer().style.cursor = 'crosshair';
   document.getElementById('mapStatus').innerHTML =
-    'Klikni na kartu da postaviš lokaciju za "' + escapeHtml(g.gazdinstvo) + '" — ' +
+    'Klikni na kartu da postaviš lokaciju za "' + escapeHtml(nazivGazdinstva(g)) + '" — ' +
     '<a href="#" onclick="otkaziRucnoPostavljanje(event)">otkaži</a>';
 }
 
@@ -4490,14 +4413,14 @@ function primiKlikNaKartu(e){
   g.izmijenioIme = trenutniKorisnik ? trenutniKorisnik.ime : 'nepoznat';
   g.izmijenjeno = new Date().toISOString();
   saveGazdinstva(list);
-  zabiljezi(vecImaLokaciju ? 'pomjerio lokaciju' : 'postavio lokaciju', 'gazdinstvo', g.gazdinstvo,
+  zabiljezi(vecImaLokaciju ? 'pomjerio lokaciju' : 'postavio lokaciju', 'gazdinstvo', nazivGazdinstva(g),
     e.latlng.lat.toFixed(5) + ', ' + e.latlng.lng.toFixed(5));
 
   renderGazdTable();
   renderMap();
   renderDnevnik();
   document.getElementById('mapStatus').textContent =
-    'Lokacija za "' + g.gazdinstvo + '" je ' + (vecImaLokaciju ? 'pomjerena.' : 'postavljena.');
+    'Lokacija za "' + nazivGazdinstva(g) + '" je ' + (vecImaLokaciju ? 'pomjerena.' : 'postavljena.');
 }
 
 function initMap(){
@@ -4526,7 +4449,7 @@ function initMap(){
 function popupHtml(g){
   const st = statusOf(g);
   const dodatna = (g.dodatna || []).filter(p => p.naziv || p.vrijednost);
-  return `${fotoCelijaHtml(g)}<b>${escapeHtml(g.gazdinstvo)}</b><br>
+  return `${fotoCelijaHtml(g)}<b>${escapeHtml(nazivGazdinstva(g))}</b><br>
     <span class="pop-row">${VRSTA_LABEL[g.vrsta] || ''} · ${escapeHtml(g.vlasnik)}</span><br>
     ${g.telefon ? '<span class="pop-row"><a href="tel:' + escapeHtml(g.telefon.replace(/\s+/g,'')) + '">' + escapeHtml(g.telefon) + '</a></span><br>' : ''}
     <span class="pop-row">${adresaHtml(g, escapeHtml([punaAdresa(g), g.grad].filter(Boolean).join(', ')))}</span><br>
@@ -4566,7 +4489,7 @@ function renderMap(){
     // klikom bi neprimjetno pomjerilo tačnu lokaciju. Pomjeranje ide isključivo
     // preko dugmeta "Pomjeri lokaciju" u popup-u, koje uključi isti režim
     // biranja kao za gazdinstva bez lokacije (primiKlikNaKartu).
-    L.marker([g.lat, g.lng], {icon, title: g.gazdinstvo})
+    L.marker([g.lat, g.lng], {icon, title: nazivGazdinstva(g)})
       .bindPopup(popupHtml(g))
       .addTo(slojMarkera);
   }
@@ -4582,7 +4505,7 @@ function renderMap(){
          <div class="bez-lokacije-lista">
            ${bezLok.map(g => `
              <div class="bez-lokacije-red">
-               <span>${escapeHtml(g.gazdinstvo)} — ${escapeHtml([punaAdresa(g), g.grad].filter(Boolean).join(', ') || 'nema adrese ni grada')}</span>
+               <span>${escapeHtml(nazivGazdinstva(g))} — ${escapeHtml([punaAdresa(g), g.grad].filter(Boolean).join(', ') || 'nema adrese ni grada')}</span>
                <button type="button" class="small secondary" onclick="zapocniRucnoPostavljanje('${g.id}')">Postavi na karti</button>
              </div>`).join('')}
          </div>
@@ -4651,7 +4574,7 @@ async function napraviRutu(){
   const redoslijed = redoslijedRute(pocetak, trenutniPinovi);
 
   crtajRutu(redoslijed, pocetak);
-  status.textContent = (mojaLokacija ? 'Ruta od tvoje lokacije: ' : 'Ruta od "' + escapeHtml(trenutniPinovi[0].gazdinstvo) + '": ')
+  status.textContent = (mojaLokacija ? 'Ruta od tvoje lokacije: ' : 'Ruta od "' + escapeHtml(nazivGazdinstva(trenutniPinovi[0])) + '": ')
     + redoslijed.length + (redoslijed.length === 1 ? ' stanica.' : ' stanice.');
   btn.disabled = false;
 }
@@ -4674,7 +4597,7 @@ function crtajRutu(redoslijed, pocetak){
       iconAnchor: [12, 24],
       popupAnchor: [0, -22]
     });
-    L.marker([g.lat, g.lng], {icon, title: g.gazdinstvo})
+    L.marker([g.lat, g.lng], {icon, title: nazivGazdinstva(g)})
       .bindPopup(popupHtml(g))
       .addTo(slojRute);
   });
@@ -4708,7 +4631,7 @@ function renderRutaLista(redoslijed){
         <tbody>${redoslijed.map((g, i) => `
         <tr>
           <td style="white-space:nowrap;"><b>${i + 1}.</b></td>
-          <td><b>${escapeHtml(g.gazdinstvo)}</b><br><span class="cell-sub">${VRSTA_LABEL[g.vrsta] || ''}</span></td>
+          <td><b>${escapeHtml(nazivGazdinstva(g))}</b><br><span class="cell-sub">${VRSTA_LABEL[g.vrsta] || ''}</span></td>
           <td>${escapeHtml(g.vlasnik)}${g.telefon ? '<br><span class="cell-sub"><a href="tel:' + escapeHtml(g.telefon.replace(/\s+/g, '')) + '">' + escapeHtml(g.telefon) + '</a></span>' : ''}</td>
           <td>${adresaHtml(g, escapeHtml(g.grad) + (punaAdresa(g) ? '<br><span class="cell-sub">' + escapeHtml(punaAdresa(g)) + '</span>' : ''))}</td>
           <td class="actions"><button class="small secondary" onclick="otvoriGazdinstvo('${g.id}')">Otvori</button></td>
