@@ -9,7 +9,10 @@
  * izvezen iz Google Sheets zna dobiti generičke nazive "Table 1/2/3") —
  * uloga lista se prepozna po SADRŽAJU zaglavlja kad naziv ne pomogne, isto
  * kao u web aplikaciji. Kolone se prepoznaju po nazivu u zaglavlju, ne po
- * fiksnoj poziciji.
+ * fiksnoj poziciji. Radi i kad je u oba lista unesena samo markica (bez
+ * ijedne druge kolone) — a ako markica uopšte nema prepoznatljiv naziv u
+ * zaglavlju, kao zadnji pokušaj se spoje kolone B i C (npr. "BA" +
+ * "42329525" -> "BA42329525").
  *
  * Meni "Markice" > "Uporedi / osvježi" upiše rezultat u novi/postojeći list
  * "Uporedba markica": rekap sa statistikom (broj grla, broj i postotak
@@ -35,6 +38,8 @@ var NAZIV_IZLAZNOG_LISTA = 'Uporedba markica';
 
 var SPEC_STANJE = [
   { key: 'markica', kw: ['markic', 'identifikacij'] },
+  { key: 'drzava', kw: ['drzava'] },
+  { key: 'broj', kw: ['identifikacij'] },
   { key: 'vrsta', kw: ['vrsta'] },
   { key: 'pol', kw: ['pol', 'spol'] },
   { key: 'rb', kw: ['redni broj', 'rbr', 'r.br', 'rb'] }
@@ -156,7 +161,13 @@ function pronadjiListove_(ss) {
       var pogodak = pogodiVrstuLista_(header);
       if (pogodak === 'podaci' && !listPodaci) listPodaci = sh;
       else if (pogodak === 'vak' && !listVak) listVak = sh;
-      else if (pogodak === 'stanje' && !listStanje) listStanje = sh;
+      else if (pogodak === 'markica') {
+        // Nema kolone bolesti pa se ne može sigurno reći je li ovo Stanje ili
+        // Vakcinisano (npr. kad se u oba lista unosi samo markica) — dodijeli
+        // slobodnom mjestu, prvo Stanje pa Vakcinisano.
+        if (!listStanje) listStanje = sh;
+        else if (!listVak) listVak = sh;
+      }
     }
   }
 
@@ -180,13 +191,17 @@ function izgledaKaoPodaci_(headerRow) {
 
 // Pogađa ulogu lista po SADRŽAJU zaglavlja — koristi se kad naziv lista ne
 // pomogne (npr. fajl izvezen iz Google Sheets kao generičko "Table 1/2/3").
+// Vraća 'podaci', 'vak' (markica + bar jedna kolona bolesti), 'markica'
+// (ima markicu ali NIJEDNU kolonu bolesti — dvosmisleno, može biti i Stanje
+// i Vakcinisano ako fajl uopšte nema kolonu bolesti, npr. kad se u oba lista
+// unosi samo markica) ili null (nema ni markicu).
 function pogodiVrstuLista_(headerRow) {
   if (izgledaKaoPodaci_(headerRow)) return 'podaci';
   var osnovno = pronadjiKolone_(headerRow, SPEC_VAK_OSNOVNO);
   var bolesti = pronadjiKolone_(headerRow, BOLESTI);
   var imaMarkicu = osnovno.markica !== undefined || osnovno.broj !== undefined;
   if (!imaMarkicu) return null;
-  return Object.keys(bolesti).length ? 'vak' : 'stanje';
+  return Object.keys(bolesti).length ? 'vak' : 'markica';
 }
 
 // ---------- prepoznavanje kolona (po nazivu u zaglavlju, ne po poziciji) ----------
@@ -240,6 +255,22 @@ function redImaSadrzaj_(red) {
   return false;
 }
 
+// Markica se čita po prepoznatom nazivu kolone (markica, ili država+broj u
+// dvije kolone). Ako ništa nije prepoznato po zaglavlju (fajl bez
+// prepoznatljivih naziva, ili gdje je unesena samo markica bez ijedne druge
+// kolone), kao zadnji pokušaj se spoje kolone B i C — stvarni fajlovi znaju
+// imati markicu razdvojenu u dvije kolone bez ikakvog opisnog zaglavlja,
+// npr. "BA" + "42329525" -> "BA42329525".
+function procitajSirovuMarkicu_(kolone, red) {
+  if (kolone.markica !== undefined) return red[kolone.markica];
+  if (kolone.drzava !== undefined || kolone.broj !== undefined) {
+    var drzava = kolone.drzava !== undefined ? red[kolone.drzava] : '';
+    var broj = kolone.broj !== undefined ? red[kolone.broj] : '';
+    return String(drzava || '') + String(broj || '');
+  }
+  return String(red[1] || '') + String(red[2] || '');
+}
+
 // Redni broj iz kolone "Rb"/"Redni broj" u listu Stanje, ako postoji — da se
 // grlo lakše pronađe na originalnoj Potvrdi o stanju (ti brojevi znaju biti
 // preneseni s fizičkog obrasca, npr. nastavljati se 381, 382... a ne kretati
@@ -291,7 +322,7 @@ function procitajStanje_(sheet) {
   var kolone = pronadjiKolone_(podaci[0], SPEC_STANJE);
   for (var i = 1; i < podaci.length; i++) {
     var red = podaci[i];
-    var sirovaMarkica = kolone.markica !== undefined ? red[kolone.markica] : '';
+    var sirovaMarkica = procitajSirovuMarkicu_(kolone, red);
     var markice = izvuciMarkice_(sirovaMarkica);
     if (!markice.length) { if (redImaSadrzaj_(red)) preskoceno++; continue; }
     var markica = markice[0];
@@ -322,14 +353,7 @@ function procitajVakcinisano_(sheet) {
   var boljeKolone = pronadjiKolone_(header, BOLESTI);
   for (var i = 1; i < podaci.length; i++) {
     var red = podaci[i];
-    var sirovaMarkica;
-    if (kolone.markica !== undefined) {
-      sirovaMarkica = red[kolone.markica];
-    } else {
-      var drzava = kolone.drzava !== undefined ? red[kolone.drzava] : '';
-      var broj = kolone.broj !== undefined ? red[kolone.broj] : '';
-      sirovaMarkica = String(drzava || '') + String(broj || '');
-    }
+    var sirovaMarkica = procitajSirovuMarkicu_(kolone, red);
     var markice = izvuciMarkice_(sirovaMarkica);
     if (!markice.length) { if (redImaSadrzaj_(red)) preskoceno++; continue; }
     var markica = markice[0];
