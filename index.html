@@ -254,6 +254,7 @@
   .actions-main{display:flex;justify-content:center;gap:12px;margin:22px 0 30px;flex-wrap:wrap;}
 
   .summary{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px;}
+  .summary.cols-4{grid-template-columns:repeat(4,1fr);}
   @media (max-width:600px){ .summary{grid-template-columns:1fr;} }
   .stat{
     border:1px solid var(--line);
@@ -268,6 +269,8 @@
   .stat.match .n{color:var(--green);}
   .stat.mismatch{border-color:var(--red-line);}
   .stat.mismatch .n{color:var(--red);}
+  .stat.amber{border-color:var(--gold-line);}
+  .stat.amber .n{color:var(--gold);}
   .stat .l{
     font-family:'Helvetica Neue',Arial,sans-serif;
     font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;
@@ -297,6 +300,18 @@
   .pg-redovi-tabela input.pg-bolest{min-width:44px;text-align:center;}
   .pg-redovi-tabela select{min-width:52px;}
   .pg-redovi-tabela td{padding:4px 6px;}
+  /* Ovi spiskovi mogu imati i par stotina redova (uvoz iz Excela) — umjesto da
+     cijela stranica skrola sa dugačkom tabelom, sama tabela dobija ograničenu
+     visinu i sopstveni skrol, sa zaglavljem zalijepljenim za VRH TOG okvira
+     (position:sticky prema stranici ovdje ne bi radio jer overflow-x:auto na
+     .table-wrap ionako čini roditelja skrol-kontejnerom i po Y osi — bolje
+     to iskoristiti namjerno nego zaobilaziti). */
+  .pg-redovi-tabela{max-height:65vh;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+  /* Samo th sa position:sticky (bez thead) ne radi pouzdano u Chromiumu —
+     mora i thead i th da imaju position:sticky da bi zaglavlje zaista
+     ostalo na vrhu dok se tijelo tabele skrola. */
+  .pg-redovi-tabela thead{position:sticky;top:0;}
+  .pg-redovi-tabela thead th{position:sticky;top:0;z-index:5;background:var(--paper-raised);}
 
   /* ---------- signature element: literal ear-tag chips with punch hole ---------- */
   .tag{
@@ -1451,7 +1466,7 @@
 // Jedino mjesto gdje se broj verzije mijenja — prikazuje se u topbaru,
 // na prijavi i u Postavkama, i mora biti usklađen sa CACHE_NAME u sw.js
 // (nova verzija = novi CACHE_NAME = preglednik povuče svježe fajlove).
-const APP_VERZIJA = '1.32';
+const APP_VERZIJA = '1.33';
 for(const id of ['verzijaTopbar', 'verzijaLogin', 'verzijaPostavke']){
   const el = document.getElementById(id);
   if(el) el.textContent = 'v' + APP_VERZIJA;
@@ -1717,6 +1732,15 @@ function pgIzaberi(id){
     info.textContent = '';
     return;
   }
+  // Ponovni klik na VEĆ izabrano gazdinstvo (npr. odmah poslije uvoza iz
+  // Excela) ne smije poništiti radnu tabelu koja možda još nije sačuvana kao
+  // potvrda — samo ostaje u prikazu.
+  if(id === pgOdabranoId){
+    sadrzaj.hidden = false;
+    sadrzaj.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    return;
+  }
+
   pgOdabranoId = g.id;
   sadrzaj.hidden = false;
   info.textContent = 'Izabrano: ' + nazivGazdinstva(g) + (g.gazdinstvo ? ' (' + g.vlasnik + ')' : '');
@@ -2064,6 +2088,36 @@ function pgPogodiVrstuLista(zaglavljeRed){
   return Object.keys(bolesti).length ? 'vak' : 'roster';
 }
 
+// Kreira novo gazdinstvo (uvijek farma) iz podataka pronađenih u listu
+// Podaci — koristi se kad Excel/Google Sheets uvoz ne pronađe postojeće
+// gazdinstvo po šifri imanja ili vlasniku. "Adresa i mjesto" se dijeli na
+// zadnjoj zarezi (npr. "Mutnik, Cazin" -> adresa "Mutnik", grad "Cazin").
+function pgKreirajGazdinstvoIzPodataka(vlasnik, sifraImanja, adresaMjesto){
+  let grad = '', adresa = '';
+  if(adresaMjesto){
+    const idx = adresaMjesto.lastIndexOf(',');
+    if(idx === -1) grad = adresaMjesto;
+    else{ adresa = adresaMjesto.slice(0, idx).trim(); grad = adresaMjesto.slice(idx + 1).trim(); }
+  }
+  const sada = new Date().toISOString();
+  const ko = trenutniKorisnik ? trenutniKorisnik.ime : 'nepoznat';
+  const unos = {
+    id: 'g' + Date.now() + Math.random().toString(36).slice(2, 7),
+    lat: null, lng: null, rucnoPomjeren: false,
+    kreiraoIme: ko, kreirano: sada, izmijenioIme: ko, izmijenjeno: sada,
+    vrsta: 'farma', gazdinstvo: '', vlasnik, telefon: '',
+    grad, adresa, adresaBroj: '', idGazdinstva: sifraImanja || '',
+    stoka: [], posjete: [], danIducePosjete: '', napomena: '',
+    fotografije: [], potvrde: [], dodatna: []
+  };
+  const list = loadGazdinstva();
+  list.push(unos);
+  saveGazdinstva(list);
+  zabiljezi('dodao', 'gazdinstvo', nazivGazdinstva(unos), 'Kreirano iz Excel uvoza u tabu Markice: ' + [unos.vlasnik, unos.grad].filter(Boolean).join(', '));
+  renderDnevnik();
+  return unos.id;
+}
+
 // Zajednička obrada za oba izvora (uploadovan .xlsx fajl ili preuzet Google
 // Sheets export) — vidi pgUvezKompletanExcel/pgUvezIzGoogleSheetsLinka.
 async function pgUvezKompletanExcelBuffer(buffer, izvorNaziv, status){
@@ -2099,16 +2153,18 @@ async function pgUvezKompletanExcelBuffer(buffer, izvorNaziv, status){
       }
     }
 
-    let vlasnikIzFajla = '', sifraIzFajla = '';
+    let vlasnikIzFajla = '', sifraIzFajla = '', adresaMjestoIzFajla = '';
     if(listPodaci){
       const redovi = await celijeZaList(listPodaci);
       for(const r of redovi){
         const kljuc = pgOcistiTekst(r.A);
         if(!vlasnikIzFajla && (kljuc.includes('vlasnik') || kljuc.includes('drzalac'))) vlasnikIzFajla = (r.B || '').trim();
         if(!sifraIzFajla && kljuc.includes('sifra imanja')) sifraIzFajla = (r.B || '').trim();
+        if(!adresaMjestoIzFajla && kljuc.includes('adresa') && kljuc.includes('mjesto')) adresaMjestoIzFajla = (r.B || '').trim();
       }
     }
 
+    let novoGazdinstvoPoruka = '';
     if(!pgOdabranoId){
       const farme = loadGazdinstva().filter(g => g.vrsta === 'farma');
       let poklapanja = sifraIzFajla
@@ -2123,8 +2179,13 @@ async function pgUvezKompletanExcelBuffer(buffer, izvorNaziv, status){
         status.textContent = 'Prvo izaberi gazdinstvo (u fajlu nije prepoznat list sa vlasnikom/šifrom imanja da bi se samo pronašlo).';
         return;
       }else if(!poklapanja.length){
-        status.textContent = 'Vlasnik/šifra "' + (vlasnikIzFajla || sifraIzFajla) + '" iz fajla nije pronađen ni u jednom gazdinstvu. Prvo ga dodaj u tabu Gazdinstva, pa ponovo uvezi fajl.';
-        return;
+        if(!vlasnikIzFajla){
+          status.textContent = 'Šifra imanja "' + sifraIzFajla + '" iz fajla nije pronađena ni u jednom gazdinstvu, a fajl nema ime vlasnika da bi se novo gazdinstvo moglo kreirati. Prvo ga dodaj u tabu Gazdinstva, pa ponovo uvezi fajl.';
+          return;
+        }
+        const noviId = pgKreirajGazdinstvoIzPodataka(vlasnikIzFajla, sifraIzFajla, adresaMjestoIzFajla);
+        pgIzaberi(noviId);
+        novoGazdinstvoPoruka = 'Novo gazdinstvo kreirano iz fajla (vlasnik: ' + vlasnikIzFajla + '). ';
       }else{
         status.textContent = 'Više gazdinstava odgovara "' + (vlasnikIzFajla || sifraIzFajla) + '" — izaberi ručno iz tabele iznad, pa ponovo uvezi fajl.';
         return;
@@ -2182,7 +2243,8 @@ async function pgUvezKompletanExcelBuffer(buffer, izvorNaziv, status){
     pgRenderRedove('roster');
     pgRenderRedove('vak');
     pgRenderTagovi();
-    status.textContent = (vlasnikIzFajla ? 'Vlasnik u fajlu: ' + vlasnikIzFajla + '. ' : '')
+    status.textContent = novoGazdinstvoPoruka
+      + (!novoGazdinstvoPoruka && vlasnikIzFajla ? 'Vlasnik u fajlu: ' + vlasnikIzFajla + '. ' : '')
       + 'Učitano iz ' + izvorNaziv + ': ' + poruke.join(', ') + '.';
 }
 
@@ -2193,16 +2255,30 @@ function pgUporedi(){
   // grupa za markice koje su vakcinisane ali nisu upisane ni na jednom
   // grlu u spisku (mogući višak/greška u unosu).
   pgRenderTagovi();
-  const rosterSet = new Set(pgOznakeIzRedova(pgRosterRedovi));
-  const vakcinisano = pgOznakeIzRedova(pgVakRedovi);
-  const nijeUSpisku = vakcinisano.filter(x => !rosterSet.has(x)).sort();
+  const roster = pgOznakeIzRedova(pgRosterRedovi);
+  const rosterSet = new Set(roster);
+  const vakSet = new Set(pgOznakeIzRedova(pgVakRedovi));
+  const nijeUSpisku = [...vakSet].filter(x => !rosterSet.has(x)).sort();
+  const podudara = roster.filter(x => vakSet.has(x));
+  const nijeVakcinisano = roster.filter(x => !vakSet.has(x)).sort();
+  const postotak = roster.length ? Math.round(podudara.length / roster.length * 100) : 0;
 
   const tagsHtml = (arr, cls) => arr.length
     ? arr.map(x => `<span class="tag ${cls}">${escapeHtml(x)}</span>`).join('')
     : '<span style="font-family:Helvetica Neue,Arial,sans-serif;font-size:12px;color:var(--ink-soft);">— nema —</span>';
 
   document.getElementById('pgRezultati').innerHTML = `
+    <div class="summary cols-4">
+      <div class="stat"><div class="n">${roster.length}</div><div class="l">Grla na spisku</div></div>
+      <div class="stat match"><div class="n">${podudara.length}${roster.length ? ' (' + postotak + '%)' : ''}</div><div class="l">Vakcinisano</div></div>
+      <div class="stat mismatch"><div class="n">${nijeVakcinisano.length}</div><div class="l">Nije vakcinisano</div></div>
+      <div class="stat amber"><div class="n">${nijeUSpisku.length}</div><div class="l">Vakcinisano, van spiska</div></div>
+    </div>
     <div class="results">
+      <h3>Nije vakcinisano <span>${nijeVakcinisano.length}</span></h3>
+      <div class="grid-tags">${tagsHtml(nijeVakcinisano,'red')}</div>
+    </div>
+    <div class="results" style="margin-top:14px;">
       <h3>Vakcinisano, van spiska grla <span>${nijeUSpisku.length}</span></h3>
       <div class="grid-tags">${tagsHtml(nijeUSpisku,'amber')}</div>
     </div>
