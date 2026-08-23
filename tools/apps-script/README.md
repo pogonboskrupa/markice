@@ -42,6 +42,12 @@ osvježi, ako već postoji) list **Uporedba markica** sa:
   "BA" + brojevi) — taj red se preskoči i broji, isto kao kod uvoza u web
   aplikaciju.
 
+List je oblikovan u istoj paleti boja i fontovima kao web aplikacija (tamni
+"ink" naslov sa zlatnom trakom ispod, kartice sa statistikom u boji, list
+dobija i zlatnu boju jezička) — mrežne linije su sakrivene i zamijenjene
+vlastitim ivicama, zaglavlje tabele i prva kolona (Markica) ostaju
+zamrznuti dok se skrola kroz duži spisak.
+
 Pokreni ponovo kad god se Stanje ili Vakcinisano promijene — list "Uporedba
 markica" se svaki put potpuno osvježi (staro se briše i piše iznova), pa je
 sigurno pokretati koliko god puta treba.

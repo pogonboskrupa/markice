@@ -46,19 +46,29 @@ var BOLESTI = [
   { key: 'antraks', naziv: 'Antrax', kw: ['antraks', 'anthrax'] }
 ];
 
+// Ista paleta i fontovi kao web aplikacija (CSS custom properties u
+// index.html) — da list u Sheetsu vizuelno pripada istom "papir i tinta"
+// identitetu, ne izgleda kao gola sirova tabela.
 var BOJE = {
-  zelenaBg: '#e3f0e3', zelenaFg: '#2e6b2e',
-  crvenaBg: '#f5ddd6', crvenaFg: '#b23a2e',
-  zutaBg: '#fbf0d8', zutaFg: '#8a6516',
-  sivaBg: '#f4f1ea', sivaFg: '#6b6355',
-  zaglavljeBg: '#3a3f2e', zaglavljeFg: '#ffffff'
+  paper: '#f7f3e8', paperRaised: '#fffdf7', paperDim: '#efe7d2',
+  ink: '#1f2a1f', inkSoft: '#5b6b52',
+  line: '#c9c0a0', lineStrong: '#9c9270',
+  zelenaBg: '#dcead9', zelenaFg: '#2e6b3e', zelenaLine: '#a9cba3',
+  crvenaBg: '#f5ddd6', crvenaFg: '#b23a2e', crvenaLine: '#e1b6ac',
+  zutaBg: '#f7ecd6', zutaFg: '#8a6516', zutaLine: '#e0c68f',
+  gold: '#c8912f'
 };
+var FONT_NASLOV = 'Georgia';
+var FONT_TEKST = 'Arial';
+var FONT_KOD = 'Courier New';
 
 // ---------- meni ----------
 
 function onOpen() {
+  // Apps Script meni ne podržava sliku kao ikonicu — emoji ispred naziva je
+  // uobičajen način da meni u traci ipak dobije prepoznatljivu ikonicu.
   SpreadsheetApp.getUi()
-    .createMenu('Markice')
+    .createMenu('🏷️ Markice')
     .addItem('Uporedi / osvježi "Uporedba markica"', 'uporediMarkice')
     .addToUi();
 }
@@ -336,89 +346,117 @@ function upisiRezultat_(ss, listovi, podaci, rezultat, stanjeMapa, vakMapa, pres
   if (sheet) {
     sheet.clear();
     sheet.clearFormats();
+    var postojeciFilter = sheet.getFilter();
+    if (postojeciFilter) postojeciFilter.remove();
   } else {
     sheet = ss.insertSheet(NAZIV_IZLAZNOG_LISTA);
   }
 
   var brojKolona = 4 + BOLESTI.length; // Markica, Status, Pol, Vrsta + 5 bolesti
-  sheet.setColumnWidths(1, brojKolona, 130);
-  sheet.setColumnWidth(1, 150);
-  sheet.setColumnWidth(2, 150);
-  sheet.setColumnWidth(3, 60);
-  sheet.setColumnWidth(4, 110);
 
+  // Gola tabela sa zadanim Sheets linijama izgleda kao sirovi izvještaj —
+  // sakrivena mreža + vlastite ivice/pozadine daju izgled "papir i tinta"
+  // dizajna aplikacije umjesto gole tabele.
+  sheet.setHiddenGridlines(true);
+  try { sheet.setTabColor(BOJE.gold); } catch (e) { /* starije Sheets API verzije bez tab boje */ }
+
+  sheet.setColumnWidth(1, 150);
+  sheet.setColumnWidth(2, 210);
+  sheet.setColumnWidth(3, 55);
+  sheet.setColumnWidth(4, 115);
+  for (var c = 5; c <= brojKolona; c++) sheet.setColumnWidth(c, 120);
+
+  // ---- banner naslova (puna širina, ink pozadina) ----
   var naslov = 'Uporedba markica' + (podaci.vlasnik ? ' — ' + podaci.vlasnik : '');
-  sheet.getRange(1, 1).setValue(naslov).setFontSize(16).setFontWeight('bold');
+  sheet.getRange(1, 1, 1, brojKolona).merge()
+    .setValue(naslov).setBackground(BOJE.ink).setFontColor(BOJE.paper)
+    .setFontFamily(FONT_NASLOV).setFontSize(18).setFontWeight('bold')
+    .setVerticalAlignment('middle').setHorizontalAlignment('left');
+  sheet.setRowHeight(1, 40);
 
   var podnaslovDijelovi = [];
   if (podaci.sifraImanja) podnaslovDijelovi.push('Šifra imanja: ' + podaci.sifraImanja);
   if (podaci.adresaMjesto) podnaslovDijelovi.push(podaci.adresaMjesto);
   podnaslovDijelovi.push('Generisano: ' + Utilities.formatDate(new Date(), Session.getScriptTimeZone() || 'Europe/Sarajevo', 'dd.MM.yyyy. HH:mm'));
-  sheet.getRange(2, 1).setValue(podnaslovDijelovi.join('   ·   ')).setFontColor(BOJE.sivaFg).setFontSize(10);
+  sheet.getRange(2, 1, 1, brojKolona).merge()
+    .setValue(podnaslovDijelovi.join('   ·   ')).setBackground(BOJE.paperDim).setFontColor(BOJE.inkSoft)
+    .setFontFamily(FONT_TEKST).setFontSize(10).setVerticalAlignment('middle');
+  sheet.setRowHeight(2, 22);
 
-  // ---- rekap sa statistikom (4 kartice) ----
-  var statLabele = ['Grla na spisku', 'Vakcinisano', 'Nije vakcinisano', 'Vakcinisano, van spiska'];
-  var statVrijednosti = [
-    rezultat.roster.length,
-    rezultat.podudara.length + (rezultat.roster.length ? ' (' + rezultat.postotak + '%)' : ''),
-    rezultat.nijeVakcinisano.length,
-    rezultat.nijeUSpisku.length
-  ];
-  var redLabela = 4, redVrijednosti = 5;
-  sheet.getRange(redLabela, 1, 1, 4).setValues([statLabele])
-    .setFontWeight('bold').setFontSize(9).setHorizontalAlignment('center').setWrap(true);
-  sheet.getRange(redVrijednosti, 1, 1, 4).setValues([statVrijednosti])
-    .setFontSize(18).setFontWeight('bold').setHorizontalAlignment('center');
-  sheet.setRowHeight(redLabela, 30);
-  sheet.setRowHeight(redVrijednosti, 34);
+  // tanka zlatna traka — isti akcent kao ispod topbar-a u aplikaciji
+  sheet.getRange(3, 1, 1, brojKolona).merge().setBackground(BOJE.gold);
+  sheet.setRowHeight(3, 4);
 
+  // ---- rekap sa statistikom (4 kartice, po 2 kolone) ----
   var kartice = [
-    { kol: 1, bg: BOJE.sivaBg, fg: '#1f2a1f' },
-    { kol: 2, bg: BOJE.zelenaBg, fg: BOJE.zelenaFg },
-    { kol: 3, bg: BOJE.crvenaBg, fg: BOJE.crvenaFg },
-    { kol: 4, bg: BOJE.zutaBg, fg: BOJE.zutaFg }
+    { naziv: 'Grla na spisku', vrijednost: rezultat.roster.length, bg: BOJE.paperRaised, fg: BOJE.ink, linija: BOJE.lineStrong },
+    { naziv: 'Vakcinisano', vrijednost: rezultat.podudara.length + (rezultat.roster.length ? ' (' + rezultat.postotak + '%)' : ''), bg: BOJE.zelenaBg, fg: BOJE.zelenaFg, linija: BOJE.zelenaLine },
+    { naziv: 'Nije vakcinisano', vrijednost: rezultat.nijeVakcinisano.length, bg: BOJE.crvenaBg, fg: BOJE.crvenaFg, linija: BOJE.crvenaLine },
+    { naziv: 'Vakcinisano, van spiska', vrijednost: rezultat.nijeUSpisku.length, bg: BOJE.zutaBg, fg: BOJE.zutaFg, linija: BOJE.zutaLine }
   ];
-  kartice.forEach(function (k) {
-    var opseg = sheet.getRange(redLabela, k.kol, 2, 1);
-    opseg.setBackground(k.bg);
-    sheet.getRange(redVrijednosti, k.kol).setFontColor(k.fg);
+  var redLabela = 5, redVrijednosti = 6;
+  sheet.setRowHeight(redLabela, 22);
+  sheet.setRowHeight(redVrijednosti, 38);
+  kartice.forEach(function (k, idx) {
+    var kolStart = idx * 2 + 1;
+    var labelOpseg = sheet.getRange(redLabela, kolStart, 1, 2).merge();
+    labelOpseg.setValue(k.naziv).setBackground(k.bg).setFontColor(k.fg)
+      .setFontFamily(FONT_TEKST).setFontSize(9).setFontWeight('bold')
+      .setHorizontalAlignment('center').setVerticalAlignment('middle');
+    var vrijednostOpseg = sheet.getRange(redVrijednosti, kolStart, 1, 2).merge();
+    vrijednostOpseg.setValue(k.vrijednost).setBackground(k.bg).setFontColor(k.fg)
+      .setFontFamily(FONT_NASLOV).setFontSize(20).setFontWeight('bold')
+      .setHorizontalAlignment('center').setVerticalAlignment('middle');
+    sheet.getRange(redLabela, kolStart, 2, 2)
+      .setBorder(true, true, true, true, false, false, k.linija, SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
   });
 
-  var sljedeciRed = redVrijednosti + 2;
+  var sljedeciRed = redVrijednosti + 1;
+  sheet.getRange(sljedeciRed, 1, 1, brojKolona).merge()
+    .setValue('🟢 vakcinisano   🔴 nije vakcinisano   🟡 vakcinisano, ali nije na spisku grla (moguća greška u unosu)')
+    .setFontFamily(FONT_TEKST).setFontSize(9).setFontStyle('italic').setFontColor(BOJE.inkSoft)
+    .setVerticalAlignment('middle');
+  sheet.setRowHeight(sljedeciRed, 20);
+  sljedeciRed += 1;
 
   var ukupnoPreskoceno = preskocenoStanje + preskocenoVak;
   if (ukupnoPreskoceno > 0) {
-    var poruka = ukupnoPreskoceno + ' red(ova) preskočeno — markica nije prepoznata ' +
+    var poruka = '⚠ ' + ukupnoPreskoceno + ' red(ova) preskočeno — markica nije prepoznata ' +
       '(očekuje se "BA" + brojevi), provjeri format u originalnom fajlu.';
-    sheet.getRange(sljedeciRed, 1).setValue('⚠ ' + poruka)
-      .setFontColor(BOJE.crvenaFg).setFontStyle('italic').setFontSize(10);
-    sljedeciRed += 2;
+    sheet.getRange(sljedeciRed, 1, 1, brojKolona).merge()
+      .setValue(poruka).setFontFamily(FONT_TEKST).setFontColor(BOJE.crvenaFg)
+      .setFontStyle('italic').setFontSize(10).setVerticalAlignment('middle');
+    sljedeciRed += 1;
   }
+
+  sljedeciRed += 1;
 
   var zaglavljeTabele = ['Markica', 'Status', 'Pol', 'Vrsta'].concat(BOLESTI.map(function (b) { return b.naziv; }));
 
   if (!rezultat.roster.length && !rezultat.nijeUSpisku.length) {
     sheet.getRange(sljedeciRed, 1).setValue('Nema podataka za prikaz — provjeri da listovi Stanje/Vakcinisano imaju popunjene redove.')
-      .setFontStyle('italic').setFontColor(BOJE.sivaFg);
+      .setFontFamily(FONT_TEKST).setFontStyle('italic').setFontColor(BOJE.inkSoft);
     sheet.setFrozenRows(3);
     return;
   }
 
-  sljedeciRed = upisiTabeluMarkica_(
+  var glavnaTabela = upisiTabeluMarkica_(
     sheet, sljedeciRed, 'Spisak grla (' + rezultat.roster.length + ')',
     zaglavljeTabele, rezultat.roster, stanjeMapa, vakMapa, true
   );
+  sljedeciRed = glavnaTabela.sljedeciRed;
 
   if (rezultat.nijeUSpisku.length) {
     sljedeciRed += 1;
-    sljedeciRed = upisiTabeluMarkica_(
+    upisiTabeluMarkica_(
       sheet, sljedeciRed,
       'Vakcinisano, van spiska grla (' + rezultat.nijeUSpisku.length + ') — nije na spisku grla, moguća greška u unosu',
       zaglavljeTabele, rezultat.nijeUSpisku, stanjeMapa, vakMapa, false
     );
   }
 
-  sheet.setFrozenRows(3);
+  sheet.setFrozenRows(glavnaTabela.zaglavljeRed);
+  sheet.setFrozenColumns(1);
 }
 
 // Ispisuje naslov sekcije + tabelu markica počevši od zadanog reda, vraća
@@ -426,19 +464,27 @@ function upisiRezultat_(ss, listovi, podaci, rezultat, stanjeMapa, vakMapa, pres
 // prema tome jesu li vakcinisane (spisak grla) ili se sve boje žuto
 // (spisak "van spiska", gdje je sama pojava na listi već anomalija).
 function upisiTabeluMarkica_(sheet, red, naslovSekcije, zaglavlje, markiceLista, stanjeMapa, vakMapa, jeRoster) {
-  sheet.getRange(red, 1).setValue(naslovSekcije).setFontWeight('bold').setFontSize(11);
+  var brojKolona = zaglavlje.length;
+
+  sheet.getRange(red, 1, 1, brojKolona).merge()
+    .setValue(naslovSekcije).setFontFamily(FONT_NASLOV).setFontColor(BOJE.ink)
+    .setFontWeight('bold').setFontSize(12);
+  sheet.setRowHeight(red, 24);
   red += 1;
 
-  sheet.getRange(red, 1, 1, zaglavlje.length).setValues([zaglavlje])
-    .setFontWeight('bold').setFontColor(BOJE.zaglavljeFg).setBackground(BOJE.zaglavljeBg);
+  sheet.getRange(red, 1, 1, brojKolona).setValues([zaglavlje])
+    .setFontFamily(FONT_TEKST).setFontWeight('bold').setFontColor(BOJE.paper).setBackground(BOJE.ink)
+    .setWrap(true).setVerticalAlignment('middle').setHorizontalAlignment('center');
+  sheet.getRange(red, 1).setHorizontalAlignment('left');
   var zaglavljeRed = red;
+  sheet.setRowHeight(zaglavljeRed, 32);
   red += 1;
 
   var redovi = markiceLista.map(function (markica) {
     var vakInfo = vakMapa[markica];
     var stanjeInfo = stanjeMapa[markica];
     var vakcinisano = !!vakInfo;
-    var status = vakcinisano ? 'Vakcinisano ✓' : 'Nije vakcinisano';
+    var status = !jeRoster ? '🟡 Vakcinisano, van spiska' : (vakcinisano ? '🟢 Vakcinisano' : '🔴 Nije vakcinisano');
     var izvor = stanjeInfo || vakInfo || {};
     var bolestiVrijednosti = BOLESTI.map(function (b) {
       return vakInfo && vakInfo.bolesti ? (vakInfo.bolesti[b.key] || '') : '';
@@ -450,25 +496,30 @@ function upisiTabeluMarkica_(sheet, red, naslovSekcije, zaglavlje, markiceLista,
   });
 
   if (redovi.length) {
-    sheet.getRange(red, 1, redovi.length, zaglavlje.length)
-      .setValues(redovi.map(function (r) { return r.red; }));
+    sheet.getRange(red, 1, redovi.length, brojKolona)
+      .setValues(redovi.map(function (r) { return r.red; }))
+      .setFontFamily(FONT_TEKST).setVerticalAlignment('middle');
 
     for (var i = 0; i < redovi.length; i++) {
-      var opseg = sheet.getRange(red + i, 1, 1, zaglavlje.length);
-      if (!jeRoster) {
-        opseg.setBackground(BOJE.zutaBg).setFontColor(BOJE.zutaFg);
-      } else if (redovi[i].vakcinisano) {
-        opseg.setBackground(BOJE.zelenaBg).setFontColor(BOJE.zelenaFg);
-      } else {
-        opseg.setBackground(BOJE.crvenaBg).setFontColor(BOJE.crvenaFg);
-      }
+      var boje = !jeRoster ? { bg: BOJE.zutaBg, fg: BOJE.zutaFg } :
+        (redovi[i].vakcinisano ? { bg: BOJE.zelenaBg, fg: BOJE.zelenaFg } : { bg: BOJE.crvenaBg, fg: BOJE.crvenaFg });
+      var cijeliRed = sheet.getRange(red + i, 1, 1, brojKolona);
+      cijeliRed.setBackground(BOJE.paperRaised);
+      sheet.getRange(red + i, 1).setFontFamily(FONT_KOD).setFontWeight('bold').setFontColor(BOJE.ink);
+      sheet.getRange(red + i, 2).setBackground(boje.bg).setFontColor(boje.fg).setFontWeight('bold');
+      sheet.setRowHeight(red + i, 21);
     }
   } else {
-    sheet.getRange(red, 1).setValue('— nema —').setFontStyle('italic').setFontColor(BOJE.sivaFg);
+    sheet.getRange(red, 1).setValue('— nema —').setFontFamily(FONT_TEKST).setFontStyle('italic').setFontColor(BOJE.inkSoft);
   }
 
   var brojRedova = Math.max(redovi.length, 1);
-  sheet.getRange(zaglavljeRed, 1, brojRedova + 1, zaglavlje.length).setBorder(true, true, true, true, true, true, '#cfc9b8', SpreadsheetApp.BorderStyle.SOLID);
+  var cijelaTabela = sheet.getRange(zaglavljeRed, 1, brojRedova + 1, brojKolona);
+  cijelaTabela.setBorder(true, true, true, true, false, false, BOJE.lineStrong, SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
+  sheet.getRange(zaglavljeRed + 1, 1, brojRedova, brojKolona)
+    .setBorder(false, false, false, false, false, true, BOJE.line, SpreadsheetApp.BorderStyle.SOLID);
+  sheet.getRange(zaglavljeRed, 2, brojRedova + 1, 1)
+    .setBorder(false, true, false, true, false, false, BOJE.lineStrong, SpreadsheetApp.BorderStyle.SOLID);
 
-  return zaglavljeRed + brojRedova + 1;
+  return { sljedeciRed: zaglavljeRed + brojRedova + 1, zaglavljeRed: zaglavljeRed };
 }
