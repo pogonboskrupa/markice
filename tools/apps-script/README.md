@@ -81,6 +81,19 @@ Pokreni ponovo kad god se Stanje ili Vakcinisano promijene — list "Uporedba
 markica" se svaki put potpuno osvježi (staro se briše i piše iznova), pa je
 sigurno pokretati koliko god puta treba.
 
+## Starost u mjesecima
+
+Meni **Markice → "Izračunaj starost u mjesecima (kolona H)"** — na listu
+Stanje (Potvrda o stanju) upiše, u kolonu **H**, starost svakog grla u
+mjesecima, izračunatu od datuma rođenja (kolona sa "rođenja" u zaglavlju, npr.
+"Datum rođenja") do datuma koji sam izabereš kad te skripta pita (prazno =
+današnji datum). Starost je zaokružena na najbliži cijeli mjesec. Zaglavlje u
+H1 pokazuje na koji je datum starost izračunata (npr. "Starost (mjeseci) na
+dan 04.05.2026."), pa se odmah vidi na koji dan trenutne vrijednosti važe.
+Redovi bez prepoznatog datuma rođenja se preskoče i broje u poruci po
+završetku, ostaju prazni u koloni H. List se svaki put ponovo prepiše u
+koloni H, pa je sigurno pokretati opet sa drugim datumom.
+
 ## Prepoznavanje listova i kolona
 
 Isto kao u web aplikaciji: listovi se prvo pokušaju prepoznati po **nazivu**

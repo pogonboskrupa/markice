@@ -34,6 +34,10 @@
  * nevakcinisani brojevi grupisani u nizove (npr. "4–57, 78–134") umjesto
  * pojedinačnog čitanja svakog reda.
  *
+ * Drugi meni "Izračunaj starost u mjesecima (kolona H)" upiše, na listu
+ * Stanje, starost svakog grla u mjesecima (zaokruženo) od datuma rođenja do
+ * datuma koji korisnik izabere kad ga skripta pita (prazno = danas).
+ *
  * Instalacija: Extensions/Proširenja → Apps Script u ovom Google Sheets
  * fajlu, prekopiraj ovaj fajl kao Code.gs (ili dodaj kao novi .gs fajl),
  * sačuvaj, osvježi list — u meniju se pojavi "Markice". Detalji u
@@ -46,7 +50,8 @@ var SPEC_STANJE = [
   { key: 'markica', kw: ['markic', 'identifikacij'] },
   { key: 'vrsta', kw: ['vrsta'] },
   { key: 'pol', kw: ['pol', 'spol'] },
-  { key: 'rb', kw: ['redni broj', 'rbr', 'r.br', 'rb'] }
+  { key: 'rb', kw: ['redni broj', 'rbr', 'r.br', 'rb'] },
+  { key: 'datumRodjenja', kw: ['rođenja', 'rodjenja'] }
 ];
 var SPEC_VAK_OSNOVNO = [
   { key: 'drzava', kw: ['drzava'] },
@@ -87,6 +92,7 @@ function onOpen() {
   SpreadsheetApp.getUi()
     .createMenu('🏷️ Markice')
     .addItem('Uporedi / osvježi "Uporedba markica"', 'uporediMarkice')
+    .addItem('Izračunaj starost u mjesecima (kolona H)', 'izracunajStarostUMjesecima')
     .addToUi();
 }
 
@@ -737,4 +743,89 @@ function upisiTabeluMarkica_(sheet, red, naslovSekcije, zaglavlje, markiceLista,
   }
 
   return { sljedeciRed: zaglavljeRed + brojRedova + 1, zaglavljeRed: zaglavljeRed };
+}
+
+// ---------- starost u mjesecima (na izabrani datum) ----------
+
+// Prosječan broj dana u mjesecu (365.2425 / 12) — koristi se za zaokruživanje
+// starosti u mjesecima na cijeli broj.
+var PROSJECNIH_DANA_U_MJESECU = 30.4368;
+
+// Traži i upisuje na listu Stanje (Potvrda o stanju), u kolonu H, starost u
+// mjesecima za svako grlo — izračunatu od datuma rođenja (kolona sa nazivom
+// koji sadrži "rođenja") do datuma koji korisnik unese kad ga skripta pita
+// (prazno = danas). Starost je zaokružena na najbliži cijeli mjesec. List se
+// svaki put ponovo prepiše (staro se poništi), pa je sigurno pokretati opet
+// sa drugim datumom.
+function izracunajStarostUMjesecima() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var ui = SpreadsheetApp.getUi();
+  try {
+    var listovi = pronadjiListove_(ss);
+    var sheet = listovi.stanje;
+    if (!sheet) {
+      prikaziPoruku_('Nije prepoznat list Stanje', 'Nije prepoznat list sa spiskom grla (Stanje/Potvrda o stanju) — provjeri naziv ili zaglavlje lista.');
+      return;
+    }
+
+    var odgovor = ui.prompt(
+      'Starost u mjesecima',
+      'Do kog datuma se računa starost? (npr. 04.05.2026) — ostavi prazno za današnji datum.',
+      ui.ButtonSet.OK_CANCEL
+    );
+    if (odgovor.getSelectedButton() !== ui.Button.OK) return;
+    var uneseno = odgovor.getResponseText().trim();
+    var referentniDatum = uneseno ? parsirajDatum_(uneseno) : new Date();
+    if (!referentniDatum) {
+      prikaziPoruku_('Neispravan datum', 'Datum "' + uneseno + '" nije prepoznat. Očekivan format: dd.mm.gggg (npr. 04.05.2026).');
+      return;
+    }
+
+    var lastRow = sheet.getLastRow(), lastCol = sheet.getLastColumn();
+    if (lastRow < 2 || lastCol < 1) return;
+    var header = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+    var kolone = pronadjiKolone_(header, SPEC_STANJE);
+    if (kolone.datumRodjenja === undefined) {
+      prikaziPoruku_('Nije prepoznata kolona', 'Na listu "' + sheet.getName() + '" nije prepoznata kolona sa datumom rođenja (zaglavlje treba sadržavati "rođenja", npr. "Datum rođenja").');
+      return;
+    }
+
+    var podaci = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
+    var kolonaUpisa = 8; // kolona H
+    var upisano = 0, preskoceno = 0;
+    var rezultati = podaci.map(function (red) {
+      var datumRodjenja = parsirajDatum_(red[kolone.datumRodjenja]);
+      if (!datumRodjenja) { preskoceno++; return ['']; }
+      upisano++;
+      var dana = (referentniDatum - datumRodjenja) / 86400000;
+      return [Math.round(dana / PROSJECNIH_DANA_U_MJESECU)];
+    });
+    sheet.getRange(2, kolonaUpisa, rezultati.length, 1).setValues(rezultati);
+    var natpisDatuma = Utilities.formatDate(referentniDatum, Session.getScriptTimeZone(), 'dd.MM.yyyy.');
+    sheet.getRange(1, kolonaUpisa).setValue('Starost (mjeseci) na dan ' + natpisDatuma);
+
+    prikaziPoruku_(
+      'Gotovo',
+      'Upisana starost u mjesecima (kolona H) na dan ' + natpisDatuma + ' za ' + upisano + ' grla' +
+      (preskoceno ? ' (' + preskoceno + ' redova preskočeno — nema prepoznatog datuma rođenja).' : '.')
+    );
+  } catch (e) {
+    prikaziPoruku_('Greška', 'Izračun starosti nije uspio: ' + e.message);
+    throw e;
+  }
+}
+
+// Prihvata i pravi Date objekat (ćelija formatirana kao datum) i tekst u
+// formatu dd.mm.gggg (uobičajen u ovim obrascima) ili gggg-mm-dd, uz opšti
+// pokušaj preko Date parsera kao zadnju opciju. Vraća null ako ništa ne uspije.
+function parsirajDatum_(vrijednost) {
+  if (vrijednost instanceof Date) return isNaN(vrijednost.getTime()) ? null : vrijednost;
+  var tekst = String(vrijednost === null || vrijednost === undefined ? '' : vrijednost).trim();
+  if (!tekst) return null;
+  var m = tekst.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})\.?$/);
+  if (m) return new Date(parseInt(m[3], 10), parseInt(m[2], 10) - 1, parseInt(m[1], 10));
+  m = tekst.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if (m) return new Date(parseInt(m[1], 10), parseInt(m[2], 10) - 1, parseInt(m[3], 10));
+  var d = new Date(tekst);
+  return isNaN(d.getTime()) ? null : d;
 }
