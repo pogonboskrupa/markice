@@ -90,31 +90,12 @@ Radi i kad je u oba lista unesena **samo markica**, bez ijedne druge kolone
 Stanje a koji Vakcinisano) — takva dva lista se dodijele različitim ulogama
 umjesto da oba budu pogrešno prepoznata kao isto.
 
-Na listu **Vakcinisano** (npr. "Vakcinisana Grla") — ako markica uopšte nema
-prepoznatljiv naziv u zaglavlju (fajl bez opisnih naslova kolona), kao
-zadnji pokušaj se spoje kolone **B i C** direktno po poziciji (npr. "BA" +
-"42329525" → "BA42329525").
-
-### Trajno spajanje kolona Država + Identifikacijski broj (list Vakcinisano)
-
-Ako list Vakcinisano ima Državu i Identifikacijski broj trajno u dvije
-odvojene kolone (npr. "Vakcinisana Grla": B = Država, C = Identifikacijski
-broj životinje), skripta ih prije svakog poređenja **sama trajno spoji**:
-
-- u kolonu **B** upiše spojenu vrijednost (npr. "BA" + "4200571206" →
-  "BA4200571206"), a njeno zaglavlje preimenuje u **"Markica"**,
-- kolonu **C** (sad suvišnu) **obriše**, pa se sve kolone poslije nje (Spol,
-  Vrsta, Bruceloza i ostale) pomjere jedno mjesto ulijevo.
-
-Ovo je stvarna, trajna izmjena samog lista (ne samo privremeno čitanje za
-potrebe poređenja) — otvori list Vakcinisano poslije pokretanja i vidjećeš
-da je kolona B već spojena i preimenovana, a stara kolona C je nestala.
-Bezbjedno je pokretati skriptu ponovo koliko god puta treba: poslije prvog
-spajanja list više nema zaglavlje "Država" pa se ništa dalje ne mijenja
-(no-op). Ovo čini fajl pogodnim i za ponovnu upotrebu kao **šablon za druge
-vlasnike** — obriši postojeće podatke, upiši nove (u istom rasporedu:
-Država u B, Identifikacijski broj u C) i pokreni skriptu da dobiješ
-poređenje.
+Na listu **Vakcinisano** (npr. "Vakcinisana Grla") — ako je Država i
+Identifikacijski broj u dvije odvojene kolone (bilo po prepoznatljivom
+zaglavlju, bilo direktno kolone **B i C** po poziciji kad zaglavlje uopšte
+nije opisno), one se spoje samo **"u prolazu"**, isključivo za potrebe tog
+poređenja (npr. "BA" + "42329525" → "BA42329525") — sam list se pritom **ne
+mijenja**, raspored kolona ostaje kakav jeste i poslije pokretanja skripte.
 
 ## Napomena
 

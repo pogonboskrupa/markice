@@ -11,15 +11,11 @@
  * kao u web aplikaciji. Kolone se prepoznaju po nazivu u zaglavlju, ne po
  * fiksnoj poziciji. Radi i kad je u oba lista unesena samo markica (bez
  * ijedne druge kolone). Na listu Vakcinisano (npr. "Vakcinisana Grla") — ako
- * markica uopšte nema prepoznatljiv naziv u zaglavlju, kao zadnji pokušaj se
- * spoje kolone B i C (npr. "BA" + "42329525" -> "BA42329525"). Ako je na tom
- * listu Država (B) i Identifikacijski broj (C) trajno u dvije odvojene
- * kolone, skripta ih PRIJE svakog poređenja i sama trajno spoji u kolonu B
- * (zaglavlje postane "Markica"), obriše sad-suvišnu kolonu C i sve poslije
- * nje pomjeri ulijevo — bezbjedno se ponavlja iz pokretanja u pokretanje
- * (poslije prvog spajanja više nema "Država" zaglavlja pa se ništa dalje ne
- * dešava), pa je fajl pogodan i kao šablon za druge vlasnike (obriši stare
- * podatke, upiši nove u istom rasporedu, pokreni skriptu).
+ * je Država i Identifikacijski broj u dvije odvojene kolone (B i C), ili ako
+ * markica uopšte nema prepoznatljiv naziv u zaglavlju, te dvije kolone se
+ * spoje "u prolazu" samo za potrebe poređenja (npr. "BA" + "42329525" ->
+ * "BA42329525") — sam list se pritom NE mijenja, izvorni raspored kolona
+ * ostaje netaknut.
  *
  * Meni "Markice" > "Uporedi / osvježi" upiše rezultat u novi/postojeći list
  * "Uporedba markica": rekap sa statistikom (broj grla, broj i postotak
@@ -109,8 +105,6 @@ function uporediMarkice() {
       );
       return;
     }
-
-    spojiDrzavuIBroj_(listovi.vak);
 
     var podaci = procitajPodatke_(listovi.podaci);
     var stanje = procitajStanje_(listovi.stanje);
@@ -350,35 +344,6 @@ function procitajStanje_(sheet) {
     }
   }
   return { mapa: mapa, preskoceno: preskoceno, redovi: redovi };
-}
-
-// Kad list Vakcinisano ima Državu i Identifikacijski broj u dvije odvojene
-// kolone (npr. "Vakcinisana Grla": B = Država, C = Identifikacijski broj),
-// ovo ih TRAJNO spoji u jednu kolonu na mjestu Države (npr. "BA" +
-// "4200571206" -> "BA4200571206"), zaglavlje preimenuje u "Markica" i obriše
-// sad-suvišnu kolonu — sve poslije nje se pomjeri ulijevo. Bezbjedno se
-// pokreće više puta (npr. svaki put uz "Uporedi / osvježi") — poslije prvog
-// spajanja kolona "Država" više ne postoji pa se ništa dalje ne dešava, što
-// ovo čini pogodnim i za fajl koji se ponovo koristi kao šablon za druge
-// vlasnike (obriši stare podatke, upiši nove, pokreni skriptu).
-function spojiDrzavuIBroj_(sheet) {
-  if (!sheet) return;
-  var lastRow = sheet.getLastRow(), lastCol = sheet.getLastColumn();
-  if (lastRow < 2 || lastCol < 1) return;
-  var header = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
-  var kolone = pronadjiKolone_(header, SPEC_VAK_OSNOVNO);
-  if (kolone.drzava === undefined || kolone.broj === undefined) return;
-
-  var drzavaKol = kolone.drzava + 1; // Sheets kolone su 1-indeksirane
-  var brojKol = kolone.broj + 1;
-
-  var podaci = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
-  var spojeneVrijednosti = podaci.map(function (red) {
-    return [String(red[kolone.drzava] || '') + String(red[kolone.broj] || '')];
-  });
-  sheet.getRange(2, drzavaKol, spojeneVrijednosti.length, 1).setValues(spojeneVrijednosti);
-  sheet.getRange(1, drzavaKol).setValue('Markica');
-  sheet.deleteColumn(brojKol);
 }
 
 // Vraća {mapa: {markica: {pol, vrsta, bolesti:{...}}}, preskoceno}. Markica
