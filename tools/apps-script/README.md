@@ -88,7 +88,9 @@ isto kao jedna te ista.
 Radi i kad je u oba lista unesena **samo markica**, bez ijedne druge kolone
 (nema Pol/Vrsta/bolesti da bi se po sadržaju zaglavlja pogodilo koji je list
 Stanje a koji Vakcinisano) — takva dva lista se dodijele različitim ulogama
-umjesto da oba budu pogrešno prepoznata kao isto. Ako markica uopšte nema
+umjesto da oba budu pogrešno prepoznata kao isto.
+
+Na listu **Vakcinisano** (npr. "Vakcinisana Grla") — ako markica uopšte nema
 prepoznatljiv naziv u zaglavlju (fajl bez opisnih naslova kolona), kao
 zadnji pokušaj se spoje kolone **B i C** direktno po poziciji (npr. "BA" +
 "42329525" → "BA42329525").

@@ -10,9 +10,9 @@
  * uloga lista se prepozna po SADRŽAJU zaglavlja kad naziv ne pomogne, isto
  * kao u web aplikaciji. Kolone se prepoznaju po nazivu u zaglavlju, ne po
  * fiksnoj poziciji. Radi i kad je u oba lista unesena samo markica (bez
- * ijedne druge kolone) — a ako markica uopšte nema prepoznatljiv naziv u
- * zaglavlju, kao zadnji pokušaj se spoje kolone B i C (npr. "BA" +
- * "42329525" -> "BA42329525").
+ * ijedne druge kolone). Na listu Vakcinisano (npr. "Vakcinisana Grla") — ako
+ * markica uopšte nema prepoznatljiv naziv u zaglavlju, kao zadnji pokušaj se
+ * spoje kolone B i C (npr. "BA" + "42329525" -> "BA42329525").
  *
  * Meni "Markice" > "Uporedi / osvježi" upiše rezultat u novi/postojeći list
  * "Uporedba markica": rekap sa statistikom (broj grla, broj i postotak
@@ -38,8 +38,6 @@ var NAZIV_IZLAZNOG_LISTA = 'Uporedba markica';
 
 var SPEC_STANJE = [
   { key: 'markica', kw: ['markic', 'identifikacij'] },
-  { key: 'drzava', kw: ['drzava'] },
-  { key: 'broj', kw: ['identifikacij'] },
   { key: 'vrsta', kw: ['vrsta'] },
   { key: 'pol', kw: ['pol', 'spol'] },
   { key: 'rb', kw: ['redni broj', 'rbr', 'r.br', 'rb'] }
@@ -255,12 +253,12 @@ function redImaSadrzaj_(red) {
   return false;
 }
 
-// Markica se čita po prepoznatom nazivu kolone (markica, ili država+broj u
-// dvije kolone). Ako ništa nije prepoznato po zaglavlju (fajl bez
-// prepoznatljivih naziva, ili gdje je unesena samo markica bez ijedne druge
-// kolone), kao zadnji pokušaj se spoje kolone B i C — stvarni fajlovi znaju
-// imati markicu razdvojenu u dvije kolone bez ikakvog opisnog zaglavlja,
-// npr. "BA" + "42329525" -> "BA42329525".
+// Koristi se samo za list Vakcinisano (npr. "Vakcinisana Grla") — markica se
+// čita po prepoznatom nazivu kolone, ili država+broj u dvije kolone. Ako
+// ništa nije prepoznato po zaglavlju (fajl bez opisnih naziva), kao zadnji
+// pokušaj se spoje kolone B i C direktno po poziciji — stvarni fajlovi
+// veterinarskih stanica znaju imati markicu razdvojenu ovako, bez ikakvog
+// prepoznatljivog zaglavlja, npr. "BA" + "42329525" -> "BA42329525".
 function procitajSirovuMarkicu_(kolone, red) {
   if (kolone.markica !== undefined) return red[kolone.markica];
   if (kolone.drzava !== undefined || kolone.broj !== undefined) {
@@ -322,7 +320,7 @@ function procitajStanje_(sheet) {
   var kolone = pronadjiKolone_(podaci[0], SPEC_STANJE);
   for (var i = 1; i < podaci.length; i++) {
     var red = podaci[i];
-    var sirovaMarkica = procitajSirovuMarkicu_(kolone, red);
+    var sirovaMarkica = kolone.markica !== undefined ? red[kolone.markica] : '';
     var markice = izvuciMarkice_(sirovaMarkica);
     if (!markice.length) { if (redImaSadrzaj_(red)) preskoceno++; continue; }
     var markica = markice[0];
