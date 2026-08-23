@@ -313,6 +313,16 @@
   .pg-redovi-tabela thead{position:sticky;top:0;}
   .pg-redovi-tabela thead th{position:sticky;top:0;z-index:5;background:var(--paper-raised);}
 
+  /* Isti razlog kao gore — na mobitelu, "Pregled svih farmi" (kad ima puno
+     unosa) i poruka poslije uvoza (kad ima puno preskočenih redova) znaju
+     zauzeti veći dio ekrana nego sama tabela markica ispod njih; obje
+     dobijaju istu ogradu — ograničena visina, sopstveni skrol. */
+  #pgPregledSvihWrap{max-height:40vh;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+  #pgPregledSvihWrap thead{position:sticky;top:0;}
+  #pgPregledSvihWrap thead th{position:sticky;top:0;z-index:5;background:var(--paper-raised);}
+  #pgKompletanXlsxStatus{display:block;max-height:110px;overflow-y:auto;-webkit-overflow-scrolling:touch;margin-top:8px;line-height:1.4;}
+  #pgKompletanXlsxStatus:empty{display:none;}
+
   /* ---------- signature element: literal ear-tag chips with punch hole ---------- */
   .tag{
     position:relative;
@@ -1213,7 +1223,7 @@
       <h2>Pregled svih farmi</h2>
       <p class="hint">Klikni na Gazdinstvo ili Vlasnika da otvoriš poređenje njegovog spiska grla sa spiskom vakcinisanih od veterinara. Nova farma se dodaje u tabu Gazdinstva. Pčelari se ovdje ne prikazuju — markice su isključivo za grla, ne za košnice.</p>
       <input type="search" id="pgTabelaPretraga" placeholder="Pretraga" oninput="pgRenderTabela()">
-      <div class="table-wrap" style="margin-top:10px;">
+      <div id="pgPregledSvihWrap" class="table-wrap" style="margin-top:10px;">
         <table>
           <thead><tr><th>Gazdinstvo</th><th>Vlasnik</th><th>Grad</th><th>Grla</th><th>Zadnji popis vakcinisanih</th></tr></thead>
           <tbody id="pgTabelaBody"></tbody>
@@ -1466,7 +1476,7 @@
 // Jedino mjesto gdje se broj verzije mijenja — prikazuje se u topbaru,
 // na prijavi i u Postavkama, i mora biti usklađen sa CACHE_NAME u sw.js
 // (nova verzija = novi CACHE_NAME = preglednik povuče svježe fajlove).
-const APP_VERZIJA = '1.33';
+const APP_VERZIJA = '1.34';
 for(const id of ['verzijaTopbar', 'verzijaLogin', 'verzijaPostavke']){
   const el = document.getElementById(id);
   if(el) el.textContent = 'v' + APP_VERZIJA;

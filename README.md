@@ -99,6 +99,8 @@ Gazdinstvo može imati koliko god potvrda sve tri vrste (npr. iz različitih god
 ### Markice po gazdinstvu (tab Markice)
 Tab Markice radi isključivo poređenje **po gazdinstvu/vlasniku** — nema više poređenja "cijele oblasti" odjednom (ukinuto). Za odabranu farmu se porede **spisak grla na imanju** naspram **spiska vakcinisanih od veterinara**, oba u obliku tabele, red po red. **Markice su isključivo za farme** (ušne markice grla) — pčelari (košnice) se nigdje u tabu Markice ne uparuju sa markicama: ne pojavljuju se u pregledu, a brzi unos ne nudi izbor vrste (uvijek pravi farmu).
 
+Na mobitelu, i tabela "Pregled svih farmi" i poruka poslije uvoza (koja zna biti duga kad ima puno preskočenih redova) dobijaju ograničenu visinu sa sopstvenim skrolom — da ne guraju spiskove grla/vakcinisanih ispod predaleko niz ekran.
+
 1. Tab ima karticu **"Pregled svih farmi"**, tabela farmi s pretragom, gdje **klik na naziv Gazdinstva ili na Vlasnika** otvara poređenje za taj unos. Nova farma se dodaje isključivo u tabu **Gazdinstva** (polje "Gazdinstvo" tu je opciono — ako se ostavi prazno, svuda u aplikaciji se kao naziv prikazuje ime i prezime vlasnika).
 2. Oba spiska su **tabele sa kolonama Markica, Pol, Vrsta** (spisak vakcinisanih ima uz to i 5 kolona bolesti — vidi ispod) — redni broj se ne upisuje, uvijek se sam dodjeljuje po poziciji u tabeli. Svaki spisak ima svoja **dva podtaba** za popunjavanje, nezavisno jedan od drugog:
    - **Ručno** — tabela sa dugmetom "+ Dodaj red" za novi red; spisak grla se za pogodnost predpopuni markicama već upisanim u tabu Gazdinstva, ali ostaje slobodno izmjenjiv ovdje (ne piše se nazad automatski — za trajnu izmjenu službenog spiska stoke ide se preko "Otvori u Gazdinstva"),
