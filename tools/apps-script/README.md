@@ -44,6 +44,12 @@ osvježi, ako već postoji) list **Uporedba markica** sa:
   Ako list nema tu kolonu, koristi se prirodna pozicija reda umjesto nje; za
   grlo koje se pojavljuje samo u spisku vakcinisanih (van spiska), Rb
   ostaje prazan jer ga nema na listu Stanje.
+- **"Pregled po rasponima (Rb)"** — brz sažetak iznad detaljne tabele: brojevi
+  grla grupisani u nizove uzastopnih Rb sa istim statusom, npr. "🟢
+  Vakcinisano: 4–57, 78–134" i "🔴 Nije vakcinisano: 58–77". Raspon se
+  prekida čim se status promijeni ili se pojavi rupa u brojevima (npr.
+  preskočen/neispravan red) — ne treba čitati svaki red pojedinačno da bi se
+  vidjelo grubo stanje spiska.
 - **bojenjem samog lista Stanje (Potvrda o stanju)** — pozadina cijelog reda
   svakog grla na tom listu se oboji svijetlo zeleno ako je vakcinisano, ili
   svijetlo crveno ako nije (samo pozadina, tekst ostaje nepromijenjen; redovi

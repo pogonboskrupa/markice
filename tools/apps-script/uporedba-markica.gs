@@ -21,6 +21,9 @@
  * (svijetlo zeleno/crveno) se upiše i direktno na sam list Stanje (Potvrda
  * o stanju), na pozadinu cijelog reda svakog grla — bez potrebe da se
  * prebacuje na "Uporedba markica" da bi se vidjelo koje grlo nedostaje.
+ * Iznad detaljne tabele je i "Pregled po rasponima (Rb)" — vakcinisani i
+ * nevakcinisani brojevi grupisani u nizove (npr. "4–57, 78–134") umjesto
+ * pojedinačnog čitanja svakog reda.
  *
  * Instalacija: Extensions/Proširenja → Apps Script u ovom Google Sheets
  * fajlu, prekopiraj ovaj fajl kao Code.gs (ili dodaj kao novi .gs fajl),
@@ -357,6 +360,38 @@ function uporediRedneBrojeve_(a, b) {
   return String(a).localeCompare(String(b), 'bs');
 }
 
+function jeCistBroj_(s) {
+  return /^\d+$/.test(String(s === undefined || s === null ? '' : s).trim());
+}
+
+// Grupiše stavke (već sortirane po redniBroj) u nizove UZASTOPNIH brojeva sa
+// istim statusom vakcinacije — npr. umjesto 50 pojedinačnih redova, prikaz
+// "4–57, 78–134" odmah pokaže gdje su rupe (preskočeni/nepostojeći brojevi)
+// i gdje se status mijenja. Redni broj koji nije čist cijeli broj (rijetko,
+// npr. ručno dopisano "12a") ostaje svoj vlastiti raspon od jedne stavke.
+function grupisiURangeve_(stavke) {
+  var rasponi = [];
+  var trenutni = null;
+  stavke.forEach(function (s) {
+    var brojacki = jeCistBroj_(s.redniBroj);
+    var broj = brojacki ? parseInt(s.redniBroj, 10) : null;
+    if (trenutni && trenutni.vakcinisano === s.vakcinisano && trenutni.brojacki && brojacki && broj === trenutni.krajBroj + 1) {
+      trenutni.kraj = s.redniBroj;
+      trenutni.krajBroj = broj;
+    } else {
+      trenutni = { pocetak: s.redniBroj, kraj: s.redniBroj, krajBroj: broj, brojacki: brojacki, vakcinisano: s.vakcinisano };
+      rasponi.push(trenutni);
+    }
+  });
+  return rasponi;
+}
+
+function formatirajRaspone_(rasponi) {
+  return rasponi.map(function (r) {
+    return r.pocetak === r.kraj ? String(r.pocetak) : r.pocetak + '–' + r.kraj;
+  }).join(', ');
+}
+
 function izracunajUporedbu_(stanjeMapa, vakMapa) {
   // Spisak grla ide u istom redoslijedu kao na originalnoj Potvrdi o stanju
   // (po Rb), ne abecedno po markici — upravo zato Rb i postoji, da se lista
@@ -501,6 +536,43 @@ function upisiRezultat_(ss, listovi, podaci, rezultat, stanjeMapa, vakMapa, pres
   }
 
   sljedeciRed += 1;
+
+  // ---- pregled po rasponima (Rb) — "4–57, 78–134" umjesto čitanja svakog
+  // reda pojedinačno, korisno za brzo poređenje sa fizičkim/originalnim
+  // listom (koji broj do kojeg je urađen, gdje je rupa/promjena). ----
+  if (rezultat.roster.length) {
+    var stavkeZaRaspone = rezultat.roster.map(function (m) {
+      return { redniBroj: stanjeMapa[m].redniBroj, vakcinisano: !!vakMapa[m] };
+    });
+    var sviRasponi = grupisiURangeve_(stavkeZaRaspone);
+    var vakciniraniRasponi = formatirajRaspone_(sviRasponi.filter(function (r) { return r.vakcinisano; })) || '— nema —';
+    var nevakciniraniRasponi = formatirajRaspone_(sviRasponi.filter(function (r) { return !r.vakcinisano; })) || '— nema —';
+
+    sheet.getRange(sljedeciRed, 1, 1, brojKolona).merge()
+      .setValue('Pregled po rasponima (Rb)').setFontFamily(FONT_NASLOV).setFontColor(BOJE.ink)
+      .setFontWeight('bold').setFontSize(12);
+    sheet.setRowHeight(sljedeciRed, 24);
+    sljedeciRed += 1;
+
+    var raspRedovi = [
+      { oznaka: '🟢 Vakcinisano', tekst: vakciniraniRasponi, bg: BOJE.zelenaBg, fg: BOJE.zelenaFg },
+      { oznaka: '🔴 Nije vakcinisano', tekst: nevakciniraniRasponi, bg: BOJE.crvenaBg, fg: BOJE.crvenaFg }
+    ];
+    var prviRaspRed = sljedeciRed;
+    raspRedovi.forEach(function (rr) {
+      sheet.getRange(sljedeciRed, 1).setValue(rr.oznaka)
+        .setFontFamily(FONT_TEKST).setFontWeight('bold').setFontColor(rr.fg).setVerticalAlignment('middle');
+      sheet.getRange(sljedeciRed, 2, 1, brojKolona - 1).merge()
+        .setValue(rr.tekst).setFontFamily(FONT_TEKST).setFontColor(BOJE.ink).setWrap(true).setVerticalAlignment('middle');
+      sheet.getRange(sljedeciRed, 1, 1, brojKolona).setBackground(rr.bg);
+      sheet.setRowHeight(sljedeciRed, 32);
+      sljedeciRed += 1;
+    });
+    sheet.getRange(prviRaspRed, 1, 2, brojKolona)
+      .setBorder(true, true, true, true, false, true, BOJE.lineStrong, SpreadsheetApp.BorderStyle.SOLID);
+
+    sljedeciRed += 1;
+  }
 
   var zaglavljeTabele = ['Markica', 'Rb (Potvrda o stanju)', 'Status', 'Pol', 'Vrsta'].concat(BOLESTI.map(function (b) { return b.naziv; }));
 
