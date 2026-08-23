@@ -57,6 +57,13 @@ osvježi, ako već postoji) list **Uporedba markica** sa:
   "Uporedba markica" da bi se vidjelo koje grlo nedostaje — vidi se odmah na
   originalnom listu. Boji se iznova pri svakom pokretanju (staro bojenje se
   prvo poništi), pa prati trenutno stanje bez ostataka od prošlog pokretanja,
+- **bojenjem samog lista Vakcinisano** — pozadina cijelog reda se oboji
+  svijetlo žuto (ista boja kao status "vakcinisano, van spiska" u "Uporedba
+  markica") samo za grlo čija se markica NE nalazi na listu Stanje — moguća
+  greška u unosu (višak, pogrešno prepisana markica). Grla koja JESU na
+  Stanju ostaju bez boje, tako da se pažnja odmah usmjeri na ono što treba
+  provjeriti, direktno na listu gdje je i upisano. Boji se iznova pri svakom
+  pokretanju,
 - upozorenjem ako neki red ima markicu u neprepoznatom obliku (očekuje se
   "BA" + brojevi) — taj red se preskoči i broji, isto kao kod uvoza u web
   aplikaciju.

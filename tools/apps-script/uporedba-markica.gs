@@ -27,7 +27,10 @@
  * (svijetlo zeleno/crveno) se upiše i direktno na sam list Stanje (Potvrda
  * o stanju), na pozadinu cijelog reda svakog grla — bez potrebe da se
  * prebacuje na "Uporedba markica" da bi se vidjelo koje grlo nedostaje.
- * Iznad detaljne tabele je i "Pregled po rasponima (Rb)" — vakcinisani i
+ * Isto tako, na samom listu Vakcinisano se svijetlo žuto oboji svako grlo
+ * čija se markica NE nalazi na listu Stanje (moguća greška u unosu) — lakše
+ * ga je uočiti direktno tamo gdje je i upisano. Iznad detaljne tabele je i
+ * "Pregled po rasponima (Rb)" — vakcinisani i
  * nevakcinisani brojevi grupisani u nizove (npr. "4–57, 78–134") umjesto
  * pojedinačnog čitanja svakog reda.
  *
@@ -113,6 +116,7 @@ function uporediMarkice() {
 
     upisiRezultat_(ss, listovi, podaci, rezultat, stanje.mapa, vak.mapa, stanje.preskoceno, vak.preskoceno);
     oznaciListStanja_(listovi.stanje, stanje.redovi, vak.mapa);
+    oznaciListVakcinisanih_(listovi.vak, vak.redovi, stanje.mapa);
 
     var izlazniList = ss.getSheetByName(NAZIV_IZLAZNOG_LISTA);
     ss.setActiveSheet(izlazniList);
@@ -123,7 +127,8 @@ function uporediMarkice() {
       'Gotovo',
       'Upisano u list "' + NAZIV_IZLAZNOG_LISTA + '": ' + rezultat.roster.length + ' grla na spisku, ' +
       rezultat.podudara.length + ' vakcinisano (' + rezultat.postotak + '%).' +
-      (listovi.stanje ? ' List "' + listovi.stanje.getName() + '" je i sam obojen po istom statusu (zeleno/crveno).' : '')
+      (listovi.stanje ? ' List "' + listovi.stanje.getName() + '" je i sam obojen po istom statusu (zeleno/crveno).' : '') +
+      (listovi.vak && rezultat.nijeUSpisku.length ? ' Na listu "' + listovi.vak.getName() + '" su žuto označena ' + rezultat.nijeUSpisku.length + ' grla koja nisu na spisku Stanje (provjeri grešku).' : '')
     );
   } catch (e) {
     prikaziPoruku_('Greška', 'Uporedba nije uspjela: ' + e.message);
@@ -346,15 +351,19 @@ function procitajStanje_(sheet) {
   return { mapa: mapa, preskoceno: preskoceno, redovi: redovi };
 }
 
-// Vraća {mapa: {markica: {pol, vrsta, bolesti:{...}}}, preskoceno}. Markica
-// zapisana u dvije kolone (Država + broj, npr. "BA" + "4200571206") se
-// spaja prije prepoznavanja, kao i u web aplikaciji.
+// Vraća {mapa: {markica: {pol, vrsta, bolesti:{...}}}, preskoceno, redovi}.
+// Markica zapisana u dvije kolone (Država + broj, npr. "BA" + "4200571206")
+// se spaja prije prepoznavanja, kao i u web aplikaciji. `redovi` je spisak
+// SVIH uspješno pročitanih redova ({redSaLista, markica}), koji koristi
+// oznaciListVakcinisanih_ da oboji list po redovima (ne samo po jedinstvenoj
+// markici u mapi).
 function procitajVakcinisano_(sheet) {
   var mapa = {};
   var preskoceno = 0;
-  if (!sheet) return { mapa: mapa, preskoceno: preskoceno };
+  var redovi = [];
+  if (!sheet) return { mapa: mapa, preskoceno: preskoceno, redovi: redovi };
   var lastRow = sheet.getLastRow(), lastCol = sheet.getLastColumn();
-  if (lastRow < 2 || lastCol < 1) return { mapa: mapa, preskoceno: preskoceno };
+  if (lastRow < 2 || lastCol < 1) return { mapa: mapa, preskoceno: preskoceno, redovi: redovi };
   var podaci = sheet.getRange(1, 1, lastRow, lastCol).getValues();
   var header = podaci[0];
   var kolone = pronadjiKolone_(header, SPEC_VAK_OSNOVNO);
@@ -365,6 +374,7 @@ function procitajVakcinisano_(sheet) {
     var markice = izvuciMarkice_(sirovaMarkica);
     if (!markice.length) { if (redImaSadrzaj_(red)) preskoceno++; continue; }
     var markica = markice[0];
+    redovi.push({ redSaLista: i + 1, markica: markica });
     if (!mapa[markica]) {
       var bolesti = {};
       for (var b = 0; b < BOLESTI.length; b++) {
@@ -378,7 +388,7 @@ function procitajVakcinisano_(sheet) {
       };
     }
   }
-  return { mapa: mapa, preskoceno: preskoceno };
+  return { mapa: mapa, preskoceno: preskoceno, redovi: redovi };
 }
 
 // ---------- poređenje ----------
@@ -463,6 +473,25 @@ function oznaciListStanja_(sheet, redovi, vakMapa) {
   redovi.forEach(function (r) {
     var boja = vakMapa[r.markica] ? BOJE.zelenaBg : BOJE.crvenaBg;
     sheet.getRange(r.redSaLista, 1, 1, lastCol).setBackground(boja);
+  });
+}
+
+// Oboji direktno sam list Vakcinisano — svijetlo žuto (ista boja kao status
+// "vakcinisano, van spiska" u "Uporedba markica") samo za grla koja SU
+// vakcinisana ali se njihova markica NE nalazi na listu Stanje — moguća
+// greška u unosu (višak, pogrešno prepisana markica, grlo koje stvarno
+// nedostaje sa spiska). Grla čija markica JESTE na Stanju nisu greška, pa
+// ostaju bez boje — samo se ističe ono što treba provjeriti. Boji se samo
+// pozadina, i iznova pri svakom pokretanju (staro bojenje se prvo poništi).
+function oznaciListVakcinisanih_(sheet, redovi, stanjeMapa) {
+  if (!sheet) return;
+  var lastRow = sheet.getLastRow(), lastCol = sheet.getLastColumn();
+  if (lastRow < 2 || lastCol < 1) return;
+  sheet.getRange(2, 1, lastRow - 1, lastCol).setBackground(null);
+  redovi.forEach(function (r) {
+    if (!stanjeMapa[r.markica]) {
+      sheet.getRange(r.redSaLista, 1, 1, lastCol).setBackground(BOJE.zutaBg);
+    }
   });
 }
 
