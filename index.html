@@ -1238,7 +1238,7 @@
           </div>
 
           <div id="pgRosterOcr" class="postavke-sekcija" style="margin-top:10px;">
-            <p class="hint">Dodaj sliku potvrde — čita se OCR-om, potpuno lokalno, i dodaje prepoznate markice kao nove redove.</p>
+            <p class="hint">Dodaj sliku potvrde — čita se OCR-om, potpuno lokalno, i dodaje prepoznate markice kao nove redove, sa pokušajem prepoznavanja pola i vrste iz istog reda na slici (provjeri prije poređenja).</p>
             <input type="file" id="pgRosterSlikaInput" accept="image/*" onchange="pgOcrURed('roster', event)">
             <div class="row-actions">
               <button type="button" class="small secondary" onclick="document.getElementById('pgRosterSlikaInput').click()">+ Slika (OCR)</button>
@@ -1271,7 +1271,7 @@
           </div>
 
           <div id="pgVakOcr" class="postavke-sekcija" style="margin-top:10px;">
-            <p class="hint">Dodaj sliku potvrde — čita se OCR-om, dodaje prepoznate markice kao nove redove (pol/vrsta/bolesti se dopunjuju ručno).</p>
+            <p class="hint">Dodaj sliku potvrde — čita se OCR-om, dodaje prepoznate markice kao nove redove sa pokušajem prepoznavanja pola i bolesti (ako slika pominje samo jednu od 5 bolesti); vrsta i ostale bolesti se dopunjuju ručno.</p>
             <input type="file" id="pgVakSlikaInput" accept="image/*" onchange="pgOcrURed('vak', event)">
             <div class="row-actions">
               <button type="button" class="small secondary" onclick="document.getElementById('pgVakSlikaInput').click()">+ Slika (OCR)</button>
@@ -1446,7 +1446,7 @@
 // Jedino mjesto gdje se broj verzije mijenja — prikazuje se u topbaru,
 // na prijavi i u Postavkama, i mora biti usklađen sa CACHE_NAME u sw.js
 // (nova verzija = novi CACHE_NAME = preglednik povuče svježe fajlove).
-const APP_VERZIJA = '1.30';
+const APP_VERZIJA = '1.31';
 for(const id of ['verzijaTopbar', 'verzijaLogin', 'verzijaPostavke']){
   const el = document.getElementById(id);
   if(el) el.textContent = 'v' + APP_VERZIJA;
@@ -1861,24 +1861,63 @@ async function pgOcrURed(cilj, event){
     const worker = await dobaviTesseractWorker();
     const rezultat = await worker.recognize(dataUrl);
     const tekst = rezultat.data.text || '';
-    const brojImanja = tekst.match(/\bBA\d{10,15}\b/);
-    let lista = normalize(tekst);
-    if(brojImanja) lista = lista.filter(x => x !== brojImanja[0]);
+    const brojImanjaMatch = tekst.match(/\bBA\d{10,15}\b/);
+    const brojImanja = brojImanjaMatch ? brojImanjaMatch[0] : null;
+
+    // Ako slika pominje TAČNO JEDNU od 5 poznatih bolesti (najčešći slučaj —
+    // potvrda za jednu vakcinaciju, ne cijeli obrazac sa svih 5), ta bolest
+    // se dodijeli redovima gdje se u istom redu OCR-a nađe samostalno "V"
+    // (izvršena mjera) — inače (više ili nijedna bolest prepoznata) bolesti
+    // se ostavljaju prazne, popunjavaju se ručno.
+    let jedinaBolest = null;
+    if(cilj === 'vak'){
+      const cistCijeliTekst = pgOcistiTekst(tekst);
+      const nadjene = PG_BOLESTI_KEYWORDS.filter(b => b.kw.some(k => cistCijeliTekst.includes(k)));
+      if(nadjene.length === 1) jedinaBolest = nadjene[0].key;
+    }
+
     const niz = pgNiz(cilj);
-    for(const m of lista){
+    let dodano = 0;
+    for(const linija of tekst.split(/\r?\n/)){
+      const markiceUReda = normalize(linija).filter(x => x !== brojImanja);
+      if(!markiceUReda.length) continue;
       const red = pgPrazanRed(cilj);
-      red.markica = m;
+      red.markica = markiceUReda[0];
+      red.pol = pgProceniPolIzTeksta(linija);
+      if(cilj === 'roster') red.vrsta = pgProceniVrstuIzTeksta(linija);
+      if(cilj === 'vak' && jedinaBolest && /(^|[^a-zšđčćž])v([^a-zšđčćž]|$)/i.test(linija)) red[jedinaBolest] = 'V';
       niz.push(red);
+      dodano++;
     }
     pgRenderRedove(cilj);
     pgRenderTagovi();
-    status.textContent = lista.length
-      ? 'Dodano ' + lista.length + ' sa slike — provjeri spisak prije poređenja.'
+    status.textContent = dodano
+      ? 'Dodano ' + dodano + ' sa slike — pol/vrsta/bolest su procjena OCR-a, provjeri spisak prije poređenja.'
       : 'OCR nije prepoznao nijednu markicu na slici.';
   }catch(e){
     console.warn(e);
     status.textContent = 'OCR nije uspio, upiši spisak ručno.';
   }
+}
+
+// Traži samostalan token M/Ž/Z ili punu riječ Muško/Žensko u tekstu jednog
+// OCR reda (vidi pgNormalizujPol).
+function pgProceniPolIzTeksta(tekst){
+  for(const rijec of tekst.split(/[\s,;|_]+/)){
+    const pol = pgNormalizujPol(rijec);
+    if(pol) return pol;
+  }
+  return '';
+}
+
+// Traži poznatu vrstu stoke (isti popis kao u tabu Gazdinstva za farme —
+// STOKA_VRSTE.farma) bilo gdje u tekstu jednog OCR reda.
+function pgProceniVrstuIzTeksta(tekst){
+  const cist = pgOcistiTekst(tekst);
+  for(const v of STOKA_VRSTE.farma){
+    if(cist.includes(pgOcistiTekst(v))) return v;
+  }
+  return '';
 }
 
 // Prihvata i kratke oznake ("M"/"Ž"/"Z") i pune riječi ("Muško"/"Žensko") —
