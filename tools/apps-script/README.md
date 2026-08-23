@@ -95,6 +95,27 @@ prepoznatljiv naziv u zaglavlju (fajl bez opisnih naslova kolona), kao
 zadnji pokušaj se spoje kolone **B i C** direktno po poziciji (npr. "BA" +
 "42329525" → "BA42329525").
 
+### Trajno spajanje kolona Država + Identifikacijski broj (list Vakcinisano)
+
+Ako list Vakcinisano ima Državu i Identifikacijski broj trajno u dvije
+odvojene kolone (npr. "Vakcinisana Grla": B = Država, C = Identifikacijski
+broj životinje), skripta ih prije svakog poređenja **sama trajno spoji**:
+
+- u kolonu **B** upiše spojenu vrijednost (npr. "BA" + "4200571206" →
+  "BA4200571206"), a njeno zaglavlje preimenuje u **"Markica"**,
+- kolonu **C** (sad suvišnu) **obriše**, pa se sve kolone poslije nje (Spol,
+  Vrsta, Bruceloza i ostale) pomjere jedno mjesto ulijevo.
+
+Ovo je stvarna, trajna izmjena samog lista (ne samo privremeno čitanje za
+potrebe poređenja) — otvori list Vakcinisano poslije pokretanja i vidjećeš
+da je kolona B već spojena i preimenovana, a stara kolona C je nestala.
+Bezbjedno je pokretati skriptu ponovo koliko god puta treba: poslije prvog
+spajanja list više nema zaglavlje "Država" pa se ništa dalje ne mijenja
+(no-op). Ovo čini fajl pogodnim i za ponovnu upotrebu kao **šablon za druge
+vlasnike** — obriši postojeće podatke, upiši nove (u istom rasporedu:
+Država u B, Identifikacijski broj u C) i pokreni skriptu da dobiješ
+poređenje.
+
 ## Napomena
 
 Skripta radi isključivo unutar ovog Google Sheets fajla (Apps Script je
