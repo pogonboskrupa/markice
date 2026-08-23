@@ -1207,11 +1207,16 @@
     </div>
     <div class="card" style="margin-bottom:16px;">
       <h2>Uvezi kompletan Excel fajl</h2>
-      <p class="hint">Jedan fajl za jednog vlasnika, sa listovima <b>Podaci</b> (vlasnik, adresa, šifra imanja…), <b>Stanje</b> (spisak grla) i <b>Vakcinisano</b> (spisak od veterinarske stanice) — kolone se prepoznaju po nazivu u zaglavlju, ne po fiksnoj poziciji. Ako gazdinstvo još nije izabrano, pronalazi ga po šifri imanja ili vlasniku iz lista Podaci. Čita se na uređaju, ništa se ne šalje na internet.</p>
+      <p class="hint">Jedan fajl za jednog vlasnika, sa listovima <b>Podaci</b> (vlasnik, adresa, šifra imanja…), <b>Stanje</b> (spisak grla) i <b>Vakcinisano</b> (spisak od veterinarske stanice) — kolone se prepoznaju po nazivu u zaglavlju, ne po fiksnoj poziciji, a nazivi listova ne moraju biti tačni (radi i sa generičkim nazivima kao "Table 1/2/3"). Ako gazdinstvo još nije izabrano, pronalazi ga po šifri imanja ili vlasniku iz lista Podaci.</p>
       <input type="file" id="pgKompletanXlsxInput" accept=".xlsx" onchange="pgUvezKompletanExcel(event)">
       <div class="row-actions">
-        <button type="button" class="small secondary" onclick="document.getElementById('pgKompletanXlsxInput').click()">Uvezi iz Excela</button>
+        <button type="button" class="small secondary" onclick="document.getElementById('pgKompletanXlsxInput').click()">Uvezi Excel fajl (.xlsx)</button>
         <span class="count-pill" id="pgKompletanXlsxStatus"></span>
+      </div>
+      <p class="hint" style="margin-top:10px;">Ili zalijepi link na Google Sheets fajl (mora biti dijeljen kao "Svako ko ima link" — treba internet, za razliku od učitavanja .xlsx fajla koje radi potpuno na uređaju):</p>
+      <div class="row-actions">
+        <input type="url" id="pgGoogleSheetsUrl" placeholder="https://docs.google.com/spreadsheets/d/..." style="flex:1;min-width:220px;">
+        <button type="button" id="pgGoogleSheetsUvezi" class="small secondary" onclick="pgUvezIzGoogleSheetsLinka()">Uvezi link</button>
       </div>
     </div>
 
@@ -1446,7 +1451,7 @@
 // Jedino mjesto gdje se broj verzije mijenja — prikazuje se u topbaru,
 // na prijavi i u Postavkama, i mora biti usklađen sa CACHE_NAME u sw.js
 // (nova verzija = novi CACHE_NAME = preglednik povuče svježe fajlove).
-const APP_VERZIJA = '1.31';
+const APP_VERZIJA = '1.32';
 for(const id of ['verzijaTopbar', 'verzijaLogin', 'verzijaPostavke']){
   const el = document.getElementById(id);
   if(el) el.textContent = 'v' + APP_VERZIJA;
@@ -2001,18 +2006,102 @@ async function pgUvezKompletanExcel(event){
   }
   status.textContent = 'Učitavam iz ' + file.name + '...';
   try{
-    const zip = await readZipEntries(await file.arrayBuffer());
+    await pgUvezKompletanExcelBuffer(await file.arrayBuffer(), file.name, status);
+  }catch(e){
+    console.error(e);
+    status.textContent = 'Nije uspjelo čitanje fajla ' + file.name + '. Provjeri da je ispravan .xlsx dokument.';
+  }
+}
+
+function pgIzvuciGoogleSheetsId(url){
+  const m = (url || '').match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
+  return m ? m[1] : null;
+}
+
+// Google Sheets link se povuče kao .xlsx preko Googleovog export URL-a — radi
+// samo ako je list dijeljen kao "Svako ko ima link" (javno vidljiv); privatni
+// listovi zahtijevaju prijavu koju ovaj (potpuno klijentski) uvoz ne podržava.
+async function pgUvezIzGoogleSheetsLinka(){
+  const input = document.getElementById('pgGoogleSheetsUrl');
+  const status = document.getElementById('pgKompletanXlsxStatus');
+  const url = (input.value || '').trim();
+  if(!url) return;
+  const id = pgIzvuciGoogleSheetsId(url);
+  if(!id){
+    status.textContent = 'Ovo ne izgleda kao Google Sheets link (očekuje se .../spreadsheets/d/ID/...).';
+    return;
+  }
+  if(typeof DecompressionStream === 'undefined'){
+    status.textContent = 'Ovaj browser ne podržava direktno čitanje Excel fajla. Koristi noviju verziju Chrome/Edge/Safari, ili prekopiraj podatke ručno.';
+    return;
+  }
+  status.textContent = 'Preuzimam Google Sheets fajl...';
+  try{
+    const odgovor = await fetch('https://docs.google.com/spreadsheets/d/' + id + '/export?format=xlsx');
+    if(!odgovor.ok) throw new Error('http ' + odgovor.status);
+    const buffer = await odgovor.arrayBuffer();
+    input.value = '';
+    await pgUvezKompletanExcelBuffer(buffer, 'Google Sheets linka', status);
+  }catch(e){
+    console.error(e);
+    status.textContent = 'Nije uspjelo preuzimanje sa Google Sheets linka — provjeri da je list dijeljen kao "Svako ko ima link", da ima internet, ili preuzmi list kao .xlsx (Datoteka → Preuzmi → Microsoft Excel) pa učitaj taj fajl gore.';
+  }
+}
+
+function pgIzgledaKaoPodaci(zaglavljeRed){
+  return pgOcistiTekst(zaglavljeRed.A).includes('parametar') && pgOcistiTekst(zaglavljeRed.B).includes('vrijednost');
+}
+
+// Pogađa ulogu lista po SADRŽAJU zaglavlja (prvi red) — koristi se kad naziv
+// lista ne pomogne (npr. fajl preuzet iz Google Sheets često dobije generičke
+// nazive kao "Table 1"/"Table 2"/"Table 3" umjesto Podaci/Stanje/Vakcinisano).
+function pgPogodiVrstuLista(zaglavljeRed){
+  if(pgIzgledaKaoPodaci(zaglavljeRed)) return 'podaci';
+  const osnovno = pgPronadjiKolone(zaglavljeRed, PG_SPEC_VAK_OSNOVNO);
+  const bolesti = pgPronadjiKolone(zaglavljeRed, PG_BOLESTI_KEYWORDS);
+  const imaMarkicu = !!(osnovno.markica || osnovno.broj);
+  if(!imaMarkicu) return null;
+  return Object.keys(bolesti).length ? 'vak' : 'roster';
+}
+
+// Zajednička obrada za oba izvora (uploadovan .xlsx fajl ili preuzet Google
+// Sheets export) — vidi pgUvezKompletanExcel/pgUvezIzGoogleSheetsLinka.
+async function pgUvezKompletanExcelBuffer(buffer, izvorNaziv, status){
+    const zip = await readZipEntries(buffer);
     const { sheets, rels } = await ucitajWorkbookSheets(zip);
     const sharedStrings = parseSharedStrings(bytesToXmlDoc(await zip.extract('xl/sharedStrings.xml')));
 
-    const listPodaci = pgPronadjiList(sheets, ['podaci', 'vlasnik']);
-    const listStanje = pgPronadjiList(sheets, ['stanj', 'roster', 'grla']);
-    const listVak = pgPronadjiList(sheets, ['vakcin']);
+    // Svaki list se učita najviše jednom — keš po nazivu, dijeli ga i
+    // prepoznavanje po nazivu (ispod) i, kad ono ne uspije, prepoznavanje po
+    // sadržaju (pgPogodiVrstuLista).
+    const celijeKes = {};
+    async function celijeZaList(list){
+      if(!list) return [];
+      if(!(list.name in celijeKes)){
+        const doc = await pgUcitajListDoc(zip, rels, list);
+        celijeKes[list.name] = doc ? parseSheetCelije(doc, sharedStrings) : [];
+      }
+      return celijeKes[list.name];
+    }
+
+    let listPodaci = pgPronadjiList(sheets, ['podaci', 'vlasnik']);
+    let listStanje = pgPronadjiList(sheets, ['stanj', 'roster', 'grla']);
+    let listVak = pgPronadjiList(sheets, ['vakcin']);
+
+    if(!listPodaci || !listStanje || !listVak){
+      for(const list of sheets){
+        if(list === listPodaci || list === listStanje || list === listVak) continue;
+        const celije = await celijeZaList(list);
+        const pogodak = pgPogodiVrstuLista(celije[0] || {});
+        if(pogodak === 'podaci' && !listPodaci) listPodaci = list;
+        else if(pogodak === 'vak' && !listVak) listVak = list;
+        else if(pogodak === 'roster' && !listStanje) listStanje = list;
+      }
+    }
 
     let vlasnikIzFajla = '', sifraIzFajla = '';
     if(listPodaci){
-      const doc = await pgUcitajListDoc(zip, rels, listPodaci);
-      const redovi = doc ? parseSheetCelije(doc, sharedStrings) : [];
+      const redovi = await celijeZaList(listPodaci);
       for(const r of redovi){
         const kljuc = pgOcistiTekst(r.A);
         if(!vlasnikIzFajla && (kljuc.includes('vlasnik') || kljuc.includes('drzalac'))) vlasnikIzFajla = (r.B || '').trim();
@@ -2031,7 +2120,7 @@ async function pgUvezKompletanExcel(event){
       if(poklapanja.length === 1){
         pgIzaberi(poklapanja[0].id);
       }else if(!vlasnikIzFajla && !sifraIzFajla){
-        status.textContent = 'Prvo izaberi gazdinstvo (fajl nema list "Podaci" sa vlasnikom/šifrom da bi se samo pronašlo).';
+        status.textContent = 'Prvo izaberi gazdinstvo (u fajlu nije prepoznat list sa vlasnikom/šifrom imanja da bi se samo pronašlo).';
         return;
       }else if(!poklapanja.length){
         status.textContent = 'Vlasnik/šifra "' + (vlasnikIzFajla || sifraIzFajla) + '" iz fajla nije pronađen ni u jednom gazdinstvu. Prvo ga dodaj u tabu Gazdinstva, pa ponovo uvezi fajl.';
@@ -2045,14 +2134,13 @@ async function pgUvezKompletanExcel(event){
     const poruke = [];
 
     if(listStanje){
-      const doc = await pgUcitajListDoc(zip, rels, listStanje);
-      const celije = doc ? parseSheetCelije(doc, sharedStrings) : [];
+      const celije = await celijeZaList(listStanje);
       const [zaglavlje, ...podaci] = celije;
       const kolone = pgPronadjiKolone(zaglavlje || {}, PG_SPEC_ROSTER);
-      let dodano = 0;
+      let dodano = 0, preskoceno = 0;
       for(const r of podaci){
         const markice = normalize(kolone.markica ? (r[kolone.markica] || '') : '');
-        if(!markice.length) continue;
+        if(!markice.length){ preskoceno++; continue; }
         const red = pgPrazanRed('roster');
         red.markica = markice[0];
         red.vrsta = kolone.vrsta ? (r[kolone.vrsta] || '').trim() : '';
@@ -2060,22 +2148,21 @@ async function pgUvezKompletanExcel(event){
         pgRosterRedovi.push(red);
         dodano++;
       }
-      poruke.push('spisak grla (' + dodano + ')');
+      poruke.push('spisak grla (' + dodano + ')' + (preskoceno ? ' — ' + preskoceno + ' red(ova) preskočeno, markica nije prepoznata (provjeri format u fajlu)' : ''));
     }
 
     if(listVak){
-      const doc = await pgUcitajListDoc(zip, rels, listVak);
-      const celije = doc ? parseSheetCelije(doc, sharedStrings) : [];
+      const celije = await celijeZaList(listVak);
       const [zaglavlje, ...podaci] = celije;
       const kolone = pgPronadjiKolone(zaglavlje || {}, PG_SPEC_VAK_OSNOVNO);
       const bolesti = pgPronadjiKolone(zaglavlje || {}, PG_BOLESTI_KEYWORDS);
-      let dodano = 0;
+      let dodano = 0, preskoceno = 0;
       for(const r of podaci){
         const sirovaMarkica = kolone.markica
           ? (r[kolone.markica] || '')
           : ((kolone.drzava ? (r[kolone.drzava] || '') : '') + (kolone.broj ? (r[kolone.broj] || '') : ''));
         const markice = normalize(sirovaMarkica);
-        if(!markice.length) continue;
+        if(!markice.length){ preskoceno++; continue; }
         const red = pgPrazanRed('vak');
         red.markica = markice[0];
         red.vrsta = kolone.vrsta ? (r[kolone.vrsta] || '').trim() : '';
@@ -2084,11 +2171,11 @@ async function pgUvezKompletanExcel(event){
         pgVakRedovi.push(red);
         dodano++;
       }
-      poruke.push('popis vakcinisanih (' + dodano + ')');
+      poruke.push('popis vakcinisanih (' + dodano + ')' + (preskoceno ? ' — ' + preskoceno + ' red(ova) preskočeno, markica nije prepoznata (provjeri format u fajlu)' : ''));
     }
 
     if(!listStanje && !listVak){
-      status.textContent = 'Fajl ' + file.name + ' nema list "Stanje" ni "Vakcinisano" — provjeri nazive listova.';
+      status.textContent = 'U fajlu ' + izvorNaziv + ' nije prepoznat ni spisak grla ni spisak vakcinisanih (ni po nazivu lista ni po sadržaju zaglavlja) — provjeri da su kolone označene (markica, pol/spol, vrsta...).';
       return;
     }
 
@@ -2096,11 +2183,7 @@ async function pgUvezKompletanExcel(event){
     pgRenderRedove('vak');
     pgRenderTagovi();
     status.textContent = (vlasnikIzFajla ? 'Vlasnik u fajlu: ' + vlasnikIzFajla + '. ' : '')
-      + 'Učitano iz ' + file.name + ': ' + poruke.join(', ') + '.';
-  }catch(e){
-    console.error(e);
-    status.textContent = 'Nije uspjelo čitanje fajla ' + file.name + '. Provjeri da je ispravan .xlsx dokument.';
-  }
+      + 'Učitano iz ' + izvorNaziv + ': ' + poruke.join(', ') + '.';
 }
 
 function pgUporedi(){
