@@ -103,6 +103,9 @@ function uporediMarkice() {
 
     var izlazniList = ss.getSheetByName(NAZIV_IZLAZNOG_LISTA);
     ss.setActiveSheet(izlazniList);
+    // Rezultat je ono zbog čega se fajl otvara — neka bude prvi jezičak, ne
+    // zakopan iza Podaci/Stanje/Vakcinisano.
+    try { ss.moveActiveSheet(1); } catch (e) { /* npr. zaštićen raspored listova */ }
     prikaziPoruku_(
       'Gotovo',
       'Upisano u list "' + NAZIV_IZLAZNOG_LISTA + '": ' + rezultat.roster.length + ' grla na spisku, ' +
@@ -335,8 +338,22 @@ function procitajVakcinisano_(sheet) {
 
 // ---------- poređenje ----------
 
+// Redni broj je tekst (može doći iz proizvoljne ćelije), ali je skoro uvijek
+// zapravo broj — poredi se brojčano kad oba jesu brojevi (381 prije 45), a
+// tekstualno tek kad neki od njih to nije (npr. ručno dopisano "12a").
+function uporediRedneBrojeve_(a, b) {
+  var na = parseFloat(a), nb = parseFloat(b);
+  if (!isNaN(na) && !isNaN(nb) && na !== nb) return na - nb;
+  return String(a).localeCompare(String(b), 'bs');
+}
+
 function izracunajUporedbu_(stanjeMapa, vakMapa) {
-  var roster = Object.keys(stanjeMapa).sort();
+  // Spisak grla ide u istom redoslijedu kao na originalnoj Potvrdi o stanju
+  // (po Rb), ne abecedno po markici — upravo zato Rb i postoji, da se lista
+  // može pratiti odozgo nadolje uporedo sa papirnim/originalnim listom.
+  var roster = Object.keys(stanjeMapa).sort(function (a, b) {
+    return uporediRedneBrojeve_(stanjeMapa[a].redniBroj, stanjeMapa[b].redniBroj);
+  });
   var vakKljucevi = Object.keys(vakMapa);
   var vakSet = {};
   for (var i = 0; i < vakKljucevi.length; i++) vakSet[vakKljucevi[i]] = true;
@@ -405,15 +422,19 @@ function upisiRezultat_(ss, listovi, podaci, rezultat, stanjeMapa, vakMapa, pres
   sheet.setRowHeight(3, 4);
 
   // ---- rekap sa statistikom (4 kartice, po 2 kolone) ----
+  // Vakcinisano kartica dobije i mali tekstualni bar (blok karakteri) ispod
+  // postotka — brz vizuelni osjećaj napretka bez potrebe za grafikonom.
+  var popunjenoBlokova = rezultat.roster.length ? Math.round(rezultat.postotak / 10) : 0;
+  var bar = '█'.repeat(popunjenoBlokova) + '░'.repeat(10 - popunjenoBlokova);
   var kartice = [
-    { naziv: 'Grla na spisku', vrijednost: rezultat.roster.length, bg: BOJE.paperRaised, fg: BOJE.ink, linija: BOJE.lineStrong },
-    { naziv: 'Vakcinisano', vrijednost: rezultat.podudara.length + (rezultat.roster.length ? ' (' + rezultat.postotak + '%)' : ''), bg: BOJE.zelenaBg, fg: BOJE.zelenaFg, linija: BOJE.zelenaLine },
-    { naziv: 'Nije vakcinisano', vrijednost: rezultat.nijeVakcinisano.length, bg: BOJE.crvenaBg, fg: BOJE.crvenaFg, linija: BOJE.crvenaLine },
-    { naziv: 'Vakcinisano, van spiska', vrijednost: rezultat.nijeUSpisku.length, bg: BOJE.zutaBg, fg: BOJE.zutaFg, linija: BOJE.zutaLine }
+    { naziv: 'Grla na spisku', vrijednost: String(rezultat.roster.length), bg: BOJE.paperRaised, fg: BOJE.ink, linija: BOJE.lineStrong },
+    { naziv: 'Vakcinisano', vrijednost: rezultat.podudara.length + (rezultat.roster.length ? ' (' + rezultat.postotak + '%)\n' + bar : ''), bg: BOJE.zelenaBg, fg: BOJE.zelenaFg, linija: BOJE.zelenaLine },
+    { naziv: 'Nije vakcinisano', vrijednost: String(rezultat.nijeVakcinisano.length), bg: BOJE.crvenaBg, fg: BOJE.crvenaFg, linija: BOJE.crvenaLine },
+    { naziv: 'Vakcinisano, van spiska', vrijednost: String(rezultat.nijeUSpisku.length), bg: BOJE.zutaBg, fg: BOJE.zutaFg, linija: BOJE.zutaLine }
   ];
   var redLabela = 5, redVrijednosti = 6;
   sheet.setRowHeight(redLabela, 22);
-  sheet.setRowHeight(redVrijednosti, 38);
+  sheet.setRowHeight(redVrijednosti, 50);
   // Kartice dijele ukupnu širinu tabele u 4 (skoro) jednaka dijela — zadnja
   // pokupi ostatak, tako da se raspoređuju lijepo bez obzira koliko kolona
   // tabela ukupno ima (npr. kad se doda još jedna kolona kao Rb).
@@ -427,7 +448,7 @@ function upisiRezultat_(ss, listovi, podaci, rezultat, stanjeMapa, vakMapa, pres
       .setHorizontalAlignment('center').setVerticalAlignment('middle');
     var vrijednostOpseg = sheet.getRange(redVrijednosti, kolStart, 1, raspon).merge();
     vrijednostOpseg.setValue(k.vrijednost).setBackground(k.bg).setFontColor(k.fg)
-      .setFontFamily(FONT_NASLOV).setFontSize(20).setFontWeight('bold')
+      .setFontFamily(FONT_NASLOV).setFontSize(17).setFontWeight('bold').setWrap(true)
       .setHorizontalAlignment('center').setVerticalAlignment('middle');
     sheet.getRange(redLabela, kolStart, 2, raspon)
       .setBorder(true, true, true, true, false, false, k.linija, SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
@@ -547,6 +568,12 @@ function upisiTabeluMarkica_(sheet, red, naslovSekcije, zaglavlje, markiceLista,
     .setBorder(false, false, false, false, false, true, BOJE.line, SpreadsheetApp.BorderStyle.SOLID);
   sheet.getRange(zaglavljeRed, 3, brojRedova + 1, 1)
     .setBorder(false, true, false, true, false, false, BOJE.lineStrong, SpreadsheetApp.BorderStyle.SOLID);
+  // Razdjelnik prije prve kolone bolesti — vizuelno odvaja "ko je grlo" (Markica..Vrsta) od "šta je urađeno" (bolesti/mjere).
+  var prvaBolestKolona = brojKolona - BOLESTI.length + 1;
+  if (prvaBolestKolona > 1 && prvaBolestKolona <= brojKolona) {
+    sheet.getRange(zaglavljeRed, prvaBolestKolona, brojRedova + 1, 1)
+      .setBorder(false, true, false, false, false, false, BOJE.lineStrong, SpreadsheetApp.BorderStyle.SOLID);
+  }
 
   return { sljedeciRed: zaglavljeRed + brojRedova + 1, zaglavljeRed: zaglavljeRed };
 }

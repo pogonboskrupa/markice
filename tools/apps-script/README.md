@@ -49,10 +49,13 @@ osvježi, ako već postoji) list **Uporedba markica** sa:
   aplikaciju.
 
 List je oblikovan u istoj paleti boja i fontovima kao web aplikacija (tamni
-"ink" naslov sa zlatnom trakom ispod, kartice sa statistikom u boji, list
-dobija i zlatnu boju jezička) — mrežne linije su sakrivene i zamijenjene
-vlastitim ivicama, zaglavlje tabele i prva kolona (Markica) ostaju
-zamrznuti dok se skrola kroz duži spisak.
+"ink" naslov sa zlatnom trakom ispod, kartice sa statistikom u boji — kartica
+"Vakcinisano" ima i mali tekstualni bar ispod postotka, list dobija i zlatnu
+boju jezička i postaje prvi jezičak u fajlu) — mrežne linije su sakrivene i
+zamijenjene vlastitim ivicama (uz posebnu liniju koja odvaja "ko je grlo"
+kolone od kolona bolesti), zaglavlje tabele i prva kolona (Markica) ostaju
+zamrznuti dok se skrola kroz duži spisak. Spisak grla ide redoslijedom Rb
+(kao na originalnoj Potvrdi o stanju), ne abecedno po markici.
 
 Pokreni ponovo kad god se Stanje ili Vakcinisano promijene — list "Uporedba
 markica" se svaki put potpuno osvježi (staro se briše i piše iznova), pa je
