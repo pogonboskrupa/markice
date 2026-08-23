@@ -48,14 +48,20 @@ Dnevnik se može pretraživati, filtrirati po korisniku i po danu, izvesti u Exc
 
 ## Tabovi u aplikaciji
 1. **Pregled** — prvi ekran nakon prijave: gazdinstva kojima je pregled istekao ili predstoji, po danima i gradovima
-2. **Gazdinstva** — evidencija farmi i pčelara (podtabovi **Farme**, **Pčelari**, **Sve**)
+2. **Gazdinstva** — evidencija farmi i pčelara (podtabovi **Pregled** i **Dodaj gazdinstvo**)
 3. **Karta** — sva gazdinstva na mapi, obojena po statusu posjete
 4. **Markice** — poređenje spiska grla na imanju sa spiskom vakcinisanih od veterinara, po gazdinstvu (vidi poglavlje "Markice po gazdinstvu" ispod)
 5. **Posjete** — registar obavljenih posjeta po mjesecima i po korisniku
 6. **Šihtarica** — lični radni dnevnik prijavljenog korisnika (bilješke + preuzete zakazane posjete)
 7. **Postavke** — sigurnosna kopija podataka i Dnevnik izmjena (svima), upravljanje korisnicima (samo administratoru)
 
-## Gazdinstva (Farme / Pčelari / Sve)
+## Gazdinstva (Pregled / Dodaj gazdinstvo)
+Tab ima dva podtaba: **Pregled** (prvi po defaultu — tabela svih gazdinstava) i **Dodaj gazdinstvo** (obrazac za novi unos ili uređivanje postojećeg). Poslije snimanja ili otkazivanja uređivanja, aplikacija se sama vrati na Pregled — obrazac se ne zadržava prazan na ekranu bez potrebe.
+
+Na Pregledu, **klik na naziv gazdinstva ili na vlasnika** otvara detaljan pregled tog unosa ispod tabele: osnovne podatke (vlasnik, telefon, adresa, ID, status posjete), stoku sa markicama, i — za farme — **rekap vakcinacija** ako gazdinstvo ima i zadnju potvrdu "Potvrda o stanju" i zadnju potvrdu "Popis vakcinisanih" (isti rekap kao u tabu Markice: broj grla, broj i postotak vakcinisanih, spiskovi nevakcinisanih i vakcinisanih-van-spiska); ako nedostaje jedna od te dvije potvrde, umjesto rekapa piše uputa da se popuni u tabu Markice. Tu su i historija posjeta, ostale činjenice, napomena i fotografije, te dugmad Uredi / Obriši / Štampaj profil / "Otvori u Markice" (za farme, vodi pravo na poređenje spiskova za taj unos).
+
+Podtabovi **Farme**, **Pčelari** i **Sve** (unutar Pregleda) filtriraju spisak po vrsti.
+
 Za svako gazdinstvo se unosi:
 - vrsta (farma / pčelar), gazdinstvo (opciono — ako se ostavi prazno, svuda gdje se naziv prikazuje koristi se ime i prezime vlasnika), vlasnik (obavezno), telefon
 - grad, adresa (ulica/zaselak i kućni broj su odvojena polja — tačniji unos i preciznije geokodiranje), ID gazdinstva (JIB)
@@ -66,7 +72,7 @@ Za svako gazdinstvo se unosi:
 - **potvrde veterinarske stanice** — vidi poglavlje "Potvrde veterinarske stanice (slika + OCR)" ispod
 - **ostale činjenice** — vlastita polja gdje sam upišeš naziv i vrijednost (npr. "Nadmorska visina: 640 m"), koliko god ih treba po gazdinstvu
 
-Podtabovi **Farme**, **Pčelari** i **Sve** filtriraju spisak po vrsti; u pogledu "Sve" tabela dobija i kolonu Vrsta. Unosi se mogu uređivati, brisati, izvesti u Excel i štampati. Telefon je klikabilan — na mobitelu pokreće poziv. Grad/adresa je klikabilna i otvara lokaciju u Google Maps (u tabeli, na Pregledu i u popup-u na karti).
+U pogledu "Sve" tabela dobija i kolonu Vrsta. Unosi se mogu uređivati, brisati, izvesti u Excel i štampati. Telefon je klikabilan — na mobitelu pokreće poziv. Grad/adresa je klikabilna i otvara lokaciju u Google Maps (u tabeli, na Pregledu i u popup-u na karti).
 
 Stariji unosi koji imaju samo jedno polje "broj grla" i "pasmina" (prije nego je dodana ova podjela po vrstama) i dalje se prikazuju ispravno — čim se takav unos otvori za uređivanje i sačuva, automatski dobija novu strukturu.
 

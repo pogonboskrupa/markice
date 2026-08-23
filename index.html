@@ -1028,10 +1028,11 @@
   <section id="tab-gazdinstva" class="tab-panel" role="tabpanel">
 
     <div class="subtabs" role="tablist">
-      <button role="tab" aria-selected="true" data-vrsta="farma" onclick="showVrsta('farma')">Farme</button>
-      <button role="tab" aria-selected="false" data-vrsta="pcelar" onclick="showVrsta('pcelar')">Pčelari</button>
-      <button role="tab" aria-selected="false" data-vrsta="sve" onclick="showVrsta('sve')">Sve</button>
+      <button role="tab" aria-selected="true" data-gazd-sekcija="pregled" onclick="showGazdSekciju('pregled')">Pregled</button>
+      <button role="tab" aria-selected="false" data-gazd-sekcija="dodaj" onclick="showGazdSekciju('dodaj')">Dodaj gazdinstvo</button>
     </div>
+
+    <div id="gazdSekcijaDodaj" class="postavke-sekcija">
 
     <div class="card gazd-form" id="gazdFormCard">
       <button type="button" class="form-toggle" id="formToggle" aria-expanded="false"
@@ -1147,12 +1148,22 @@
         </div>
         <div class="row-actions" style="margin-top:14px;">
           <button type="submit" id="gSubmitBtn">Sačuvaj gazdinstvo</button>
-          <button type="button" class="secondary" id="gPonistiBtn" onclick="resetGazdForm()">Poništi</button>
+          <button type="button" class="secondary" id="gPonistiBtn" onclick="otkaziGazdForm()">Poništi</button>
           <button type="button" class="small secondary" id="gStampajProfilBtn" onclick="stampajProfil(document.getElementById('gazdId').value)" hidden>Štampaj profil</button>
           <span class="count-pill" id="gazdStatus"></span>
         </div>
       </form>
       </div>
+    </div>
+
+    </div>
+
+    <div id="gazdSekcijaPregled" class="postavke-sekcija active">
+
+    <div class="subtabs" role="tablist">
+      <button role="tab" aria-selected="true" data-vrsta="farma" onclick="showVrsta('farma')">Farme</button>
+      <button role="tab" aria-selected="false" data-vrsta="pcelar" onclick="showVrsta('pcelar')">Pčelari</button>
+      <button role="tab" aria-selected="false" data-vrsta="sve" onclick="showVrsta('sve')">Sve</button>
     </div>
 
     <div class="filter-bar">
@@ -1176,6 +1187,10 @@
     </div>
 
     <div id="gazdTableWrap"></div>
+
+    <div id="gazdDetaljWrap"></div>
+
+    </div>
 
   </section>
 
@@ -1476,7 +1491,7 @@
 // Jedino mjesto gdje se broj verzije mijenja — prikazuje se u topbaru,
 // na prijavi i u Postavkama, i mora biti usklađen sa CACHE_NAME u sw.js
 // (nova verzija = novi CACHE_NAME = preglednik povuče svježe fajlove).
-const APP_VERZIJA = '1.34';
+const APP_VERZIJA = '1.35';
 for(const id of ['verzijaTopbar', 'verzijaLogin', 'verzijaPostavke']){
   const el = document.getElementById(id);
   if(el) el.textContent = 'v' + APP_VERZIJA;
@@ -2258,26 +2273,29 @@ async function pgUvezKompletanExcelBuffer(buffer, izvorNaziv, status){
       + 'Učitano iz ' + izvorNaziv + ': ' + poruke.join(', ') + '.';
 }
 
-function pgUporedi(){
-  if(!pgOdabranoId) return;
-  // Spisak grla se već boji uživo (zeleno/crveno) dok se popunjava —
-  // ovdje se samo osvježi (za slučaj OCR/programatske promjene) i doda
-  // grupa za markice koje su vakcinisane ali nisu upisane ni na jednom
-  // grlu u spisku (mogući višak/greška u unosu).
-  pgRenderTagovi();
-  const roster = pgOznakeIzRedova(pgRosterRedovi);
+// Zajedničko računanje rekapa (spisak grla naspram spiska vakcinisanih) —
+// koristi ga i "Uporedi" u tabu Markice (nad radnom tabelom) i detalj
+// gazdinstva u tabu Gazdinstva (nad zadnjim sačuvanim potvrdama).
+function izracunajRekapVakcinacije(rosterMarkice, vakMarkice){
+  const roster = uniqueList(rosterMarkice);
   const rosterSet = new Set(roster);
-  const vakSet = new Set(pgOznakeIzRedova(pgVakRedovi));
+  const vakSet = new Set(uniqueList(vakMarkice));
   const nijeUSpisku = [...vakSet].filter(x => !rosterSet.has(x)).sort();
   const podudara = roster.filter(x => vakSet.has(x));
   const nijeVakcinisano = roster.filter(x => !vakSet.has(x)).sort();
   const postotak = roster.length ? Math.round(podudara.length / roster.length * 100) : 0;
+  return { roster, podudara, nijeVakcinisano, nijeUSpisku, postotak };
+}
 
-  const tagsHtml = (arr, cls) => arr.length
+function rekapVakcinacijeTagsHtml(arr, cls){
+  return arr.length
     ? arr.map(x => `<span class="tag ${cls}">${escapeHtml(x)}</span>`).join('')
     : '<span style="font-family:Helvetica Neue,Arial,sans-serif;font-size:12px;color:var(--ink-soft);">— nema —</span>';
+}
 
-  document.getElementById('pgRezultati').innerHTML = `
+function rekapVakcinacijeHtml(rekap){
+  const { roster, podudara, nijeVakcinisano, nijeUSpisku, postotak } = rekap;
+  return `
     <div class="summary cols-4">
       <div class="stat"><div class="n">${roster.length}</div><div class="l">Grla na spisku</div></div>
       <div class="stat match"><div class="n">${podudara.length}${roster.length ? ' (' + postotak + '%)' : ''}</div><div class="l">Vakcinisano</div></div>
@@ -2286,13 +2304,24 @@ function pgUporedi(){
     </div>
     <div class="results">
       <h3>Nije vakcinisano <span>${nijeVakcinisano.length}</span></h3>
-      <div class="grid-tags">${tagsHtml(nijeVakcinisano,'red')}</div>
+      <div class="grid-tags">${rekapVakcinacijeTagsHtml(nijeVakcinisano,'red')}</div>
     </div>
     <div class="results" style="margin-top:14px;">
       <h3>Vakcinisano, van spiska grla <span>${nijeUSpisku.length}</span></h3>
-      <div class="grid-tags">${tagsHtml(nijeUSpisku,'amber')}</div>
+      <div class="grid-tags">${rekapVakcinacijeTagsHtml(nijeUSpisku,'amber')}</div>
     </div>
   `;
+}
+
+function pgUporedi(){
+  if(!pgOdabranoId) return;
+  // Spisak grla se već boji uživo (zeleno/crveno) dok se popunjava —
+  // ovdje se samo osvježi (za slučaj OCR/programatske promjene) i doda
+  // grupa za markice koje su vakcinisane ali nisu upisane ni na jednom
+  // grlu u spisku (mogući višak/greška u unosu).
+  pgRenderTagovi();
+  const rekap = izracunajRekapVakcinacije(pgOznakeIzRedova(pgRosterRedovi), pgOznakeIzRedova(pgVakRedovi));
+  document.getElementById('pgRezultati').innerHTML = rekapVakcinacijeHtml(rekap);
 }
 
 // Snima oba spiska (koji god od njih ima sadržaj) kao potvrde uz gazdinstvo —
@@ -2473,19 +2502,13 @@ function sheetPathFor(rels, sheet){
 // Puni profil jednog gazdinstva za štampu — odvojen od "Štampaj spisak" (koji
 // štampa cijelu filtriranu tabelu) jer za predaju/arhivu treba jedan pregledan
 // list sa svim podacima o TOM gazdinstvu, ne red u tabeli.
-function stampajProfil(id){
-  const g = loadGazdinstva().find(x => x.id === id);
-  if(!g) return;
-
-  const stoka = stokaZaGazdinstvo(g).filter(s => s.vrsta || s.broj || s.markice);
-  const posjete = (g.posjete || []).slice().sort((a,b) => a.datum.localeCompare(b.datum));
-  const dodatna = (g.dodatna || []).filter(p => p.naziv || p.vrijednost);
-  const st = statusOf(g);
-
-  const infoPolje = (naziv, html) => html
-    ? `<div class="profil-info-polje"><b>${escapeHtml(naziv)}</b><span>${html}</span></div>` : '';
-
-  const stokaBlok = stoka.length ? `
+// Zajednički blokovi za profil gazdinstva — koristi ih i štampani profil
+// (stampajProfil) i detalj na ekranu u tabu Gazdinstva (otvoriDetaljGazdinstva).
+function profilInfoPolje(naziv, html){
+  return html ? `<div class="profil-info-polje"><b>${escapeHtml(naziv)}</b><span>${html}</span></div>` : '';
+}
+function profilStokaBlokHtml(g, stoka){
+  return stoka.length ? `
     <div class="results profil-section">
       <h3>${g.vrsta === 'pcelar' ? 'Košnice prijavljene za poticaje' : 'Grla prijavljena za poticaje'} <span>${stoka.length}</span></h3>
       <table>
@@ -2497,8 +2520,9 @@ function stampajProfil(id){
         </tr>`).join('')}</tbody>
       </table>
     </div>` : '';
-
-  const posjeteBlok = posjete.length ? `
+}
+function profilPosjeteBlokHtml(posjete){
+  return posjete.length ? `
     <div class="results profil-section">
       <h3>Historija posjeta <span>${posjete.length}</span></h3>
       <table>
@@ -2510,8 +2534,9 @@ function stampajProfil(id){
         </tr>`).join('')}</tbody>
       </table>
     </div>` : '';
-
-  const dodatnaBlok = dodatna.length ? `
+}
+function profilDodatnaBlokHtml(dodatna){
+  return dodatna.length ? `
     <div class="results profil-section">
       <h3>Ostale činjenice <span>${dodatna.length}</span></h3>
       <table>
@@ -2521,18 +2546,37 @@ function stampajProfil(id){
         </tr>`).join('')}</tbody>
       </table>
     </div>` : '';
-
-  const napomenaBlok = g.napomena ? `
+}
+function profilNapomenaBlokHtml(napomena){
+  return napomena ? `
     <div class="results profil-section">
       <h3>Napomena</h3>
-      <p class="profil-napomena">${escapeHtml(g.napomena)}</p>
+      <p class="profil-napomena">${escapeHtml(napomena)}</p>
     </div>` : '';
-
-  const fotoBlok = (g.fotografije || []).length ? `
+}
+function profilFotoBlokHtml(fotografije){
+  return (fotografije || []).length ? `
     <div class="results profil-section">
-      <h3>Fotografije sa terena <span>${g.fotografije.length}</span></h3>
-      <div class="profil-foto-grid">${g.fotografije.map(f => `<img src="${f.dataUrl}" alt="">`).join('')}</div>
+      <h3>Fotografije sa terena <span>${fotografije.length}</span></h3>
+      <div class="profil-foto-grid">${fotografije.map(f => `<img src="${f.dataUrl}" alt="">`).join('')}</div>
     </div>` : '';
+}
+
+function stampajProfil(id){
+  const g = loadGazdinstva().find(x => x.id === id);
+  if(!g) return;
+
+  const stoka = stokaZaGazdinstvo(g).filter(s => s.vrsta || s.broj || s.markice);
+  const posjete = (g.posjete || []).slice().sort((a,b) => a.datum.localeCompare(b.datum));
+  const dodatna = (g.dodatna || []).filter(p => p.naziv || p.vrijednost);
+  const st = statusOf(g);
+
+  const infoPolje = profilInfoPolje;
+  const stokaBlok = profilStokaBlokHtml(g, stoka);
+  const posjeteBlok = profilPosjeteBlokHtml(posjete);
+  const dodatnaBlok = profilDodatnaBlokHtml(dodatna);
+  const napomenaBlok = profilNapomenaBlokHtml(g.napomena);
+  const fotoBlok = profilFotoBlokHtml(g.fotografije);
 
   document.getElementById('profilStampa').innerHTML = `
     <div class="profil-header">
@@ -2570,6 +2614,88 @@ function stampajProfil(id){
   document.body.classList.add('print-profil');
   window.print();
 }
+
+// Najnovija potvrda datog tipa koja ima upisane markice (za rekap vakcinacija
+// u detalju gazdinstva) — više potvrda istog tipa mogu postojati (npr. iz
+// različitih godina), uzima se ona sa najkasnijim datumom.
+function zadnjaPotvrdaTipa(g, tip){
+  const kandidati = (g.potvrde || []).filter(p => p.tip === tip && p.markice && p.markice.trim());
+  if(!kandidati.length) return null;
+  return kandidati.slice().sort((a, b) => (b.datum || '').localeCompare(a.datum || ''))[0];
+}
+
+// Detalj gazdinstva na ekranu (tab Gazdinstva → Pregled → klik na naziv ili
+// vlasnika) — stoka, vakcinacije (iz zadnjih sačuvanih potvrdi "stanje" i
+// "vakcinisano"), posjete i ostalo. Za razliku od stampajProfil (za štampu),
+// ovo se iscrtava direktno u stranicu i uz to ima dugmad za radnje.
+function otvoriDetaljGazdinstva(id){
+  const g = loadGazdinstva().find(x => x.id === id);
+  const wrap = document.getElementById('gazdDetaljWrap');
+  if(!g){ wrap.innerHTML = ''; return; }
+
+  const st = statusOf(g);
+  const stoka = stokaZaGazdinstvo(g).filter(s => s.vrsta || s.broj || s.markice);
+  const posjete = (g.posjete || []).slice().sort((a, b) => a.datum.localeCompare(b.datum));
+  const dodatna = (g.dodatna || []).filter(p => p.naziv || p.vrijednost);
+
+  let vakBlok = '';
+  if(g.vrsta === 'farma'){
+    const stanjePotvrda = zadnjaPotvrdaTipa(g, 'stanje');
+    const vakPotvrda = zadnjaPotvrdaTipa(g, 'vakcinisano');
+    if(stanjePotvrda && vakPotvrda){
+      const rekap = izracunajRekapVakcinacije(normalize(stanjePotvrda.markice), normalize(vakPotvrda.markice));
+      vakBlok = `
+        <div class="profil-section">
+          <p class="stoka-hint" style="margin:0 0 8px;"><b>Vakcinacije</b> — spisak grla ${formatDatum(stanjePotvrda.datum)} · popis vakcinisanih ${formatDatum(vakPotvrda.datum)}</p>
+          ${rekapVakcinacijeHtml(rekap)}
+        </div>`;
+    }else{
+      vakBlok = `
+        <div class="results profil-section">
+          <h3>Vakcinacije</h3>
+          <p class="profil-napomena">Nema još sačuvanog i spiska grla i popisa vakcinisanih uz ovo gazdinstvo. Uporedi u tabu Markice (dugme "Sačuvaj kao potvrdu uz gazdinstvo") ili dodaj potvrde ručno u obrascu za uređivanje.</p>
+        </div>`;
+    }
+  }
+
+  wrap.innerHTML = `
+    <div class="card" style="margin-top:16px;">
+      <div class="row-actions" style="justify-content:space-between;margin-bottom:4px;">
+        <h2 style="margin:0;">${escapeHtml(nazivGazdinstva(g))}</h2>
+        <button type="button" class="small secondary" onclick="document.getElementById('gazdDetaljWrap').innerHTML=''">Zatvori</button>
+      </div>
+      <div class="profil-info-grid">
+        ${profilInfoPolje('Vrsta', VRSTA_LABEL[g.vrsta] || '')}
+        ${profilInfoPolje('Vlasnik', escapeHtml(g.vlasnik))}
+        ${profilInfoPolje('Telefon', g.telefon ? '<a href="tel:' + escapeHtml(g.telefon.replace(/\s+/g,'')) + '">' + escapeHtml(g.telefon) + '</a>' : '')}
+        ${profilInfoPolje('Grad / mjesto', escapeHtml(g.grad))}
+        ${profilInfoPolje('Adresa', punaAdresa(g) ? adresaHtml(g, escapeHtml(punaAdresa(g))) : '')}
+        ${profilInfoPolje('ID gazdinstva (JIB)', escapeHtml(g.idGazdinstva))}
+        ${profilInfoPolje('Status', '<span class="badge ' + st + '">' + STATUS_LABEL[st] + '</span>')}
+        ${profilInfoPolje('Zadnja posjeta', formatDatum(zadnjaPosjeta(g)))}
+        ${profilInfoPolje('Iduća posjeta', formatDatum(g.danIducePosjete))}
+      </div>
+
+      ${profilStokaBlokHtml(g, stoka)}
+      ${vakBlok}
+      ${profilPosjeteBlokHtml(posjete)}
+      ${profilDodatnaBlokHtml(dodatna)}
+      ${profilNapomenaBlokHtml(g.napomena)}
+      ${profilFotoBlokHtml(g.fotografije)}
+
+      <p class="profil-footer">${tragHtml(g)}</p>
+
+      <div class="row-actions" style="margin-top:14px;">
+        <button type="button" class="small secondary" onclick="editGazdinstvo('${g.id}')">Uredi</button>
+        <button type="button" class="small secondary" onclick="deleteGazdinstvo('${g.id}')">Obriši</button>
+        <button type="button" class="small secondary" onclick="stampajProfil('${g.id}')">Štampaj profil</button>
+        ${g.vrsta === 'farma' ? `<button type="button" class="small secondary" onclick="showTab('usporedba'); pgIzaberi('${g.id}')">Otvori u Markice</button>` : ''}
+      </div>
+    </div>
+  `;
+  wrap.scrollIntoView({ block: 'start', behavior: 'smooth' });
+}
+
 window.addEventListener('afterprint', () => {
   document.body.classList.remove('print-profil');
 });
@@ -3486,7 +3612,7 @@ const TAB_HEADINGS = {
   },
   usporedba: {
     title: 'Markice po gazdinstvu',
-    sub: 'Izaberi ili dodaj farmu, pa unesi spisak grla i spisak vakcinisanih (ručno, slika-OCR ili Excel) da vidiš koja grla su vakcinisana.'
+    sub: 'Izaberi farmu, pa unesi spisak grla i spisak vakcinisanih (ručno, slika-OCR ili Excel) da vidiš koja grla su vakcinisana.'
   },
   gazdinstva: {
     title: 'Evidencija gazdinstava',
@@ -3535,11 +3661,31 @@ function showTab(name){
   }
 }
 
+let aktivnaGazdSekcija = 'pregled';
+function showGazdSekciju(name){
+  aktivnaGazdSekcija = name;
+  // Skopirano na direktnu djecu #tab-gazdinstva — traka Farme/Pčelari/Sve je
+  // ugniježđena UNUTAR #gazdSekcijaPregled, ne bi trebalo da je ovaj upit dira.
+  for(const btn of document.querySelectorAll('#tab-gazdinstva > .subtabs button')){
+    btn.setAttribute('aria-selected', String(btn.dataset.gazdSekcija === name));
+  }
+  document.getElementById('gazdSekcijaPregled').classList.toggle('active', name === 'pregled');
+  document.getElementById('gazdSekcijaDodaj').classList.toggle('active', name === 'dodaj');
+  if(name === 'pregled') renderGazdTable();
+  // Otvoreni detalj (ako ga ima) može biti zastario poslije uređivanja —
+  // jednostavnije zatvoriti ga nego ga pratiti i osvježavati u pozadini.
+  if(name === 'dodaj'){
+    const detalj = document.getElementById('gazdDetaljWrap');
+    if(detalj) detalj.innerHTML = '';
+  }
+}
+
 function showVrsta(v){
   aktivnaVrsta = v;
-  // Skopirano na #tab-gazdinstva — od dodavanja podtabova u Postavke ima više
-  // od jedne .subtabs trake na stranici, pa bi neskopiran upit zbunio i one.
-  for(const btn of document.querySelectorAll('#tab-gazdinstva .subtabs button')){
+  // Skopirano na #gazdSekcijaPregled — #tab-gazdinstva sad ima i vanjsku traku
+  // Pregled/Dodaj gazdinstvo (showGazdSekciju), neskopiran upit bi resetirao
+  // i nju (dataset.vrsta joj je undefined, pa bi "false" pobrisalo njen izbor).
+  for(const btn of document.querySelectorAll('#gazdSekcijaPregled .subtabs button')){
     btn.setAttribute('aria-selected', String(btn.dataset.vrsta === v));
   }
   resetGazdForm();
@@ -4314,6 +4460,16 @@ function preuzmiXlsx(nazivFajla, nazivLista, rows){
 }
 
 // ---------- form ----------
+// Dugme "Poništi"/"Otkaži uređivanje" — ako se otkazuje UREĐIVANJE
+// postojećeg unosa, vrati na Pregled (nema smisla ostati na praznom
+// obrascu); ako se samo čisti NOVI, još nesnimljeni unos, ostani na
+// obrascu da korisnik odmah pokuša ponovo.
+function otkaziGazdForm(){
+  const bioUEditu = !!document.getElementById('gazdId').value;
+  resetGazdForm();
+  if(bioUEditu) showGazdSekciju('pregled');
+}
+
 function resetGazdForm(){
   document.getElementById('gazdId').value = '';
   for(const id of ['gNaziv','gVlasnik','gTelefon','gGrad','gAdresa','gBroj','gIdGazdinstva',
@@ -4406,6 +4562,10 @@ function submitGazdinstvo(event){
     resetGazdForm();
     renderGazdTable();
   }
+  // Nazad na Pregled poslije snimanja — odmah se vidi sačuvani unos u
+  // tabeli (i može se kliknuti za detalj) umjesto da ostane skriven iza
+  // podtaba "Dodaj gazdinstvo".
+  showGazdSekciju('pregled');
   renderMap();
 
   const status = document.getElementById('gazdStatus');
@@ -4428,6 +4588,7 @@ function submitGazdinstvo(event){
 function editGazdinstvo(id){
   const g = loadGazdinstva().find(x => x.id === id);
   if(!g) return;
+  showGazdSekciju('dodaj');
   resetGazdForm();
   document.getElementById('gazdId').value = g.id;
   document.getElementById('gVrsta').value = g.vrsta || 'farma';
@@ -4471,6 +4632,7 @@ function deleteGazdinstvo(id){
   saveGazdinstva(list.filter(x => x.id !== id));
   zabiljezi('obrisao', 'gazdinstvo', nazivGazdinstva(g),
     [VRSTA_LABEL[g.vrsta], g.vlasnik, g.grad].filter(Boolean).join(', '));
+  document.getElementById('gazdDetaljWrap').innerHTML = '';
   renderGazdTable();
   renderMap();
   renderDnevnik();
@@ -4546,13 +4708,13 @@ function renderGazdTable(){
       ${prikaziVrstu ? `<td>${VRSTA_LABEL[g.vrsta] || ''}</td>` : ''}
       <td>
         ${fotoCelijaHtml(g)}
-        <b>${escapeHtml(nazivGazdinstva(g))}</b>
+        <a href="javascript:void(0)" class="pg-red" onclick="otvoriDetaljGazdinstva('${g.id}')"><b>${escapeHtml(nazivGazdinstva(g))}</b></a>
         ${g.idGazdinstva ? '<br><span class="cell-sub">ID: ' + escapeHtml(g.idGazdinstva) + '</span>' : ''}
         ${g.napomena ? '<br><span class="cell-sub">' + escapeHtml(g.napomena) + '</span>' : ''}
         ${dodatna.length ? '<br><span class="cell-sub">' + dodatna.map(p => escapeHtml(p.naziv + ': ' + p.vrijednost)).join(' · ') + '</span>' : ''}
       </td>
       <td>
-        ${escapeHtml(g.vlasnik)}
+        <a href="javascript:void(0)" class="pg-red" onclick="otvoriDetaljGazdinstva('${g.id}')">${escapeHtml(g.vlasnik)}</a>
         ${g.telefon ? '<br><span class="cell-sub"><a href="tel:' + escapeHtml(g.telefon.replace(/\s+/g,'')) + '">' + escapeHtml(g.telefon) + '</a></span>' : ''}
       </td>
       <td>
