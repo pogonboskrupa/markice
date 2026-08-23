@@ -154,9 +154,15 @@ function pronadjiListove_(ss) {
     return sh.getName() !== NAZIV_IZLAZNOG_LISTA;
   });
 
-  var listPodaci = pronadjiListPoNazivu_(sheets, ['podaci', 'vlasnik']);
-  var listStanje = pronadjiListPoNazivu_(sheets, ['stanj', 'roster', 'grla']);
-  var listVak = pronadjiListPoNazivu_(sheets, ['vakcin']);
+  // Redoslijed traženja po nazivu je bitan: prvo najspecifičnije riječi
+  // (vakcin, pa podaci/vlasnik), svaki sljedeći korak isključuje već
+  // dodijeljene listove. Stanje se traži zadnje jer koristi i opštu riječ
+  // 'grla' (radi generičkih naziva spiska) — bez isključivanja bi ta riječ
+  // mogla pogrešno pogoditi i sam list Vakcinisano (npr. naziv "Vakcinisana
+  // grla" sadrži i 'vakcin' i 'grla'), i to zavisno od redoslijeda jezičaka.
+  var listVak = pronadjiListPoNazivu_(sheets, ['vakcin'], []);
+  var listPodaci = pronadjiListPoNazivu_(sheets, ['podaci', 'vlasnik'], [listVak]);
+  var listStanje = pronadjiListPoNazivu_(sheets, ['stanj', 'roster', 'grla'], [listVak, listPodaci]);
 
   if (!listPodaci || !listStanje || !listVak) {
     for (var i = 0; i < sheets.length; i++) {
@@ -181,8 +187,9 @@ function pronadjiListove_(ss) {
   return { podaci: listPodaci, stanje: listStanje, vak: listVak };
 }
 
-function pronadjiListPoNazivu_(sheets, kljucneRijeci) {
+function pronadjiListPoNazivu_(sheets, kljucneRijeci, iskljuci) {
   for (var i = 0; i < sheets.length; i++) {
+    if (iskljuci && iskljuci.indexOf(sheets[i]) !== -1) continue;
     var naziv = ocistiTekst_(sheets[i].getName());
     for (var j = 0; j < kljucneRijeci.length; j++) {
       if (naziv.indexOf(kljucneRijeci[j]) !== -1) return sheets[i];
