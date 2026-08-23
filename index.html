@@ -297,6 +297,7 @@
   /* ---------- Markice po gazdinstvu: redovi grla/vakcinisanih u tabeli ---------- */
   .pg-redovi-tabela input, .pg-redovi-tabela select{width:100%;min-width:64px;}
   .pg-redovi-tabela input.pg-markica{min-width:120px;font-family:'SFMono-Regular',Consolas,monospace;}
+  .pg-redovi-tabela input.pg-markica.nevazeca{border-color:var(--red);background:var(--red-bg);}
   .pg-redovi-tabela input.pg-bolest{min-width:44px;text-align:center;}
   .pg-redovi-tabela select{min-width:52px;}
   .pg-redovi-tabela td{padding:4px 6px;}
@@ -1279,6 +1280,7 @@
                 <tbody id="pgRosterTijelo"></tbody>
               </table>
             </div>
+            <p class="hint" id="pgRosterUpozorenje" style="display:none;color:var(--red);"></p>
             <button type="button" class="small secondary" style="margin-top:8px;" onclick="pgDodajRed('roster')">+ Dodaj red</button>
           </div>
 
@@ -1312,6 +1314,7 @@
                 <tbody id="pgVakTijelo"></tbody>
               </table>
             </div>
+            <p class="hint" id="pgVakUpozorenje" style="display:none;color:var(--red);"></p>
             <button type="button" class="small secondary" style="margin-top:8px;" onclick="pgDodajRed('vak')">+ Dodaj red</button>
           </div>
 
@@ -1491,7 +1494,7 @@
 // Jedino mjesto gdje se broj verzije mijenja — prikazuje se u topbaru,
 // na prijavi i u Postavkama, i mora biti usklađen sa CACHE_NAME u sw.js
 // (nova verzija = novi CACHE_NAME = preglednik povuče svježe fajlove).
-const APP_VERZIJA = '1.35';
+const APP_VERZIJA = '1.36';
 for(const id of ['verzijaTopbar', 'verzijaLogin', 'verzijaPostavke']){
   const el = document.getElementById(id);
   if(el) el.textContent = 'v' + APP_VERZIJA;
@@ -1847,6 +1850,26 @@ function pgUkloniRed(cilj, idx){
   pgRenderTagovi();
 }
 
+// Markica koja ne liči ni na jedan poznati oblik (npr. štamparska greška u
+// ručnom unosu) se u poređenju ponaša kao da uopšte ne postoji — normalize()
+// je ne prepozna, pa to grlo tiho ispadne iz svih brojeva. Bez upozorenja se
+// to lako ne primijeti (broj redova u tabeli i "Grla na spisku" u rekapu bi
+// se tiho razišli).
+function pgMarkicaNevazeca(vrijednost){
+  return !!(vrijednost && vrijednost.trim() && !normalize(vrijednost).length);
+}
+
+function pgAzurirajUpozorenje(cilj){
+  const el = document.getElementById(cilj === 'vak' ? 'pgVakUpozorenje' : 'pgRosterUpozorenje');
+  if(!el) return;
+  const broj = pgNiz(cilj).filter(r => pgMarkicaNevazeca(r.markica)).length;
+  if(!broj){ el.style.display = 'none'; el.textContent = ''; return; }
+  el.style.display = '';
+  el.textContent = (broj === 1
+    ? '⚠ 1 red ima markicu u neprepoznatom obliku (očekuje se "BA" + brojevi) — obojen crveno, ne računa se u poređenju dok se ne ispravi.'
+    : '⚠ ' + broj + ' redova ima markicu u neprepoznatom obliku (očekuje se "BA" + brojevi) — obojeni crveno, ne računaju se u poređenju dok se ne isprave.');
+}
+
 // Poziva se na svaki unos u ćeliju — NE iscrtava tabelu ponovo (to bi
 // izbacilo fokus iz polja poslije svakog slova), samo ažurira podatak; live
 // bojanje se osvježi jedino kad se mijenja baš markica.
@@ -1854,7 +1877,7 @@ function pgAzurirajRed(cilj, idx, polje, vrijednost){
   const red = pgNiz(cilj)[idx];
   if(!red) return;
   red[polje] = vrijednost;
-  if(polje === 'markica') pgRenderTagovi();
+  if(polje === 'markica'){ pgRenderTagovi(); pgAzurirajUpozorenje(cilj); }
 }
 
 function pgRenderRedove(cilj){
@@ -1863,12 +1886,13 @@ function pgRenderRedove(cilj){
   if(!tijelo) return;
   if(!niz.length){
     tijelo.innerHTML = `<tr><td colspan="${cilj === 'vak' ? 10 : 5}" class="empty">Nema unesenih redova.</td></tr>`;
+    pgAzurirajUpozorenje(cilj);
     return;
   }
   tijelo.innerHTML = niz.map((red, i) => {
     const osnovno = `
       <td>${i + 1}</td>
-      <td><input class="pg-markica" value="${escapeHtml(red.markica)}" oninput="pgAzurirajRed('${cilj}',${i},'markica',this.value)"></td>
+      <td><input class="pg-markica${pgMarkicaNevazeca(red.markica) ? ' nevazeca' : ''}" value="${escapeHtml(red.markica)}" oninput="pgAzurirajRed('${cilj}',${i},'markica',this.value); this.classList.toggle('nevazeca', pgMarkicaNevazeca(this.value))" title="Očekivani oblik: BA + brojevi (razmaci su u redu)"></td>
       <td>
         <select onchange="pgAzurirajRed('${cilj}',${i},'pol',this.value)">
           <option value=""${!red.pol ? ' selected' : ''}>—</option>
@@ -1882,6 +1906,7 @@ function pgRenderRedove(cilj){
     ).join('') : '';
     return `<tr>${osnovno}${bolesti}<td><button type="button" class="small secondary" onclick="pgUkloniRed('${cilj}',${i})">×</button></td></tr>`;
   }).join('');
+  pgAzurirajUpozorenje(cilj);
 }
 
 // Boji spisak grla uživo prema trenutnom sadržaju spiska vakcinisanih —
