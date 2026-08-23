@@ -1,4 +1,4 @@
-const CACHE_NAME = 'markice-cache-v1.27';
+const CACHE_NAME = 'markice-cache-v1.28';
 const ASSETS = [
   './',
   './index.html',

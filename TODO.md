@@ -7,8 +7,7 @@
 ## Nedavno urađeno
 
 - **Potvrde veterinarske stanice (slika + OCR, ili ručni unos)** — u obrascu gazdinstva, slika bilo koje od tri potvrde (mjere, stanje, popis vakcinisanih) se odmah čita OCR-om (potpuno lokalno, bez interneta) i predloži podatke — sve izmjenjivo prije snimanja; ili unesi ručno bez slike.
-- **Markice po gazdinstvu** — tab Markice, podtab "Po gazdinstvu": izaberi gazdinstvo, uporedi njegov spisak grla sa spiskom vakcinisanih od veterinara (paste ili OCR slika), sačuvaj spisak trajno uz gazdinstvo.
-- **Povezivanje markica sa gazdinstvom** — pretraga markice po broju (tab Markice) i klikabilni rezultati poređenja odmah pokazuju kojem gazdinstvu markica pripada.
+- **Markice po gazdinstvu** — tab Markice (samo farme, ne pčelari): izaberi ili dodaj farmu, pa uporedi spisak grla na imanju sa spiskom vakcinisanih od veterinara. Oba spiska su tabele (markica, pol, vrsta — vakcinisani spisak i uz to 5 kolona bolesti: Bruceloza/Enzotska leukoza/TBC/CMT/Antrax), popunjive ručno, preko OCR slike ili uvozom iz Excela; sačuvaj spisak trajno uz gazdinstvo. Ranije postojeće poređenje "cijele oblasti" odjednom (zajedno sa pretragom markice po broju i uvozom ugrađenog fajla) je ukinuto — sve ide po gazdinstvu.
 - **Fotografije sa terena** — dodavanje fotografija uz gazdinstvo (automatski smanjene radi uštede prostora), sa sličicom u tabeli, na karti i u obrascu.
 - **Pravi .xlsx izvoz** — svi izvozi (gazdinstva, dnevnik, registar posjeta, neusklađene markice) sada daju pravi Excel dokument umjesto CSV-a.
 - **Ruta obilaska na karti** — dugme "Napravi rutu obilaska" poređa prikazana gazdinstva po najbližem susjedu (od tvoje lokacije ili od prvog gazdinstva), sa numerisanim markerima, linijom obilaska i spiskom zaustavljanja za štampu.
@@ -19,7 +18,6 @@
 - **Svi podaci su samo na uređaju** (localStorage u pregledniku) — nema servera, nema automatske sinhronizacije između uređaja ili korisnika. Ko god koristi aplikaciju na svom telefonu/računaru ima svoju odvojenu kopiju podataka.
 - Zbog toga: **redovno praviti sigurnosnu kopiju** — tab **Postavke → Izvezi sve podatke**. Bez toga, kvar uređaja ili brisanje podataka preglednika znači nepovratan gubitak.
 - Prvi (ugrađeni) korisnik: **Nedžad**, PIN **2201**, uloga administrator. Administrator dodaje ostale korisnike u tabu Postavke.
-- Fajl **`Potvrda o stanju grla.xlsx`** se sam učitava u tab Markice pri svakom pokretanju — da se ažurira za sve, zamijeniti taj fajl u repozitoriju i ponovo deployati.
 - Prijava/PIN je evidencija odgovornosti (ko je šta unio/izmijenio), **ne** prava zaštita podataka — vidi napomenu u README.md.
 
 ## Gdje pogledati detalje

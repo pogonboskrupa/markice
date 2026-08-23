@@ -50,7 +50,7 @@ Dnevnik se može pretraživati, filtrirati po korisniku i po danu, izvesti u Exc
 1. **Pregled** — prvi ekran nakon prijave: gazdinstva kojima je pregled istekao ili predstoji, po danima i gradovima
 2. **Gazdinstva** — evidencija farmi i pčelara (podtabovi **Farme**, **Pčelari**, **Sve**)
 3. **Karta** — sva gazdinstva na mapi, obojena po statusu posjete
-4. **Markice** — poređenje dva spiska ušnih markica za cijelu oblast (uvoz iz Excela ili Google Sheetsa, izvoz i štampa), ili isto poređenje za jedno gazdinstvo (podtab "Po gazdinstvu")
+4. **Markice** — poređenje spiska grla na imanju sa spiskom vakcinisanih od veterinara, po gazdinstvu (vidi poglavlje "Markice po gazdinstvu" ispod)
 5. **Posjete** — registar obavljenih posjeta po mjesecima i po korisniku
 6. **Šihtarica** — lični radni dnevnik prijavljenog korisnika (bilješke + preuzete zakazane posjete)
 7. **Postavke** — sigurnosna kopija podataka i Dnevnik izmjena (svima), upravljanje korisnicima (samo administratoru)
@@ -96,16 +96,17 @@ Tri vrste potvrde:
 
 Gazdinstvo može imati koliko god potvrda sve tri vrste (npr. iz različitih godina) — ništa se ne briše/prepisuje, svaka ostaje uz svoju sliku (ako je ima) i datum. OCR biblioteka (Tesseract.js) je uključena lokalno u `vendor/tesseract/` — prvi put kad se doda potvrda ili slika u tabu Markice, preglednik preuzme ~7 MB (jednom, pa ostaje keširano za offline rad).
 
-### Markice po gazdinstvu (tab Markice → "Po gazdinstvu", podrazumijevani podtab)
-Kad se otvori tab Markice, prvo se vidi **"Po gazdinstvu"** (ne "Cijela oblast") — poređenje za JEDNO gazdinstvo/vlasnika je uobičajeniji tok posla: **spisak vlasnikovih grla** naspram **spiska vakcinisanih po markicama** (od veterinara):
+### Markice po gazdinstvu (tab Markice)
+Tab Markice radi isključivo poređenje **po gazdinstvu/vlasniku** — nema više poređenja "cijele oblasti" odjednom (ukinuto). Za odabranu farmu se porede **spisak grla na imanju** naspram **spiska vakcinisanih od veterinara**, oba u obliku tabele, red po red. **Markice su isključivo za farme** (ušne markice grla) — pčelari (košnice) se nigdje u tabu Markice ne uparuju sa markicama: ne pojavljuju se u pregledu, a brzi unos ne nudi izbor vrste (uvijek pravi farmu).
 
-1. Podtab ima dvije jasno odvojene cjeline: kartica **"Dodaj novo gazdinstvo"** za brzi unos (vrsta, naziv, vlasnik, grad, adresa, ID gazdinstva/JIB, tačno ono što piše na potvrdi) — stoku, posjete i ostalo dopuniš kasnije u tabu Gazdinstva; i kartica **"Pregled svih gazdinstava"**, tabela svih gazdinstava s pretragom, gdje **klik na naziv Gazdinstva ili na Vlasnika** otvara poređenje za taj unos (isto važi i za novododano gazdinstvo — bira se odmah).
-2. Oba spiska su **slobodno izmjenjiva textarea polja** (markica po redu), popunjiva na tri načina — svaki nezavisno za spisak grla i za spisak vakcinisanih:
-   - **ručno** — zalijepi ili upiši spisak; spisak grla se za pogodnost predpopuni iz podataka već upisanih u tabu Gazdinstva, ali ostaje slobodno izmjenjiv ovdje (ne piše se nazad automatski — za trajnu izmjenu službenog spiska stoke ide se preko "Otvori u Gazdinstva"),
-   - **slika (OCR)** — dugme "+ Slika (OCR)" uz svaki od dva spiska, čita se potpuno lokalno, isto kao kod potvrda,
-   - **Excel, jedan fajl za oba spiska** — dugme "Uvezi iz Excela (2 lista)" učita **prvi list u fajlu kao spisak grla, drugi list kao spisak vakcinisanih** (bez obzira na naziv lista — po redoslijedu); druga kolona (B) se čita kao markice, prva (A, obično redni broj) se ignoriše.
-3. Spisak grla se **odmah boji** dok kucaš/lijepiš/uvoziš — **zeleno** = ta markica jeste u spisku vakcinisanih, **crveno** = nije (prije bilo kakvog unosa u spisak vakcinisanih, sve je neutralno/sivo, da prazan spisak ne izgleda kao da je "sve gotovo"). Dugme **"Uporedi"** ispod još pokaže i markice koje SU vakcinisane a nisu upisane ni u jednom grlu na spisku (žuto — možda greška u unosu ili grlo koje treba dodati).
-4. **"Sačuvaj kao potvrdu uz gazdinstvo"** trajno zapiše oba unesena spiska (koji god od njih ima sadržaj) kao potvrde na tom gazdinstvu — spisak grla kao "Potvrda o stanju", spisak vakcinisanih kao "Popis vakcinisanih grla" (oba vidljiva i u tabu Gazdinstva), sa datumom — postaju dio historije.
+1. Tab ima dvije jasno odvojene cjeline: kartica **"Dodaj novu farmu"** za brzi unos (naziv, vlasnik, grad, adresa, ID gazdinstva/JIB, tačno ono što piše na potvrdi) — stoku, posjete i ostalo dopuniš kasnije u tabu Gazdinstva; i kartica **"Pregled svih farmi"**, tabela farmi s pretragom, gdje **klik na naziv Gazdinstva ili na Vlasnika** otvara poređenje za taj unos (isto važi i za novododanu farmu — bira se odmah).
+2. Oba spiska su **tabele sa kolonama Markica, Pol, Vrsta** (spisak vakcinisanih ima uz to i 5 kolona bolesti — vidi ispod) — redni broj se ne upisuje, uvijek se sam dodjeljuje po poziciji u tabeli. Svaki spisak ima svoja **tri podtaba** za popunjavanje, nezavisno jedan od drugog:
+   - **Ručno** — tabela sa dugmetom "+ Dodaj red" za novi red; spisak grla se za pogodnost predpopuni markicama već upisanim u tabu Gazdinstva, ali ostaje slobodno izmjenjiv ovdje (ne piše se nazad automatski — za trajnu izmjenu službenog spiska stoke ide se preko "Otvori u Gazdinstva"),
+   - **Slika (OCR)** — dodaje sliku potvrde, čita se potpuno lokalno (isto kao kod potvrda u obrascu gazdinstva) i dodaje prepoznate markice kao nove redove; pol/vrsta/bolesti se po potrebi dopune ručno,
+   - **Excel** — učitava **prvi list u fajlu** (bez obzira na naziv) po fiksnim kolonama: **B = markica, C = pol, D = vrsta** (kolona A je redni broj, ignoriše se); za spisak vakcinisanih dodatno **E–I = Bruceloza / Enzotska leukoza / TBC / CMT / Antrax**. Čita se na uređaju, ništa se ne šalje na internet.
+3. **Spisak vakcinisanih ima 5 kolona za bolesti/mjere** (Bruceloza, Enzotska leukoza, TBC, CMT, Antrax) — isti raspored kao na obrascu "Potvrda o provedenim mjerama" od veterinarske stanice, gdje se upisuje slovo **V** ako je izvršena vakcinacija za tu bolest, ili rezultat ispitivanja (+, - ili ±).
+4. Spisak grla se **odmah boji** dok se popunjava (ručno/OCR/Excel) — **zeleno** = ta markica jeste u spisku vakcinisanih, **crveno** = nije (prije bilo kakvog unosa u spisak vakcinisanih, sve je neutralno/sivo, da prazan spisak ne izgleda kao da je "sve gotovo"). Dugme **"Uporedi"** ispod još pokaže i markice koje SU vakcinisane a nisu upisane ni u jednom grlu na spisku (žuto — možda greška u unosu ili grlo koje treba dodati).
+5. **"Sačuvaj kao potvrdu uz gazdinstvo"** trajno zapiše markice iz oba spiska (koji god od njih ima sadržaj) kao potvrde na tom gazdinstvu — spisak grla kao "Potvrda o stanju", spisak vakcinisanih kao "Popis vakcinisanih grla" (oba vidljiva i u tabu Gazdinstva), sa datumom — postaju dio historije. Pol/vrsta/bolesti po grlu ostaju samo u radnoj tabeli za poređenje, ne pišu se u taj istorijski zapis.
 
 ## Karta korisnika usluga
 Boje markera se računaju automatski iz datuma:
@@ -188,53 +189,7 @@ Ovo je urađeno na nekoliko nivoa odjednom, jer preglednici inače vole zadržat
 4. PWA Builder će analizirati manifest/service worker (već su podešeni u ovom paketu) i ponuditi pakete za Windows, Android (APK) i iOS
 
 ## Napomena o podacima
-Sačuvane liste (dugme "Sačuvaj obje liste") čuvaju se u localStorage **tog konkretnog browsera na tom uređaju** — ne sinhronizuju se automatski između mobitela i desktopa. Za to bi trebao pravi backend (npr. malu bazu), što mogu dodati naknadno ako zatrebaš.
-
-## Automatsko učitavanje spiska
-Fajl **`Potvrda o stanju grla.xlsx`** stoji uz aplikaciju i **učitava se sam pri svakom pokretanju** — obje liste su popunjene čim se prijaviš, bez ijednog klika.
-
-Čim uvezeš vlastiti fajl ili sam nešto upišeš u liste, tvoj unos ima prednost: pamti se na uređaju i vraća se pri sljedećem otvaranju, a ugrađeni fajl ga više ne prepisuje. Dugme **"Vrati ugrađeni fajl"** vraća na fajl koji dolazi uz aplikaciju (traži potvrdu, jer briše trenutni sadržaj obje liste).
-
-Ispod dugmadi uvijek piše odakle su trenutni podaci i kada su učitani.
-
-Da ažuriraš ugrađeni spisak za sve korisnike, zamijeni `Potvrda o stanju grla.xlsx` u repozitoriju novim izvozom i ponovo deployaj.
-
-## Uvoz iz Excel fajla
-Dugme "Uvezi .xlsx" učitava obje liste odjednom iz jednog Excel dokumenta — direktno na uređaju, bez ikakvog slanja na internet ili servera.
-
-Aplikacija očekuje dokument sa dva taba tačno ovako nazvana:
-- **Vakcinacija (Bruceloza)** → Lista 1 (Popis identifikacionih oznaka)
-- **Potvrda o Stanju Životinja** → Lista 2 (Potvrda o stanju životinja)
-
-Iz svakog taba čita se kolona B (šifra/identifikacijski broj životinje); naslovni i "Ukupno evidencija" redovi se automatski ignorišu. Ako fajl ima drugačija imena tabova, uvoz za tu listu neće raditi — javi ako treba dodati još naziva ili prilagoditi kolonu.
+Svi podaci (gazdinstva, posjete, dnevnik, markice) čuvaju se u localStorage **tog konkretnog browsera na tom uređaju** — ne sinhronizuju se automatski između mobitela i desktopa (vidi "Postavke i sigurnosna kopija" iznad). Za to bi trebao pravi backend (npr. malu bazu), što mogu dodati naknadno ako zatrebaš.
 
 ## Izvoz u Excel (.xlsx)
-Svako dugme "Izvezi (Excel)" (gazdinstva, dnevnik izmjena, registar posjeta, neusklađene markice) preuzima pravi `.xlsx` dokument koji se otvara direktno u Excelu, LibreOffice-u ili Google Sheetsu — ne CSV. I čitanje i pisanje `.xlsx` fajlova je urađeno ručno (bez vanjske biblioteke poput SheetJS-a), jer jedina verzija te biblioteke dostupna preko npm-a ima poznate bezbjednosne ranjivosti. Fajl koji nastaje je minimalan ali ispravan OOXML dokument (ZIP arhiva bez kompresije + par XML dijelova), provjeren i ručno (otpakivanje ZIP-a) i učitavanjem kroz Python biblioteku za čitanje Excel fajlova.
-
-## Povezivanje sa Google Sheets (alternativa)
-Svaka lista ima polje "Link ka Google Sheets dokumentu" + dugme "Uvezi" — nalijepi link i aplikacija povuče sadržaj direktno iz dokumenta (prepoznaje brojeve markica isto kao i kod ručnog kopiranja).
-
-Uslov: dokument mora biti dijeljen kao **"Bilo ko sa linkom — može pregledati"** (Share → General access → Anyone with the link → Viewer). Radi i običan link iz adresne trake (npr. `.../edit?gid=123...`) — aplikacija ga sama pretvori u ispravan format za čitanje. Ako lista ima više tabova (sheets), uvozi se onaj tab koji je otvoren u linku (prema `gid` parametru).
-
-Zadnji korišteni link se pamti po listi (localStorage), pa je sljedeći put dovoljno samo kliknuti "Uvezi" ponovo za osvježavanje.
-
-Ako uvoz ne uspije, provjeri dijeljenje dokumenta ili prekopiraj podatke ručno u polje.
-
-## Štampanje izvještaja
-Nakon "Uporedi liste", dugme "Štampaj izvještaj" otvara standardni dijalog za štampu (ili "Save as PDF") sa čistim izgledom: samo zaglavlje, sažetak i liste podudarnih/neusklađenih markica — bez tekstualnih polja i dugmadi.
-
-## Povezivanje markica sa gazdinstvom
-Svaka markica upisana uz stoku na nekom gazdinstvu (polje "ID brojevi / markice" u obrascu) automatski postaje pretraživa:
-
-- U tabu **Markice**, iznad liste za poređenje, polje "Pretraga po broju markice" — ukucaj broj i odmah vidi kojem gazdinstvu pripada (ili poruku da nije pronađena).
-- Nakon "Uporedi liste", svaka markica koja se poklapa sa nekim gazdinstvom je klikabilna i pokazuje naziv vlasnika direktno na "čipu"; klik otvara to gazdinstvo na uređivanje. Markice bez poznatog vlasnika ostaju obične (nisu klikabilne).
-
-Poređenje formata brojeva (razmaci, mala/velika slova, novi red) je isto kao i kod uvoza liste, tako da se "BA 4201 111111" i "BA4201111111" prepoznaju kao ista markica.
-
-### Treće poređenje — zvanični spiskovi naspram gazdinstava
-Osim poređenja Liste 1 i Liste 2 međusobno, "Uporedi liste" pokazuje i gdje se zvanični spiskovi razilaze sa onim što je upisano po gazdinstvima:
-
-- **"U spiskovima, bez upisanog vlasnika"** — markica postoji u Listi 1 i/ili Listi 2, ali nije upisana ni na jednom gazdinstvu. Treba pronaći i upisati vlasnika.
-- **"Upisano na gazdinstvu, van spiskova"** — markica je upisana uz stoku na nekom gazdinstvu, ali se ne pojavljuje ni u jednoj od dvije zvanične liste (moguća greška u unosu, ili tek treba stići u zvanični spisak). Klikabilno, isto kao podudarne markice — klik otvara gazdinstvo.
-
-I ove dvije kategorije ulaze u "Izvezi neusklađene (Excel)" (sa kolonom Gazdinstvo gdje je poznato) i u "Štampaj izvještaj".
+Svako dugme "Izvezi (Excel)" (gazdinstva, dnevnik izmjena, registar posjeta) preuzima pravi `.xlsx` dokument koji se otvara direktno u Excelu, LibreOffice-u ili Google Sheetsu — ne CSV. I čitanje i pisanje `.xlsx` fajlova je urađeno ručno (bez vanjske biblioteke poput SheetJS-a), jer jedina verzija te biblioteke dostupna preko npm-a ima poznate bezbjednosne ranjivosti. Fajl koji nastaje je minimalan ali ispravan OOXML dokument (ZIP arhiva bez kompresije + par XML dijelova), provjeren i ručno (otpakivanje ZIP-a) i učitavanjem kroz Python biblioteku za čitanje Excel fajlova. Isti ručno napisani čitač se koristi i za uvoz iz Excela u tabu Markice (vidi "Markice po gazdinstvu" iznad).

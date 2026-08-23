@@ -171,18 +171,11 @@
   }
   .install-bar button{background:var(--paper);color:var(--ink);border:none;}
 
-  .file-import{
-    display:flex;align-items:center;gap:12px;flex-wrap:wrap;
-    margin-bottom:16px;
-  }
-  .file-import-note{
-    font-family:'Helvetica Neue',Arial,sans-serif;
-    font-size:11px;color:var(--ink-soft);line-height:1.5;
-    flex:1 1 220px;min-width:0;
-  }
-  input[type=file]#xlsxFile, input[type=file]#fotoInput,
+  input[type=file]#fotoInput,
   input[type=file]#potvrdaMjereInput, input[type=file]#potvrdaStanjeInput,
-  input[type=file]#potvrdaVakcinisanoInput, input[type=file]#pgSlikaInput{display:none;}
+  input[type=file]#potvrdaVakcinisanoInput,
+  input[type=file]#pgRosterSlikaInput, input[type=file]#pgVakSlikaInput,
+  input[type=file]#pgRosterXlsxInput, input[type=file]#pgVakXlsxInput{display:none;}
 
   .cards{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
   @media (max-width:720px){ .cards{grid-template-columns:1fr;} }
@@ -228,22 +221,6 @@
     display:flex;gap:8px;margin-top:8px;
     font-family:'Helvetica Neue',Arial,sans-serif;
     font-size:12px;align-items:center;flex-wrap:wrap;
-  }
-  .sheet-row{display:flex;gap:6px;margin-top:8px;}
-  input[type=url]{
-    flex:1;min-width:0;
-    font-family:'Helvetica Neue',Arial,sans-serif;
-    font-size:11.5px;
-    padding:7px 9px;
-    border:1px solid var(--line);
-    background:#fff;
-    border-radius:2px;
-    color:var(--ink);
-  }
-  input[type=url]:focus{outline:2px solid var(--gold);outline-offset:1px;}
-  .sheet-hint{
-    font-family:'Helvetica Neue',Arial,sans-serif;
-    font-size:10.5px;color:var(--ink-soft);margin:5px 0 0;line-height:1.5;
   }
   .count-pill{
     background:var(--paper-dim);
@@ -314,6 +291,13 @@
   }
   .grid-tags{display:flex;flex-wrap:wrap;gap:7px;padding:14px 16px;}
 
+  /* ---------- Markice po gazdinstvu: redovi grla/vakcinisanih u tabeli ---------- */
+  .pg-redovi-tabela input, .pg-redovi-tabela select{width:100%;min-width:64px;}
+  .pg-redovi-tabela input.pg-markica{min-width:120px;font-family:'SFMono-Regular',Consolas,monospace;}
+  .pg-redovi-tabela input.pg-bolest{min-width:44px;text-align:center;}
+  .pg-redovi-tabela select{min-width:52px;}
+  .pg-redovi-tabela td{padding:4px 6px;}
+
   /* ---------- signature element: literal ear-tag chips with punch hole ---------- */
   .tag{
     position:relative;
@@ -360,34 +344,9 @@
     text-transform:none;opacity:.75;
   }
 
-  .tag-lookup{
-    display:flex;gap:8px;align-items:center;flex-wrap:wrap;
-    margin-bottom:16px;
-  }
-  .tag-lookup input{
-    flex:1 1 260px;min-width:0;
-    font-family:'SFMono-Regular',Consolas,monospace;font-size:13px;
-    padding:8px 10px;border:1px solid var(--line);background:#fff;
-    border-radius:2px;color:var(--ink);
-  }
-  .tag-lookup input:focus{outline:2px solid var(--gold);outline-offset:1px;}
-  #markicaPretragaRezultat{
-    font-family:'Helvetica Neue',Arial,sans-serif;font-size:12px;
-    display:flex;gap:6px;align-items:center;flex-wrap:wrap;
-  }
-
   .empty{
     padding:24px 16px;text-align:center;color:var(--ink-soft);
     font-family:'Helvetica Neue',Arial,sans-serif;font-size:13px;
-  }
-  .footer-note{
-    text-align:center;margin-top:26px;
-    font-family:'Helvetica Neue',Arial,sans-serif;font-size:11px;color:var(--ink-soft);
-    line-height:1.6;
-  }
-  .status{
-    font-family:'Helvetica Neue',Arial,sans-serif;font-size:11px;color:var(--ink-soft);
-    text-align:center;min-height:16px;margin-top:-14px;margin-bottom:18px;
   }
   select{
     font-family:'Helvetica Neue',Arial,sans-serif;font-size:12px;
@@ -896,7 +855,7 @@
 
   @media print{
     body{background:#fff;}
-    .install-bar, .file-import, .tag-lookup, .cards, .actions-main, .status, .footer-note, .sheet-hint,
+    .install-bar, .cards, .actions-main,
     .topbar, .tabs, .subtabs, .gazd-form, .filter-bar, .map-toolbar, .row-actions,
     td.actions, th.actions, .login-screen, .leaflet-control-container,
     .bez-lokacije-red button, .vt-panel{display:none !important;}
@@ -1233,84 +1192,12 @@
 
   <section id="tab-usporedba" class="tab-panel" role="tabpanel">
 
-  <div class="subtabs" role="tablist">
-    <button role="tab" aria-selected="false" data-usporedba="oblast" onclick="showUsporedbaSekciju('oblast')">Cijela oblast</button>
-    <button role="tab" aria-selected="true" data-usporedba="gazdinstvo" onclick="showUsporedbaSekciju('gazdinstvo')">Po gazdinstvu</button>
-  </div>
-
-  <div id="usporedbaOblast" class="postavke-sekcija">
-
-  <div class="file-import">
-    <input type="file" id="xlsxFile" accept=".xlsx" onchange="importFromXlsxFile(event)">
-    <button class="small" onclick="document.getElementById('xlsxFile').click()">Uvezi .xlsx</button>
-    <button class="small secondary" onclick="vratiUgradjeniFajl()">Vrati ugrađeni fajl</button>
-    <span class="file-import-note" id="izvorPodataka">Učita obje liste iz jednog Excel fajla — čita se na uređaju, ništa se ne šalje na internet.</span>
-  </div>
-
-  <form class="tag-lookup" onsubmit="pretraziMarkicu(event)">
-    <input type="text" id="markicaPretragaInput" placeholder="Provjeri kojem gazdinstvu pripada markica">
-    <button type="submit" class="small secondary">Provjeri</button>
-    <span id="markicaPretragaRezultat"></span>
-  </form>
-
-  <div class="cards">
-    <div class="card">
-      <h2>Lista 1 — Popis identifikacionih oznaka</h2>
-      <p class="hint">npr. BA 4201 184333 (jedan po redu, ili zalijepi cijelu kolonu)</p>
-      <textarea id="list1"></textarea>
-      <div class="row-actions">
-        <span class="count-pill" id="count1">0 markica</span>
-        <button class="small secondary" onclick="clearList(1)">Obriši</button>
-        <select id="saved1" onchange="loadSaved(1)"><option value="">Učitaj sačuvano...</option></select>
-      </div>
-      <div class="sheet-row">
-        <input type="url" id="sheetLink1" placeholder="Link ka Google Sheets dokumentu">
-        <button class="small secondary" onclick="importFromSheets(1)">Uvezi</button>
-      </div>
-    </div>
-
-    <div class="card">
-      <h2>Lista 2 — Potvrda o stanju životinja</h2>
-      <p class="hint">npr. BA4201385109 (jedan po redu, ili zalijepi cijelu kolonu)</p>
-      <textarea id="list2"></textarea>
-      <div class="row-actions">
-        <span class="count-pill" id="count2">0 markica</span>
-        <button class="small secondary" onclick="clearList(2)">Obriši</button>
-        <select id="saved2" onchange="loadSaved(2)"><option value="">Učitaj sačuvano...</option></select>
-      </div>
-      <div class="sheet-row">
-        <input type="url" id="sheetLink2" placeholder="Link ka Google Sheets dokumentu">
-        <button class="small secondary" onclick="importFromSheets(2)">Uvezi</button>
-      </div>
-    </div>
-  </div>
-  <p class="sheet-hint">Uvoz radi za dokumente podijeljene kao "Bilo ko sa linkom — može pregledati". Nalijepi običan link iz adresne trake ili linka za dijeljenje.</p>
-
-  <div class="actions-main">
-    <button onclick="compareLists()">Uporedi liste</button>
-    <button class="secondary" onclick="saveLists()">Sačuvaj obje liste</button>
-    <button class="secondary" onclick="exportMismatches()">Izvezi neusklađene (Excel)</button>
-    <button class="secondary" onclick="printReport()">Štampaj izvještaj</button>
-  </div>
-  <div class="status" id="status"></div>
-
-  <div id="summaryWrap"></div>
-  <div id="resultsWrap"></div>
-
-  <p class="footer-note">Zeleno = markica postoji u obje liste · Crveno (treperi) = markica postoji samo u jednoj listi ili nema upisanog vlasnika · Žuto = upisano na gazdinstvu ali van zvaničnih spiskova<br>Sačuvane liste ostaju dostupne na ovom uređaju i bez interneta.</p>
-
-  </div>
-
-  <div id="usporedbaGazdinstvo" class="postavke-sekcija active">
+  <div id="usporedbaGazdinstvo">
 
     <div class="card" style="margin-bottom:16px;">
-      <h2>Dodaj novo gazdinstvo</h2>
-      <p class="hint">Osnovni podaci sa potvrde (vlasnik, broj imanja, adresa) — stoku, posjete i ostalo dopuni kasnije u tabu Gazdinstva.</p>
+      <h2>Dodaj novu farmu</h2>
+      <p class="hint">Osnovni podaci sa potvrde (vlasnik, broj imanja, adresa) — stoku, posjete i ostalo dopuni kasnije u tabu Gazdinstva. Markice su isključivo za farme (grla), pa ovaj brzi unos ne nudi pčelare.</p>
       <div class="form-grid">
-        <div class="field">
-          <label for="pgNovoVrsta">Vrsta</label>
-          <select id="pgNovoVrsta"><option value="farma">Farma</option><option value="pcelar">Pčelar</option></select>
-        </div>
         <div class="field">
           <label for="pgNovoNaziv">Gazdinstvo</label>
           <input id="pgNovoNaziv">
@@ -1339,8 +1226,8 @@
     </div>
 
     <div class="card" style="margin-bottom:16px;">
-      <h2>Pregled svih gazdinstava</h2>
-      <p class="hint">Klikni na Gazdinstvo ili Vlasnika da otvoriš poređenje njegovog spiska grla sa spiskom vakcinisanih od veterinara.</p>
+      <h2>Pregled svih farmi</h2>
+      <p class="hint">Klikni na Gazdinstvo ili Vlasnika da otvoriš poređenje njegovog spiska grla sa spiskom vakcinisanih od veterinara. Pčelari se ovdje ne prikazuju — markice su isključivo za grla, ne za košnice.</p>
       <input type="search" id="pgTabelaPretraga" placeholder="Pretraga" oninput="pgRenderTabela()">
       <div class="table-wrap" style="margin-top:10px;">
         <table>
@@ -1353,23 +1240,45 @@
 
     <div id="pgSadrzaj" hidden>
 
-      <div class="file-import" style="margin-bottom:14px;">
-        <input type="file" id="pgXlsxInput" accept=".xlsx" onchange="pgUvezIzXlsx(event)">
-        <button type="button" class="small secondary" onclick="document.getElementById('pgXlsxInput').click()">Uvezi iz Excela (2 lista)</button>
-        <span class="file-import-note" id="pgXlsxStatus">Prvi list u fajlu = spisak grla gazdinstva, drugi list = spisak vakcinisanih od veterinara (druga kolona = markice, prva je redni broj) — čita se na uređaju, ništa se ne šalje na internet.</span>
-      </div>
-
       <div class="cards">
         <div class="card">
-          <h2>Spisak grla gazdinstva</h2>
-          <p class="hint">Zalijepi/upiši spisak (markica po redu), ili dodaj sliku potvrde — čita se OCR-om, potpuno lokalno. Zeleno = vakcinisano, crveno = nije vakcinisano (prema spisku desno).</p>
-          <textarea id="pgRoster" oninput="pgRenderRoster()"></textarea>
-          <input type="file" id="pgRosterSlikaInput" accept="image/*" onchange="pgDodajSlikuOCR(event, 'roster')">
-          <div class="row-actions">
-            <button type="button" class="small secondary" onclick="document.getElementById('pgRosterSlikaInput').click()">+ Slika (OCR)</button>
-            <span class="count-pill" id="pgRosterStatus"></span>
+          <h2>Spisak grla na imanju</h2>
+          <div class="subtabs" role="tablist" id="pgRosterMetodTabs">
+            <button role="tab" aria-selected="true" data-metod="rucno" onclick="pgPostaviMetod('roster','rucno')">Ručno</button>
+            <button role="tab" aria-selected="false" data-metod="ocr" onclick="pgPostaviMetod('roster','ocr')">Slika (OCR)</button>
+            <button role="tab" aria-selected="false" data-metod="excel" onclick="pgPostaviMetod('roster','excel')">Excel</button>
           </div>
-          <div class="grid-tags" id="pgRosterTags" style="margin-top:10px;"></div>
+
+          <div id="pgRosterRucno" class="postavke-sekcija active">
+            <div class="table-wrap pg-redovi-tabela" style="margin-top:10px;">
+              <table>
+                <thead><tr><th>#</th><th>Markica</th><th>Pol</th><th>Vrsta</th><th></th></tr></thead>
+                <tbody id="pgRosterTijelo"></tbody>
+              </table>
+            </div>
+            <button type="button" class="small secondary" style="margin-top:8px;" onclick="pgDodajRed('roster')">+ Dodaj red</button>
+          </div>
+
+          <div id="pgRosterOcr" class="postavke-sekcija" style="margin-top:10px;">
+            <p class="hint">Dodaj sliku potvrde — čita se OCR-om, potpuno lokalno, i dodaje prepoznate markice kao nove redove.</p>
+            <input type="file" id="pgRosterSlikaInput" accept="image/*" onchange="pgOcrURed('roster', event)">
+            <div class="row-actions">
+              <button type="button" class="small secondary" onclick="document.getElementById('pgRosterSlikaInput').click()">+ Slika (OCR)</button>
+              <span class="count-pill" id="pgRosterOcrStatus"></span>
+            </div>
+          </div>
+
+          <div id="pgRosterExcel" class="postavke-sekcija" style="margin-top:10px;">
+            <p class="hint">Kolone: B = markica, C = pol, D = vrsta (kolona A je redni broj, ignoriše se). Čita se prvi list u fajlu, na uređaju — ništa se ne šalje na internet.</p>
+            <input type="file" id="pgRosterXlsxInput" accept=".xlsx" onchange="pgUvezRedIzXlsx('roster', event)">
+            <div class="row-actions">
+              <button type="button" class="small secondary" onclick="document.getElementById('pgRosterXlsxInput').click()">Uvezi iz Excela</button>
+              <span class="count-pill" id="pgRosterXlsxStatus"></span>
+            </div>
+          </div>
+
+          <p class="hint" style="margin-top:14px;">Zeleno = vakcinisano, crveno = nije vakcinisano (prema spisku desno).</p>
+          <div class="grid-tags" id="pgRosterTags"></div>
           <div class="row-actions" style="margin-top:10px;">
             <button type="button" class="small secondary" onclick="otvoriGazdinstvo(pgOdabranoId)">Otvori u Gazdinstva</button>
           </div>
@@ -1377,12 +1286,38 @@
 
         <div class="card">
           <h2>Spisak vakcinisanih grla (od veterinara)</h2>
-          <p class="hint">Zalijepi/upiši spisak, ili dodaj sliku potvrde — čita se OCR-om, potpuno lokalno.</p>
-          <textarea id="pgVakcinisano" oninput="pgRenderRoster()"></textarea>
-          <input type="file" id="pgSlikaInput" accept="image/*" onchange="pgDodajSlikuOCR(event, 'vakcinisano')">
-          <div class="row-actions">
-            <button type="button" class="small secondary" onclick="document.getElementById('pgSlikaInput').click()">+ Slika (OCR)</button>
-            <span class="count-pill" id="pgVakcinisanoStatus"></span>
+          <div class="subtabs" role="tablist" id="pgVakMetodTabs">
+            <button role="tab" aria-selected="true" data-metod="rucno" onclick="pgPostaviMetod('vak','rucno')">Ručno</button>
+            <button role="tab" aria-selected="false" data-metod="ocr" onclick="pgPostaviMetod('vak','ocr')">Slika (OCR)</button>
+            <button role="tab" aria-selected="false" data-metod="excel" onclick="pgPostaviMetod('vak','excel')">Excel</button>
+          </div>
+
+          <div id="pgVakRucno" class="postavke-sekcija active">
+            <div class="table-wrap pg-redovi-tabela" style="margin-top:10px;">
+              <table>
+                <thead><tr><th>#</th><th>Markica</th><th>Pol</th><th>Vrsta</th><th>Bruceloza</th><th>Enzotska leukoza</th><th>TBC</th><th>CMT</th><th>Antrax</th><th></th></tr></thead>
+                <tbody id="pgVakTijelo"></tbody>
+              </table>
+            </div>
+            <button type="button" class="small secondary" style="margin-top:8px;" onclick="pgDodajRed('vak')">+ Dodaj red</button>
+          </div>
+
+          <div id="pgVakOcr" class="postavke-sekcija" style="margin-top:10px;">
+            <p class="hint">Dodaj sliku potvrde — čita se OCR-om, dodaje prepoznate markice kao nove redove (pol/vrsta/bolesti se dopunjuju ručno).</p>
+            <input type="file" id="pgVakSlikaInput" accept="image/*" onchange="pgOcrURed('vak', event)">
+            <div class="row-actions">
+              <button type="button" class="small secondary" onclick="document.getElementById('pgVakSlikaInput').click()">+ Slika (OCR)</button>
+              <span class="count-pill" id="pgVakOcrStatus"></span>
+            </div>
+          </div>
+
+          <div id="pgVakExcel" class="postavke-sekcija" style="margin-top:10px;">
+            <p class="hint">Kolone: B = markica, C = pol, D = vrsta, E–I = Bruceloza / Enzotska leukoza / TBC / CMT / Antrax (kolona A je redni broj, ignoriše se). Čita se prvi list u fajlu, na uređaju.</p>
+            <input type="file" id="pgVakXlsxInput" accept=".xlsx" onchange="pgUvezRedIzXlsx('vak', event)">
+            <div class="row-actions">
+              <button type="button" class="small secondary" onclick="document.getElementById('pgVakXlsxInput').click()">Uvezi iz Excela</button>
+              <span class="count-pill" id="pgVakXlsxStatus"></span>
+            </div>
           </div>
         </div>
       </div>
@@ -1551,7 +1486,7 @@
 // Jedino mjesto gdje se broj verzije mijenja — prikazuje se u topbaru,
 // na prijavi i u Postavkama, i mora biti usklađen sa CACHE_NAME u sw.js
 // (nova verzija = novi CACHE_NAME = preglednik povuče svježe fajlove).
-const APP_VERZIJA = '1.27';
+const APP_VERZIJA = '1.28';
 for(const id of ['verzijaTopbar', 'verzijaLogin', 'verzijaPostavke']){
   const el = document.getElementById(id);
   if(el) el.textContent = 'v' + APP_VERZIJA;
@@ -1775,107 +1710,6 @@ function normalize(raw){
 }
 function uniqueList(arr){ return [...new Set(arr)]; }
 
-function updateCounts(){
-  const l1 = uniqueList(normalize(document.getElementById('list1').value));
-  const l2 = uniqueList(normalize(document.getElementById('list2').value));
-  document.getElementById('count1').textContent = l1.length + ' markica';
-  document.getElementById('count2').textContent = l2.length + ' markica';
-}
-document.getElementById('list1').addEventListener('input', updateCounts);
-document.getElementById('list2').addEventListener('input', updateCounts);
-
-function clearList(n){
-  document.getElementById('list'+n).value = '';
-  updateCounts();
-}
-
-let lastCompare = null;
-
-function compareLists(){
-  const l1 = uniqueList(normalize(document.getElementById('list1').value));
-  const l2 = uniqueList(normalize(document.getElementById('list2').value));
-
-  if(l1.length === 0 && l2.length === 0){
-    document.getElementById('resultsWrap').innerHTML = '<div class="results"><div class="empty">Nema unesenih markica za poređenje.</div></div>';
-    document.getElementById('summaryWrap').innerHTML = '';
-    lastCompare = null;
-    return;
-  }
-
-  const set1 = new Set(l1);
-  const set2 = new Set(l2);
-
-  const matched = l1.filter(x => set2.has(x)).sort();
-  const onlyIn1 = l1.filter(x => !set2.has(x)).sort();
-  const onlyIn2 = l2.filter(x => !set1.has(x)).sort();
-  const mismatchTotal = onlyIn1.length + onlyIn2.length;
-
-  // Treće poređenje: zvanični spiskovi (Lista 1 + Lista 2) naspram markica
-  // upisanih po gazdinstvima — pokazuje gdje su ta dva izvora neusklađena,
-  // umjesto da se to otkriva ručno.
-  const indeks = markicaIndeks();
-  const svihSpiskova = new Set([...set1, ...set2]);
-  const nepovezane = [...svihSpiskova].filter(x => !indeks.has(x)).sort();
-  const vanSpiska = [...indeks.keys()].filter(x => !svihSpiskova.has(x)).sort();
-
-  lastCompare = { matched, onlyIn1, onlyIn2, nepovezane, vanSpiska };
-
-  document.getElementById('summaryWrap').innerHTML = `
-    <div class="summary">
-      <div class="stat match"><div class="n">${matched.length}</div><div class="l">Podudara se</div></div>
-      <div class="stat mismatch"><div class="n">${mismatchTotal}</div><div class="l">Ne podudara se</div></div>
-      <div class="stat"><div class="n">${l1.length} / ${l2.length}</div><div class="l">Lista 1 / Lista 2 ukupno</div></div>
-    </div>
-  `;
-
-  // Markice koje su registrovane na nekom gazdinstvu (u tabu Gazdinstva) su
-  // klikabilne i pokazuju kome pripadaju — poveznica sa evidencijom gazdinstava.
-  const tagsHtml = (arr, cls) => arr.length
-    ? arr.map(x => {
-        const vlasnici = indeks.get(x);
-        if(!vlasnici || !vlasnici.length) return `<span class="tag ${cls}">${x}</span>`;
-        const prvi = vlasnici[0];
-        const jos = vlasnici.length > 1 ? ' +' + (vlasnici.length - 1) : '';
-        return `<span class="tag ${cls} tag-poznat" onclick="otvoriGazdinstvo('${prvi.id}')" title="Otvori ${escapeHtml(prvi.gazdinstvo)}">${x}<b class="tag-vlasnik">${escapeHtml(prvi.gazdinstvo)}${jos}</b></span>`;
-      }).join('')
-    : '<span style="font-family:Helvetica Neue,Arial,sans-serif;font-size:12px;color:var(--ink-soft);">— nema —</span>';
-
-  document.getElementById('resultsWrap').innerHTML = `
-    <div class="results" style="margin-bottom:16px;">
-      <h3>Podudarne markice (u obje liste) <span>${matched.length}</span></h3>
-      <div class="grid-tags">${tagsHtml(matched,'green')}</div>
-    </div>
-    <div class="results" style="margin-bottom:16px;">
-      <h3>Samo u Listi 1 (nedostaje u Listi 2) <span>${onlyIn1.length}</span></h3>
-      <div class="grid-tags">${tagsHtml(onlyIn1,'red')}</div>
-    </div>
-    <div class="results" style="margin-bottom:16px;">
-      <h3>Samo u Listi 2 (nedostaje u Listi 1) <span>${onlyIn2.length}</span></h3>
-      <div class="grid-tags">${tagsHtml(onlyIn2,'red')}</div>
-    </div>
-    <div class="results" style="margin-bottom:16px;">
-      <h3>U spiskovima, bez upisanog vlasnika <span>${nepovezane.length}</span></h3>
-      <div class="grid-tags">${tagsHtml(nepovezane,'red')}</div>
-    </div>
-    <div class="results">
-      <h3>Upisano na gazdinstvu, van spiskova <span>${vanSpiska.length}</span></h3>
-      <div class="grid-tags">${tagsHtml(vanSpiska,'amber')}</div>
-    </div>
-  `;
-}
-
-function exportMismatches(){
-  if(!lastCompare){ document.getElementById('status').textContent = 'Prvo uporedi liste.'; return; }
-  const indeks = markicaIndeks();
-  const vlasnik = t => csvCisto((indeks.get(t) || []).map(g => g.gazdinstvo).join(', '));
-  const rows = [['Markica','Status','Gazdinstvo']];
-  lastCompare.onlyIn1.forEach(t => rows.push([t, 'Samo u Listi 1', vlasnik(t)]));
-  lastCompare.onlyIn2.forEach(t => rows.push([t, 'Samo u Listi 2', vlasnik(t)]));
-  lastCompare.nepovezane.forEach(t => rows.push([t, 'U spiskovima, bez upisanog vlasnika', '']));
-  lastCompare.vanSpiska.forEach(t => rows.push([t, 'Upisano na gazdinstvu, van spiskova', vlasnik(t)]));
-  preuzmiXlsx('neuskladjene-markice.xlsx', 'Neusklađene markice', rows);
-}
-
 // ---------- markice po gazdinstvu (spisak grla naspram vakcinisanih, za JEDNO gazdinstvo) ----------
 let pgOdabranoId = null;
 
@@ -1884,12 +1718,15 @@ let pgOdabranoId = null;
 // tačan tekst u polju.
 function pgRenderTabela(){
   const pojam = document.getElementById('pgTabelaPretraga').value.trim().toLowerCase();
+  // Markice su isključivo za farme (grla) — pčelari (košnice) se ovdje ne
+  // uparuju sa markicama, pa se i ne prikazuju u ovom pregledu.
   const svi = loadGazdinstva()
+    .filter(g => g.vrsta === 'farma')
     .filter(g => !pojam || (g.gazdinstvo + ' ' + g.vlasnik + ' ' + g.grad).toLowerCase().includes(pojam))
     .sort((a, b) => a.gazdinstvo.localeCompare(b.gazdinstvo, 'bs'));
   const tijelo = document.getElementById('pgTabelaBody');
   if(!svi.length){
-    tijelo.innerHTML = '<tr><td colspan="5" class="empty">Nema gazdinstava koja odgovaraju pretrazi.</td></tr>';
+    tijelo.innerHTML = '<tr><td colspan="5" class="empty">Nema farmi koje odgovaraju pretrazi.</td></tr>';
     return;
   }
   tijelo.innerHTML = svi.map(g => {
@@ -1918,17 +1755,24 @@ function pgIzaberi(id){
   pgOdabranoId = g.id;
   sadrzaj.hidden = false;
   info.textContent = 'Izabrano: ' + g.gazdinstvo + ' (' + g.vlasnik + ')';
-  // Spisak grla se predpopuni iz tab Gazdinstva (pogodnost), ali ostaje
-  // slobodno izmjenjiv ovdje — ne piše se nazad u stoku automatski.
-  const roster = stokaZaGazdinstvo(g).flatMap(s => normalize(s.markice || ''));
-  document.getElementById('pgRoster').value = uniqueList(roster).join('\n');
-  document.getElementById('pgRosterStatus').textContent = '';
-  document.getElementById('pgVakcinisano').value = '';
-  document.getElementById('pgVakcinisanoStatus').textContent = '';
-  document.getElementById('pgSaveStatus').textContent = '';
-  document.getElementById('pgXlsxStatus').textContent = 'Prvi list u fajlu = spisak grla gazdinstva, drugi list = spisak vakcinisanih od veterinara (druga kolona = markice, prva je redni broj) — čita se na uređaju, ništa se ne šalje na internet.';
+
+  // Spisak grla se predpopuni iz tab Gazdinstva (pogodnost, samo markice —
+  // pol/vrsta po grlu se ovdje ne vode), ali ostaje slobodno izmjenjiv ovdje —
+  // ne piše se nazad u stoku automatski.
+  const rosterOznake = uniqueList(stokaZaGazdinstvo(g).flatMap(s => normalize(s.markice || '')));
+  pgRosterRedovi = rosterOznake.map(m => ({ markica: m, pol: '', vrsta: '' }));
+  pgVakRedovi = [];
+
+  pgPostaviMetod('roster', 'rucno');
+  pgPostaviMetod('vak', 'rucno');
+  pgRenderRedove('roster');
+  pgRenderRedove('vak');
+  pgRenderTagovi();
+
+  for(const id of ['pgRosterOcrStatus', 'pgRosterXlsxStatus', 'pgVakOcrStatus', 'pgVakXlsxStatus', 'pgSaveStatus']){
+    document.getElementById(id).textContent = '';
+  }
   document.getElementById('pgRezultati').innerHTML = '';
-  pgRenderRoster();
   sadrzaj.scrollIntoView({ block: 'start', behavior: 'smooth' });
 }
 
@@ -1945,7 +1789,7 @@ function pgDodajNovoGazdinstvo(){
   const ko = trenutniKorisnik ? trenutniKorisnik.ime : 'nepoznat';
   const g = {
     id: 'g' + Date.now() + Math.random().toString(36).slice(2, 7),
-    vrsta: document.getElementById('pgNovoVrsta').value,
+    vrsta: 'farma',
     gazdinstvo: naziv, vlasnik,
     telefon: '', grad: document.getElementById('pgNovoGrad').value.trim(),
     adresa: document.getElementById('pgNovoAdresa').value.trim(), adresaBroj: '',
@@ -1986,35 +1830,124 @@ function pgDodajNovoGazdinstvo(){
   }
 }
 
-// Boji spisak grla uživo prema trenutnom sadržaju polja "vakcinisano" —
+// Svaki red = { markica, pol, vrsta } za spisak grla, i uz to 5 polja za
+// bolesti ({ bruceloza, leukoza, tbc, cmt, antraks }) za spisak vakcinisanih
+// — vidi PG_BOLESTI. Redni broj se NE čuva u podatku, samo se prikazuje kao
+// pozicija u nizu (uvijek automatski, bez ručnog upisivanja).
+let pgRosterRedovi = [];
+let pgVakRedovi = [];
+
+const PG_BOLESTI = [
+  { key: 'bruceloza', naziv: 'Bruceloza' },
+  { key: 'leukoza', naziv: 'Enzotska leukoza' },
+  { key: 'tbc', naziv: 'TBC' },
+  { key: 'cmt', naziv: 'CMT' },
+  { key: 'antraks', naziv: 'Antrax' }
+];
+
+function pgNiz(cilj){ return cilj === 'vak' ? pgVakRedovi : pgRosterRedovi; }
+
+function pgPrazanRed(cilj){
+  const red = { markica: '', pol: '', vrsta: '' };
+  if(cilj === 'vak') for(const b of PG_BOLESTI) red[b.key] = '';
+  return red;
+}
+
+// Markice iz reda u tekstualni oblik — normalize() da se ista markica upisana
+// sa ili bez razmaka (npr. "BA 4201 184333" naspram "BA4201184333") prepozna
+// kao ista, i da se prihvati i eventualno zalijepljen sadržaj sa više oznaka
+// u jednoj ćeliji.
+function pgOznakeIzRedova(redovi){
+  return uniqueList(redovi.map(r => r.markica || '').filter(Boolean).flatMap(normalize));
+}
+
+const PG_METOD_SEKCIJA_ID = {
+  roster: { rucno: 'pgRosterRucno', ocr: 'pgRosterOcr', excel: 'pgRosterExcel' },
+  vak: { rucno: 'pgVakRucno', ocr: 'pgVakOcr', excel: 'pgVakExcel' }
+};
+function pgPostaviMetod(cilj, metod){
+  const tabsId = cilj === 'vak' ? 'pgVakMetodTabs' : 'pgRosterMetodTabs';
+  for(const btn of document.querySelectorAll('#' + tabsId + ' button')){
+    btn.setAttribute('aria-selected', String(btn.dataset.metod === metod));
+  }
+  const sekcije = PG_METOD_SEKCIJA_ID[cilj];
+  for(const kljuc in sekcije){
+    document.getElementById(sekcije[kljuc]).classList.toggle('active', kljuc === metod);
+  }
+}
+
+function pgDodajRed(cilj){
+  pgNiz(cilj).push(pgPrazanRed(cilj));
+  pgRenderRedove(cilj);
+}
+
+function pgUkloniRed(cilj, idx){
+  pgNiz(cilj).splice(idx, 1);
+  pgRenderRedove(cilj);
+  pgRenderTagovi();
+}
+
+// Poziva se na svaki unos u ćeliju — NE iscrtava tabelu ponovo (to bi
+// izbacilo fokus iz polja poslije svakog slova), samo ažurira podatak; live
+// bojanje se osvježi jedino kad se mijenja baš markica.
+function pgAzurirajRed(cilj, idx, polje, vrijednost){
+  const red = pgNiz(cilj)[idx];
+  if(!red) return;
+  red[polje] = vrijednost;
+  if(polje === 'markica') pgRenderTagovi();
+}
+
+function pgRenderRedove(cilj){
+  const niz = pgNiz(cilj);
+  const tijelo = document.getElementById(cilj === 'vak' ? 'pgVakTijelo' : 'pgRosterTijelo');
+  if(!tijelo) return;
+  if(!niz.length){
+    tijelo.innerHTML = `<tr><td colspan="${cilj === 'vak' ? 10 : 5}" class="empty">Nema unesenih redova.</td></tr>`;
+    return;
+  }
+  tijelo.innerHTML = niz.map((red, i) => {
+    const osnovno = `
+      <td>${i + 1}</td>
+      <td><input class="pg-markica" value="${escapeHtml(red.markica)}" oninput="pgAzurirajRed('${cilj}',${i},'markica',this.value)"></td>
+      <td>
+        <select onchange="pgAzurirajRed('${cilj}',${i},'pol',this.value)">
+          <option value=""${!red.pol ? ' selected' : ''}>—</option>
+          <option value="M"${red.pol === 'M' ? ' selected' : ''}>M</option>
+          <option value="Ž"${red.pol === 'Ž' ? ' selected' : ''}>Ž</option>
+        </select>
+      </td>
+      <td><input value="${escapeHtml(red.vrsta)}" list="stokaVrsteList" oninput="pgAzurirajRed('${cilj}',${i},'vrsta',this.value)"></td>`;
+    const bolesti = cilj === 'vak' ? PG_BOLESTI.map(b =>
+      `<td><input class="pg-bolest" value="${escapeHtml(red[b.key])}" oninput="pgAzurirajRed('${cilj}',${i},'${b.key}',this.value)"></td>`
+    ).join('') : '';
+    return `<tr>${osnovno}${bolesti}<td><button type="button" class="small secondary" onclick="pgUkloniRed('${cilj}',${i})">×</button></td></tr>`;
+  }).join('');
+}
+
+// Boji spisak grla uživo prema trenutnom sadržaju spiska vakcinisanih —
 // zeleno = vakcinisano, crveno = nije, sivo (neutralno) dok ništa nije uneseno
 // (da prazan spisak ne izgleda kao "sve je vakcinisano").
-function pgRenderRoster(){
+function pgRenderTagovi(){
   const wrap = document.getElementById('pgRosterTags');
   if(!wrap) return;
-  const roster = uniqueList(normalize(document.getElementById('pgRoster').value));
+  const roster = pgOznakeIzRedova(pgRosterRedovi);
   if(!roster.length){
     wrap.innerHTML = '<span style="font-family:Helvetica Neue,Arial,sans-serif;font-size:12px;color:var(--ink-soft);">Nema unesenih markica u spisku grla.</span>';
     return;
   }
-  const vakSet = new Set(uniqueList(normalize(document.getElementById('pgVakcinisano').value)));
+  const vakSet = new Set(pgOznakeIzRedova(pgVakRedovi));
   wrap.innerHTML = roster.map(t =>
     `<span class="tag ${vakSet.size ? (vakSet.has(t) ? 'green' : 'red') : 'neutral'}">${escapeHtml(t)}</span>`
   ).join('');
 }
 
-// Isti OCR tok kao kod potvrda, samo cilja jedno od dva polja (spisak grla
-// ili spisak vakcinisanih) zavisno koje dugme je pritisnuto.
-const PG_OCR_POLJA = {
-  roster: { input: 'pgRoster', status: 'pgRosterStatus' },
-  vakcinisano: { input: 'pgVakcinisano', status: 'pgVakcinisanoStatus' }
-};
-async function pgDodajSlikuOCR(event, cilj){
-  const conf = PG_OCR_POLJA[cilj] || PG_OCR_POLJA.vakcinisano;
+// Isti OCR tok kao kod potvrda, samo dodaje prepoznate markice kao NOVE
+// redove (pol/vrsta/bolesti ostaju prazni, dopunjuju se ručno u tabeli).
+async function pgOcrURed(cilj, event){
   const file = event.target.files[0];
   event.target.value = '';
   if(!file) return;
-  const status = document.getElementById(conf.status);
+  const status = document.getElementById(cilj === 'vak' ? 'pgVakOcrStatus' : 'pgRosterOcrStatus');
   if(!file.type.startsWith('image/')){ status.textContent = 'Odabrani fajl nije slika.'; return; }
   status.textContent = 'Čitam sliku (OCR)…';
   try{
@@ -2025,10 +1958,14 @@ async function pgDodajSlikuOCR(event, cilj){
     const brojImanja = tekst.match(/\bBA\d{10,15}\b/);
     let lista = normalize(tekst);
     if(brojImanja) lista = lista.filter(x => x !== brojImanja[0]);
-    const polje = document.getElementById(conf.input);
-    const postojece = polje.value.trim();
-    polje.value = postojece ? postojece + '\n' + lista.join('\n') : lista.join('\n');
-    pgRenderRoster();
+    const niz = pgNiz(cilj);
+    for(const m of lista){
+      const red = pgPrazanRed(cilj);
+      red.markica = m;
+      niz.push(red);
+    }
+    pgRenderRedove(cilj);
+    pgRenderTagovi();
     status.textContent = lista.length
       ? 'Dodano ' + lista.length + ' sa slike — provjeri spisak prije poređenja.'
       : 'OCR nije prepoznao nijednu markicu na slici.';
@@ -2038,15 +1975,69 @@ async function pgDodajSlikuOCR(event, cilj){
   }
 }
 
+const PG_XLSX_KOLONE_ROSTER = { B: 'markica', C: 'pol', D: 'vrsta' };
+const PG_XLSX_KOLONE_VAK = { B: 'markica', C: 'pol', D: 'vrsta', E: 'bruceloza', F: 'leukoza', G: 'tbc', H: 'cmt', I: 'antraks' };
+
+function pgNormalizujPol(sirovo){
+  const s = (sirovo || '').trim().toUpperCase();
+  if(s === 'M') return 'M';
+  if(s === 'Ž' || s === 'Z') return 'Ž';
+  return '';
+}
+
+// Uvoz iz .xlsx za JEDAN spisak (grla ili vakcinisanih) — čita prvi list u
+// fajlu po fiksnim kolonama (vidi PG_XLSX_KOLONE_*), dodaje nove redove.
+async function pgUvezRedIzXlsx(cilj, event){
+  const status = document.getElementById(cilj === 'vak' ? 'pgVakXlsxStatus' : 'pgRosterXlsxStatus');
+  const file = event.target.files[0];
+  event.target.value = '';
+  if(!file) return;
+  if(!pgOdabranoId){ status.textContent = 'Prvo izaberi gazdinstvo.'; return; }
+  if(typeof DecompressionStream === 'undefined'){
+    status.textContent = 'Ovaj browser ne podržava direktno čitanje Excel fajla. Koristi noviju verziju Chrome/Edge/Safari, ili prekopiraj podatke ručno.';
+    return;
+  }
+  status.textContent = 'Učitavam iz ' + file.name + '...';
+  try{
+    const kolone = cilj === 'vak' ? PG_XLSX_KOLONE_VAK : PG_XLSX_KOLONE_ROSTER;
+    const redoviIzFajla = await ucitajPrviListPoKolonama(await file.arrayBuffer(), kolone);
+    if(!redoviIzFajla || !redoviIzFajla.length){
+      status.textContent = 'Nije pronađen nijedan red u fajlu ' + file.name + '.';
+      return;
+    }
+    const niz = pgNiz(cilj);
+    let dodano = 0;
+    for(const izvor of redoviIzFajla){
+      const markice = normalize(izvor.markica || '');
+      if(!markice.length) continue;
+      const red = pgPrazanRed(cilj);
+      red.markica = markice[0];
+      red.pol = pgNormalizujPol(izvor.pol);
+      red.vrsta = (izvor.vrsta || '').trim();
+      if(cilj === 'vak') for(const b of PG_BOLESTI) red[b.key] = (izvor[b.key] || '').trim();
+      niz.push(red);
+      dodano++;
+    }
+    pgRenderRedove(cilj);
+    pgRenderTagovi();
+    status.textContent = dodano
+      ? 'Učitano ' + dodano + ' red(ova) iz ' + file.name + '.'
+      : 'Nijedan red u fajlu ' + file.name + ' nema prepoznatljivu markicu (kolona B).';
+  }catch(e){
+    console.error(e);
+    status.textContent = 'Nije uspjelo čitanje fajla ' + file.name + '. Provjeri da je ispravan .xlsx dokument.';
+  }
+}
+
 function pgUporedi(){
   if(!pgOdabranoId) return;
-  // Spisak grla se već boji uživo (zeleno/crveno) dok se kuca/lijepi —
+  // Spisak grla se već boji uživo (zeleno/crveno) dok se popunjava —
   // ovdje se samo osvježi (za slučaj OCR/programatske promjene) i doda
   // grupa za markice koje su vakcinisane ali nisu upisane ni na jednom
   // grlu u spisku (mogući višak/greška u unosu).
-  pgRenderRoster();
-  const rosterSet = new Set(uniqueList(normalize(document.getElementById('pgRoster').value)));
-  const vakcinisano = uniqueList(normalize(document.getElementById('pgVakcinisano').value));
+  pgRenderTagovi();
+  const rosterSet = new Set(pgOznakeIzRedova(pgRosterRedovi));
+  const vakcinisano = pgOznakeIzRedova(pgVakRedovi);
   const nijeUSpisku = vakcinisano.filter(x => !rosterSet.has(x)).sort();
 
   const tagsHtml = (arr, cls) => arr.length
@@ -2063,6 +2054,8 @@ function pgUporedi(){
 
 // Snima oba spiska (koji god od njih ima sadržaj) kao potvrde uz gazdinstvo —
 // spisak grla kao tip "stanje", spisak vakcinisanih kao tip "vakcinisano".
+// Čuvaju se markice (isto kao i ranije); pol/vrsta/bolesti po grlu ostaju
+// samo u ovoj radnoj tabeli, za poređenje — ne pišu se u istorijski zapis.
 function pgSacuvajKaoPotvrdu(){
   if(!pgOdabranoId) return;
   const status = document.getElementById('pgSaveStatus');
@@ -2073,7 +2066,7 @@ function pgSacuvajKaoPotvrdu(){
   const danas = new Date().toISOString().slice(0, 10);
   const sacuvano = [];
 
-  const roster = uniqueList(normalize(document.getElementById('pgRoster').value));
+  const roster = pgOznakeIzRedova(pgRosterRedovi);
   if(roster.length){
     g.potvrde.push({
       id: 'pv' + Date.now() + Math.random().toString(36).slice(2, 6),
@@ -2084,7 +2077,7 @@ function pgSacuvajKaoPotvrdu(){
     sacuvano.push('spisak grla (' + roster.length + ')');
   }
 
-  const vakcinisano = uniqueList(normalize(document.getElementById('pgVakcinisano').value));
+  const vakcinisano = pgOznakeIzRedova(pgVakRedovi);
   if(vakcinisano.length){
     g.potvrde.push({
       id: 'pv' + Date.now() + Math.random().toString(36).slice(2, 6) + 'v',
@@ -2103,77 +2096,10 @@ function pgSacuvajKaoPotvrdu(){
   status.textContent = 'Sačuvano uz gazdinstvo "' + g.gazdinstvo + '": ' + sacuvano.join(', ') + '.';
 }
 
-// ---------- persistence (localStorage) ----------
-const STORAGE_PREFIX = 'markice:';
-
-function saveLists(){
-  const status = document.getElementById('status');
-  const name = prompt('Naziv za ovu usporedbu (npr. datum ili GJ):', formatDatumObjekta(new Date()));
-  if(!name) return;
-  try{
-    const payload = {
-      list1: document.getElementById('list1').value,
-      list2: document.getElementById('list2').value,
-      savedAt: new Date().toISOString()
-    };
-    localStorage.setItem(STORAGE_PREFIX + name, JSON.stringify(payload));
-    status.textContent = 'Sačuvano kao "' + name + '"';
-    refreshSavedOptions();
-  }catch(e){
-    status.textContent = 'Greška pri čuvanju.';
-    console.error(e);
-  }
-}
-
-// Settings share the "markice:" prefix with saved comparisons, so they have to be
-// skipped here or they show up in the dropdown as comparisons named "sheet-link:1".
-const INTERNAL_KEY_PREFIXES = ['markice:sheet-link:', 'markice:app:'];
-function isInternalKey(key){
-  return INTERNAL_KEY_PREFIXES.some(p => key.startsWith(p));
-}
-
-function refreshSavedOptions(){
-  const names = [];
-  for(let i=0;i<localStorage.length;i++){
-    const key = localStorage.key(i);
-    if(key && key.startsWith(STORAGE_PREFIX) && !isInternalKey(key)) names.push(key.slice(STORAGE_PREFIX.length));
-  }
-  names.sort();
-  for(const sel of [document.getElementById('saved1'), document.getElementById('saved2')]){
-    const current = sel.value;
-    sel.innerHTML = '<option value="">Učitaj sačuvano...</option>' +
-      names.map(n => `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('');
-    sel.value = current;
-  }
-}
-
-function loadSaved(n){
-  const sel = document.getElementById('saved'+n);
-  const name = sel.value;
-  if(!name) return;
-  try{
-    const raw = localStorage.getItem(STORAGE_PREFIX + name);
-    if(raw){
-      const data = JSON.parse(raw);
-      document.getElementById('list1').value = data.list1 || '';
-      document.getElementById('list2').value = data.list2 || '';
-      updateCounts();
-      document.getElementById('status').textContent = 'Učitano: ' + name;
-    }
-  }catch(e){
-    document.getElementById('status').textContent = 'Nije moguće učitati.';
-  }
-}
-
 // ---------- Excel (.xlsx) local file import ----------
 // Minimal, dependency-free reader: unzips the .xlsx (a ZIP of XML parts) using
 // the browser's native DecompressionStream, then reads the OOXML spreadsheet
 // XML directly. Everything happens on-device; the file is never uploaded.
-const XLSX_SHEET_TARGETS = {
-  1: 'Vakcinacija (Bruceloza)',
-  2: 'Potvrda o Stanju Životinja'
-};
-
 async function readZipEntries(buffer){
   const view = new DataView(buffer);
   const bytes = new Uint8Array(buffer);
@@ -2251,11 +2177,15 @@ function parseWorkbookRels(doc){
   return map;
 }
 
-function parseColumnBValues(doc, sharedStrings){
-  const out = [];
+// Čita proizvoljne kolone iz svih redova jednog lista (npr. B=markica,
+// C=pol, D=vrsta) — po slovu kolone iz Excel "r" reference (npr. "C7" je
+// kolona C, red 7). Vraća niz objekata poredanih po broju reda u fajlu.
+function parseSheetRows(doc, sharedStrings, kolone){
+  const redovi = {};
   for(const c of doc.getElementsByTagName('c')){
     const ref = c.getAttribute('r') || '';
-    if(!/^B\d+$/.test(ref)) continue;
+    const m = ref.match(/^([A-Z]+)(\d+)$/);
+    if(!m || !(m[1] in kolone)) continue;
     const t = c.getAttribute('t');
     const vNode = c.getElementsByTagName('v')[0];
     let value = '';
@@ -2267,9 +2197,11 @@ function parseColumnBValues(doc, sharedStrings){
     }else if(vNode){
       value = vNode.textContent;
     }
-    if(value) out.push(value);
+    const red = m[2];
+    if(!redovi[red]) redovi[red] = {};
+    redovi[red][kolone[m[1]]] = value;
   }
-  return out;
+  return Object.keys(redovi).sort((a,b) => Number(a) - Number(b)).map(r => redovi[r]);
 }
 
 async function ucitajWorkbookSheets(zip){
@@ -2291,249 +2223,20 @@ function sheetPathFor(rels, sheet){
   return 'xl/' + relTarget.replace(/^\.?\//, '');
 }
 
-async function extractColumnBBySheetPath(zip, sheetPath){
+// Čita PRVI list u .xlsx fajlu (bez obzira na naziv) po zadatoj mapi kolona
+// — koristi se za uvoz po gazdinstvu, gdje svaki spisak ima svoj fajl.
+async function ucitajPrviListPoKolonama(buffer, kolone){
+  const zip = await readZipEntries(buffer);
+  const { sheets, rels } = await ucitajWorkbookSheets(zip);
+  const sheetPath = sheetPathFor(rels, sheets[0]);
   if(!sheetPath) return null;
   const sheetDoc = bytesToXmlDoc(await zip.extract(sheetPath));
   if(!sheetDoc) return null;
   const sharedStrings = parseSharedStrings(bytesToXmlDoc(await zip.extract('xl/sharedStrings.xml')));
-  return parseColumnBValues(sheetDoc, sharedStrings);
-}
-
-async function extractSheetColumnB(zip, sheetName){
-  const { sheets, rels } = await ucitajWorkbookSheets(zip);
-  const target = sheets.find(s => (s.name || '').trim().toLowerCase() === sheetName.trim().toLowerCase());
-  return extractColumnBBySheetPath(zip, sheetPathFor(rels, target));
-}
-
-// Isto kao extractSheetColumnB, samo po REDOSLIJEDU lista u fajlu (prvi,
-// drugi...) umjesto po tačnom nazivu — koristi se za uvoz po gazdinstvu, gdje
-// korisnik može nazvati listove kako mu odgovara.
-async function extractSheetColumnBAtIndex(zip, index){
-  const { sheets, rels } = await ucitajWorkbookSheets(zip);
-  return extractColumnBBySheetPath(zip, sheetPathFor(rels, sheets[index]));
-}
-
-// Popuni obje liste iz .xlsx sadržaja; vraća imena popunjenih listi.
-async function popuniListeIzXlsx(buffer){
-  const zip = await readZipEntries(buffer);
-  const loaded = [];
-  for(const n of [1, 2]){
-    const values = await extractSheetColumnB(zip, XLSX_SHEET_TARGETS[n]);
-    if(values){
-      // normalize() is applied per cell (not on the joined blob) so a stray
-      // footer value on the next line can never merge into a real tag.
-      const tags = uniqueList(values.flatMap(v => normalize(v)));
-      document.getElementById('list' + n).value = tags.join('\n');
-      loaded.push('Lista ' + n);
-    }
-  }
-  updateCounts();
-  return loaded;
-}
-
-async function importFromXlsxFile(event){
-  const status = document.getElementById('status');
-  const file = event.target.files[0];
-  event.target.value = '';
-  if(!file) return;
-
-  if(typeof DecompressionStream === 'undefined'){
-    status.textContent = 'Ovaj browser ne podržava direktno čitanje Excel fajla. Koristi noviju verziju Chrome/Edge/Safari, ili prekopiraj podatke ručno.';
-    return;
-  }
-
-  status.textContent = 'Učitavam iz ' + file.name + '...';
-  try{
-    const loaded = await popuniListeIzXlsx(await file.arrayBuffer());
-    if(loaded.length) spremiListe(file.name, 'rucno');
-    status.textContent = loaded.length
-      ? 'Učitano iz ' + file.name + ': ' + loaded.join(' i ') + '.'
-      : 'Nije pronađen nijedan od očekivanih tabova ("Vakcinacija (Bruceloza)", "Potvrda o Stanju Životinja") u fajlu ' + file.name + '.';
-  }catch(e){
-    console.error(e);
-    status.textContent = 'Nije uspjelo čitanje fajla ' + file.name + '. Provjeri da je ispravan .xlsx dokument.';
-  }
-}
-
-// Popuni oba pg spiska (grla gazdinstva + vakcinisano) iz JEDNOG .xlsx fajla:
-// prvi list u fajlu = spisak grla, drugi list = spisak vakcinisanih —
-// bez obzira na naziv lista, po redoslijedu; markice su u koloni B.
-async function popuniPgListeIzXlsx(buffer){
-  const zip = await readZipEntries(buffer);
-  const loaded = [];
-
-  const rosterValues = await extractSheetColumnBAtIndex(zip, 0);
-  if(rosterValues){
-    document.getElementById('pgRoster').value = uniqueList(rosterValues.flatMap(v => normalize(v))).join('\n');
-    loaded.push('spisak grla');
-  }
-  const vakValues = await extractSheetColumnBAtIndex(zip, 1);
-  if(vakValues){
-    document.getElementById('pgVakcinisano').value = uniqueList(vakValues.flatMap(v => normalize(v))).join('\n');
-    loaded.push('spisak vakcinisanih');
-  }
-
-  pgRenderRoster();
-  return loaded;
-}
-
-async function pgUvezIzXlsx(event){
-  const status = document.getElementById('pgXlsxStatus');
-  const file = event.target.files[0];
-  event.target.value = '';
-  if(!file) return;
-  if(!pgOdabranoId){ status.textContent = 'Prvo izaberi gazdinstvo.'; return; }
-
-  if(typeof DecompressionStream === 'undefined'){
-    status.textContent = 'Ovaj browser ne podržava direktno čitanje Excel fajla. Koristi noviju verziju Chrome/Edge/Safari, ili prekopiraj podatke ručno.';
-    return;
-  }
-
-  status.textContent = 'Učitavam iz ' + file.name + '...';
-  try{
-    const loaded = await popuniPgListeIzXlsx(await file.arrayBuffer());
-    status.textContent = loaded.length
-      ? 'Učitano iz ' + file.name + ': ' + loaded.join(' i ') + '.'
-      : 'Nije pronađen nijedan list u fajlu ' + file.name + '.';
-  }catch(e){
-    console.error(e);
-    status.textContent = 'Nije uspjelo čitanje fajla ' + file.name + '. Provjeri da je ispravan .xlsx dokument.';
-  }
-}
-
-// ---------- Google Sheets import ----------
-const SHEET_LINK_PREFIX = 'markice:sheet-link:';
-
-function sheetsToCsvUrl(rawUrl){
-  const url = rawUrl.trim();
-  if(!url) return null;
-  if(/output=csv|format=csv|tqx=out:csv/i.test(url)) return url;
-  const idMatch = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
-  if(!idMatch) return null;
-  const gidMatch = url.match(/[?#&]gid=(\d+)/);
-  const gid = gidMatch ? gidMatch[1] : '0';
-  return `https://docs.google.com/spreadsheets/d/${idMatch[1]}/gviz/tq?tqx=out:csv&gid=${gid}`;
-}
-
-async function importFromSheets(n){
-  const status = document.getElementById('status');
-  const input = document.getElementById('sheetLink'+n);
-  const rawUrl = input.value.trim();
-  if(!rawUrl){ status.textContent = 'Nalijepi link ka Google Sheets dokumentu u Listi '+n+'.'; return; }
-  const csvUrl = sheetsToCsvUrl(rawUrl);
-  if(!csvUrl){ status.textContent = 'Ovo ne izgleda kao link ka Google Sheets dokumentu.'; return; }
-
-  status.textContent = 'Učitavam Listu '+n+' iz Google Sheets...';
-  try{
-    const res = await fetch(csvUrl, {cache:'no-store'});
-    if(!res.ok) throw new Error('HTTP ' + res.status);
-    const text = await res.text();
-    document.getElementById('list'+n).value = text;
-    updateCounts();
-    localStorage.setItem(SHEET_LINK_PREFIX + n, rawUrl);
-    status.textContent = 'Lista '+n+' učitana iz Google Sheets (' + formatVrijemeObjekta(new Date()) + ').';
-  }catch(e){
-    console.error(e);
-    status.textContent = 'Nije uspjelo automatsko učitavanje Liste '+n+'. Provjeri da je dokument dijeljen kao "Bilo ko sa linkom — može pregledati", ili prekopiraj podatke ručno.';
-  }
-}
-
-function restoreSheetLinks(){
-  for(const n of [1,2]){
-    const saved = localStorage.getItem(SHEET_LINK_PREFIX + n);
-    if(saved) document.getElementById('sheetLink'+n).value = saved;
-  }
-}
-
-// ---------- automatsko učitavanje fajla iz aplikacije ----------
-// Fajl stoji uz aplikaciju (isti folder kao index.html), pa se učitava sam
-// pri pokretanju — sve dok korisnik ne uveze vlastiti fajl ili sam ne upiše
-// podatke. Tada se pamti njegov unos i on ima prednost pri sljedećem otvaranju.
-const UGRADJENI_XLSX = 'Potvrda o stanju grla.xlsx';
-const LISTE_KEY = 'markice:app:liste';
-
-// vrsta: 'auto' = fajl uz aplikaciju, 'rucno' = korisnikov unos ili njegov fajl.
-// Prati se odvojeno od imena, jer korisnik može uvesti fajl istog naziva.
-function spremiListe(izvor, vrsta){
-  localStorage.setItem(LISTE_KEY, JSON.stringify({
-    list1: document.getElementById('list1').value,
-    list2: document.getElementById('list2').value,
-    izvor,
-    vrsta: vrsta || 'rucno',
-    vrijeme: new Date().toISOString()
-  }));
-  prikaziIzvor();
-}
-
-function prikaziIzvor(){
-  const el = document.getElementById('izvorPodataka');
-  if(!el) return;
-  const spremljeno = loadJson(LISTE_KEY, null);
-  if(!spremljeno || !spremljeno.izvor){
-    el.textContent = 'Učita obje liste iz jednog Excel fajla — čita se na uređaju, ništa se ne šalje na internet.';
-    return;
-  }
-  const kada = formatDatumVrijemeObjekta(new Date(spremljeno.vrijeme));
-  el.textContent = spremljeno.vrsta === 'auto'
-    ? 'Automatski učitano iz "' + UGRADJENI_XLSX + '" (' + kada + ').'
-    : 'Izvor: ' + spremljeno.izvor + ' (' + kada + '). Dugme "Vrati ugrađeni fajl" vraća fajl koji dolazi uz aplikaciju.';
-}
-
-async function ucitajUgradjeniFajl(rucno){
-  const status = document.getElementById('status');
-  if(typeof DecompressionStream === 'undefined') return false;
-  if(rucno) status.textContent = 'Učitavam "' + UGRADJENI_XLSX + '"...';
-  try{
-    const res = await fetch(encodeURI('./' + UGRADJENI_XLSX));
-    if(!res.ok) throw new Error('HTTP ' + res.status);
-    const loaded = await popuniListeIzXlsx(await res.arrayBuffer());
-    if(!loaded.length) throw new Error('Očekivani tabovi nisu pronađeni.');
-    spremiListe(UGRADJENI_XLSX, 'auto');
-    status.textContent = 'Automatski učitano iz "' + UGRADJENI_XLSX + '": ' + loaded.join(' i ') + '.';
-    return true;
-  }catch(e){
-    console.warn('Ugrađeni fajl nije učitan:', e);
-    if(rucno) status.textContent = 'Nije moguće učitati "' + UGRADJENI_XLSX + '". Provjeri da je fajl uz aplikaciju.';
-    return false;
-  }
-}
-
-async function vratiUgradjeniFajl(){
-  if(!confirm('Vratiti podatke iz fajla "' + UGRADJENI_XLSX + '"? Trenutni sadržaj obje liste bit će zamijenjen.')) return;
-  localStorage.removeItem(LISTE_KEY);
-  await ucitajUgradjeniFajl(true);
-}
-
-// Ručno kucanje/lijepljenje takođe je "vlastiti unos" i pamti se.
-let spremiTajmer = null;
-function zapamtiRucniUnos(){
-  clearTimeout(spremiTajmer);
-  spremiTajmer = setTimeout(() => spremiListe('ručni unos', 'rucno'), 600);
-}
-document.getElementById('list1').addEventListener('input', zapamtiRucniUnos);
-document.getElementById('list2').addEventListener('input', zapamtiRucniUnos);
-
-async function pripremiListe(){
-  const spremljeno = loadJson(LISTE_KEY, null);
-  if(spremljeno && (spremljeno.list1 || spremljeno.list2)){
-    document.getElementById('list1').value = spremljeno.list1 || '';
-    document.getElementById('list2').value = spremljeno.list2 || '';
-    updateCounts();
-    prikaziIzvor();
-    return;
-  }
-  await ucitajUgradjeniFajl(false);
+  return parseSheetRows(sheetDoc, sharedStrings, kolone);
 }
 
 // ---------- print ----------
-function printReport(){
-  if(!lastCompare){
-    document.getElementById('status').textContent = 'Prvo uporedi liste, pa onda štampaj izvještaj.';
-    return;
-  }
-  window.print();
-}
-
 // Puni profil jednog gazdinstva za štampu — odvojen od "Štampaj spisak" (koji
 // štampa cijelu filtriranu tabelu) jer za predaju/arhivu treba jedan pregledan
 // list sa svim podacima o TOM gazdinstvu, ne red u tabeli.
@@ -2667,12 +2370,8 @@ window.addEventListener('beforeprint', () => {
     meta.textContent = 'Dnevnik izmjena · ' + kada;
     return;
   }
-  meta.textContent = lastCompare ? kada : '';
+  meta.textContent = '';
 });
-
-restoreSheetLinks();
-refreshSavedOptions();
-updateCounts();
 
 // ============================================================
 //  Korisnici, prijava i dnevnik izmjena
@@ -2887,7 +2586,6 @@ function pokreniAplikaciju(){
   renderKorisnike();
   renderPregled();
   prikaziZauzece();
-  pripremiListe();
   showTab('pregled');
 }
 
@@ -3554,8 +3252,8 @@ const TAB_HEADINGS = {
     sub: 'Sigurnosna kopija podataka, upravljanje korisnicima i dnevnik izmjena.'
   },
   usporedba: {
-    title: 'Usporedba spiskova ušnih markica',
-    sub: 'Zalijepi brojeve markica iz oba dokumenta — Popis identifikacionih oznaka i Potvrda o stanju životinja — da vidiš gdje se evidencije podudaraju.'
+    title: 'Markice po gazdinstvu',
+    sub: 'Izaberi ili dodaj farmu, pa unesi spisak grla i spisak vakcinisanih (ručno, slika-OCR ili Excel) da vidiš koja grla su vakcinisana.'
   },
   gazdinstva: {
     title: 'Evidencija gazdinstava',
@@ -3630,19 +3328,6 @@ function showPostavkeSekciju(name){
     sekcija.classList.toggle('active', sekcija.id === POSTAVKE_SEKCIJA_ID[name]);
   }
   if(name === 'dnevnik') renderDnevnik();
-}
-
-let aktivnaUsporedbaSekcija = 'gazdinstvo';
-const USPOREDBA_SEKCIJA_ID = { oblast: 'usporedbaOblast', gazdinstvo: 'usporedbaGazdinstvo' };
-function showUsporedbaSekciju(name){
-  aktivnaUsporedbaSekcija = name;
-  for(const btn of document.querySelectorAll('#tab-usporedba .subtabs button')){
-    btn.setAttribute('aria-selected', String(btn.dataset.usporedba === name));
-  }
-  for(const sekcija of document.querySelectorAll('#tab-usporedba .postavke-sekcija')){
-    sekcija.classList.toggle('active', sekcija.id === USPOREDBA_SEKCIJA_ID[name]);
-  }
-  if(name === 'gazdinstvo') pgRenderTabela();
 }
 
 function toggleGazdForm(otvori){
@@ -3735,40 +3420,6 @@ function stokaZaGazdinstvo(g){
 
 function markiceIzStoke(s){
   return (s.markice || '').split('\n').map(m => m.trim()).filter(Boolean);
-}
-
-// ---------- markica -> gazdinstvo (poveznica sa usporedbom markica) ----------
-// normalize() se koristi i ovdje (a ne ručno dijeljenje po redu) da isti broj
-// upisan sa ili bez razmaka (npr. "BA 4201 184333" naspram "BA4201184333")
-// bude prepoznat kao ista markica.
-function markicaIndeks(){
-  const indeks = new Map();
-  for(const g of loadGazdinstva()){
-    for(const s of stokaZaGazdinstvo(g)){
-      for(const oznaka of normalize(s.markice || '')){
-        if(!indeks.has(oznaka)) indeks.set(oznaka, []);
-        const lista = indeks.get(oznaka);
-        if(!lista.some(v => v.id === g.id)) lista.push(g);
-      }
-    }
-  }
-  return indeks;
-}
-
-function pretraziMarkicu(event){
-  event.preventDefault();
-  const el = document.getElementById('markicaPretragaRezultat');
-  const oznake = normalize(document.getElementById('markicaPretragaInput').value);
-  if(!oznake.length){ el.textContent = 'Unesi ispravan broj markice (počinje sa BA).'; return; }
-  const oznaka = oznake[0];
-  const vlasnici = markicaIndeks().get(oznaka);
-  if(!vlasnici || !vlasnici.length){
-    el.innerHTML = '<span class="cell-sub">' + escapeHtml(oznaka) + ' nije pronađena ni na jednom gazdinstvu.</span>';
-    return;
-  }
-  el.innerHTML = escapeHtml(oznaka) + ' pripada: ' + vlasnici.map(g =>
-    `<button type="button" class="small secondary" onclick="otvoriGazdinstvo('${g.id}')">${escapeHtml(g.gazdinstvo)}</button>`
-  ).join(' ');
 }
 
 function stokaSazetak(g){
@@ -4244,7 +3895,7 @@ function csvCisto(s){
 // Zašto ručno: jedina verzija SheetJS-a dostupna preko npm registra ima
 // poznate visoko-rizične ranjivosti (prototype pollution, ReDoS) i nema
 // načina da se iz ove razvojne okoline dobije zakrpljena verzija — isti
-// razlog zbog kojeg je i .xlsx UVOZ ranije napisan ručno (vidi importFromXlsxFile).
+// razlog zbog kojeg je i .xlsx UVOZ ranije napisan ručno (vidi ucitajPrviListPoKolonama).
 // Za PISANJE poznatih, internih podataka (ne parsiranje tuđeg fajla) ovo je
 // mnogo manji i lakše provjerljiv posao: .xlsx je ZIP sa par XML dijelova, a
 // stavke se pišu nekomprimovano ("stored", metoda 0) — potpuno validan ZIP
