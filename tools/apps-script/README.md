@@ -50,6 +50,11 @@ osvježi, ako već postoji) list **Uporedba markica** sa:
   prekida čim se status promijeni ili se pojavi rupa u brojevima (npr.
   preskočen/neispravan red) — ne treba čitati svaki red pojedinačno da bi se
   vidjelo grubo stanje spiska.
+- **isti pregled po rasponima još jednom, ali za sam list Vakcinisano** — po
+  NJEGOVOM vlastitom Rb (ne po Rb sa Stanja), grupisano na "🟢 Na spisku
+  Stanje: 1–210" i "🟡 Van spiska (greška): 211–216" — brz uvid gdje na
+  spisku vakcinisanih počinju upisi koji nemaju par na Stanju, bez
+  prelistavanja glavne tabele.
 - **bojenjem samog lista Stanje (Potvrda o stanju)** — pozadina cijelog reda
   svakog grla na tom listu se oboji svijetlo zeleno ako je vakcinisano, ili
   svijetlo crveno ako nije (samo pozadina, tekst ostaje nepromijenjen; redovi
@@ -64,6 +69,13 @@ osvježi, ako već postoji) list **Uporedba markica** sa:
   Stanju ostaju bez boje, tako da se pažnja odmah usmjeri na ono što treba
   provjeriti, direktno na listu gdje je i upisano. Boji se iznova pri svakom
   pokretanju,
+- **obilježavanjem ponovljene markice** — ako se ista markica pojavi dva ili
+  više puta na istom listu (Stanje ili Vakcinisano posebno), svi ti redovi
+  dobiju debeo **zlatan okvir** oko cijelog reda, povrh postojeće boje
+  statusa (status i dalje ostaje vidljiv) — čest izvor grešaka (kopiran red,
+  ista markica upisana za dva grla) inače prođe neopaženo jer se druga
+  pojava samo tiho preskoči u poređenju. Poruka po završetku javlja i ukupan
+  broj takvih redova,
 - upozorenjem ako je kolona sa markicom prazna u nekom redu — taj red se
   preskoči i broji.
 

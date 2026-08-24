@@ -29,10 +29,14 @@
  * prebacuje na "Uporedba markica" da bi se vidjelo koje grlo nedostaje.
  * Isto tako, na samom listu Vakcinisano se svijetlo žuto oboji svako grlo
  * čija se markica NE nalazi na listu Stanje (moguća greška u unosu) — lakše
- * ga je uočiti direktno tamo gdje je i upisano. Iznad detaljne tabele je i
- * "Pregled po rasponima (Rb)" — vakcinisani i
- * nevakcinisani brojevi grupisani u nizove (npr. "4–57, 78–134") umjesto
- * pojedinačnog čitanja svakog reda.
+ * ga je uočiti direktno tamo gdje je i upisano. Red(ovi) sa ponovljenom
+ * markicom (ista markica upisana dva ili više puta na istom listu) dodatno
+ * dobiju debeo zlatan okvir, na oba lista, povrh boje statusa. Iznad
+ * detaljne tabele je "Pregled po rasponima (Rb)" — vakcinisani i
+ * nevakcinisani brojevi (po Rb sa Potvrde o stanju) grupisani u nizove (npr.
+ * "4–57, 78–134") umjesto pojedinačnog čitanja svakog reda, i isti takav
+ * pregled još jednom, ali po Rb SAMOG lista Vakcinisano, grupisan po tome
+ * je li ta markica na spisku Stanje ili je van spiska (greška).
  *
  * Drugi meni "Izračunaj starost u mjesecima (kolona H)" upiše, na listu
  * Stanje, starost svakog grla u mjesecima (zaokruženo) od datuma rođenja do
@@ -58,7 +62,8 @@ var SPEC_VAK_OSNOVNO = [
   { key: 'markica', kw: ['markic'] },
   { key: 'broj', kw: ['identifikacij'] },
   { key: 'vrsta', kw: ['vrsta'] },
-  { key: 'pol', kw: ['pol', 'spol'] }
+  { key: 'pol', kw: ['pol', 'spol'] },
+  { key: 'rb', kw: ['redni broj', 'rbr', 'r.br', 'rb'] }
 ];
 var BOLESTI = [
   { key: 'bruceloza', naziv: 'Bruceloza', kw: ['brucel'] },
@@ -119,22 +124,26 @@ function uporediMarkice() {
     var stanje = procitajStanje_(listovi.stanje);
     var vak = procitajVakcinisano_(listovi.vak);
     var rezultat = izracunajUporedbu_(stanje.mapa, vak.mapa);
+    var duplikatiStanje = pronadjiDuplikate_(stanje.redovi);
+    var duplikatiVak = pronadjiDuplikate_(vak.redovi);
 
-    upisiRezultat_(ss, listovi, podaci, rezultat, stanje.mapa, vak.mapa, stanje.preskoceno, vak.preskoceno);
-    oznaciListStanja_(listovi.stanje, stanje.redovi, vak.mapa);
-    oznaciListVakcinisanih_(listovi.vak, vak.redovi, stanje.mapa);
+    upisiRezultat_(ss, listovi, podaci, rezultat, stanje.mapa, vak.mapa, stanje.preskoceno, vak.preskoceno, duplikatiStanje.length, duplikatiVak.length);
+    oznaciListStanja_(listovi.stanje, stanje.redovi, vak.mapa, duplikatiStanje);
+    oznaciListVakcinisanih_(listovi.vak, vak.redovi, stanje.mapa, duplikatiVak);
 
     var izlazniList = ss.getSheetByName(NAZIV_IZLAZNOG_LISTA);
     ss.setActiveSheet(izlazniList);
     // Rezultat je ono zbog čega se fajl otvara — neka bude prvi jezičak, ne
     // zakopan iza Podaci/Stanje/Vakcinisano.
     try { ss.moveActiveSheet(1); } catch (e) { /* npr. zaštićen raspored listova */ }
+    var ukupnoDuplikata = duplikatiStanje.length + duplikatiVak.length;
     prikaziPoruku_(
       'Gotovo',
       'Upisano u list "' + NAZIV_IZLAZNOG_LISTA + '": ' + rezultat.roster.length + ' grla na spisku, ' +
       rezultat.podudara.length + ' vakcinisano (' + rezultat.postotak + '%).' +
       (listovi.stanje ? ' List "' + listovi.stanje.getName() + '" je i sam obojen po istom statusu (zeleno/crveno).' : '') +
-      (listovi.vak && rezultat.nijeUSpisku.length ? ' Na listu "' + listovi.vak.getName() + '" su žuto označena ' + rezultat.nijeUSpisku.length + ' grla koja nisu na spisku Stanje (provjeri grešku).' : '')
+      (listovi.vak && rezultat.nijeUSpisku.length ? ' Na listu "' + listovi.vak.getName() + '" su žuto označena ' + rezultat.nijeUSpisku.length + ' grla koja nisu na spisku Stanje (provjeri grešku).' : '') +
+      (ukupnoDuplikata ? ' ⚠ ' + ukupnoDuplikata + ' red(ova) sa ponovljenom markicom je obilježeno zlatnim okvirom.' : '')
     );
   } catch (e) {
     prikaziPoruku_('Greška', 'Uporedba nije uspjela: ' + e.message);
@@ -274,6 +283,16 @@ function redImaSadrzaj_(red) {
   return false;
 }
 
+// Vraća SVE redove iz `redovi` ({redSaLista, markica}) čija se markica
+// pojavljuje više od jednom na istom listu — dvostruk unos je čest izvor
+// grešaka (kopiranje reda, ista markica upisana dva puta za dva grla) i
+// inače prolazi neopaženo jer se druga pojava samo tiho preskoči u mapi.
+function pronadjiDuplikate_(redovi) {
+  var brojanje = {};
+  redovi.forEach(function (r) { brojanje[r.markica] = (brojanje[r.markica] || 0) + 1; });
+  return redovi.filter(function (r) { return brojanje[r.markica] > 1; });
+}
+
 // Koristi se samo za list Vakcinisano (npr. "Vakcinisana Grla") — markica se
 // čita po prepoznatom nazivu kolone, ili država+broj u dvije kolone. Ako
 // ništa nije prepoznato po zaglavlju (fajl bez opisnih naziva), kao zadnji
@@ -357,12 +376,13 @@ function procitajStanje_(sheet) {
   return { mapa: mapa, preskoceno: preskoceno, redovi: redovi };
 }
 
-// Vraća {mapa: {markica: {pol, vrsta, bolesti:{...}}}, preskoceno, redovi}.
-// Markica zapisana u dvije kolone (Država + broj, npr. "BA" + "4200571206")
-// se spaja prije prepoznavanja, kao i u web aplikaciji. `redovi` je spisak
-// SVIH uspješno pročitanih redova ({redSaLista, markica}), koji koristi
-// oznaciListVakcinisanih_ da oboji list po redovima (ne samo po jedinstvenoj
-// markici u mapi).
+// Vraća {mapa: {markica: {pol, vrsta, bolesti:{...}, redniBroj}}, preskoceno,
+// redovi}. Markica zapisana u dvije kolone (Država + broj, npr. "BA" +
+// "4200571206") se spaja prije prepoznavanja, kao i u web aplikaciji. `redovi`
+// je spisak SVIH uspješno pročitanih redova ({redSaLista, markica}), koji
+// koristi oznaciListVakcinisanih_ da oboji list po redovima (ne samo po
+// jedinstvenoj markici u mapi). `redniBroj` je isto kao kod Stanje — iz
+// kolone "Rb"/"Redni broj" ako postoji, inače prirodna pozicija reda.
 function procitajVakcinisano_(sheet) {
   var mapa = {};
   var preskoceno = 0;
@@ -390,7 +410,8 @@ function procitajVakcinisano_(sheet) {
       mapa[markica] = {
         pol: kolone.pol !== undefined ? normalizujPol_(red[kolone.pol]) : '',
         vrsta: kolone.vrsta !== undefined ? String(red[kolone.vrsta] || '').trim() : '',
-        bolesti: bolesti
+        bolesti: bolesti,
+        redniBroj: ocitajRedniBroj_(kolone, red, i)
       };
     }
   }
@@ -468,17 +489,33 @@ function izracunajUporedbu_(stanjeMapa, vakMapa) {
 // Oboji direktno sam list Stanje (Potvrda o stanju) — svijetlo zeleno grla
 // koja jesu vakcinisana, svijetlo crveno ona koja nisu — da se vidi na prvi
 // pogled i na originalnom listu, ne samo u listu "Uporedba markica". Boji se
-// samo pozadina (ne i tekst), da se ne dira ništa drugo na tuđem listu. Prvo
-// se poništi prethodno bojenje cijelog opsega podataka, pa se boji iznova
-// (svaki put osvježi, isto kao i "Uporedba markica" list).
-function oznaciListStanja_(sheet, redovi, vakMapa) {
+// samo pozadina (ne i tekst), da se ne dira ništa drugo na tuđem listu. Red(ovi)
+// sa ponovljenom markicom (isti duplikat na dva mjesta na listu) dodatno
+// dobiju debeo zlatan okvir, povrh boje statusa — brz signal da nešto treba
+// provjeriti. Prvo se poništi prethodno bojenje/okviri cijelog opsega
+// podataka, pa se boji iznova (svaki put osvježi, isto kao i "Uporedba
+// markica" list).
+function oznaciListStanja_(sheet, redovi, vakMapa, duplikati) {
   if (!sheet) return;
   var lastRow = sheet.getLastRow(), lastCol = sheet.getLastColumn();
   if (lastRow < 2 || lastCol < 1) return;
-  sheet.getRange(2, 1, lastRow - 1, lastCol).setBackground(null);
+  var cijeliOpseg = sheet.getRange(2, 1, lastRow - 1, lastCol);
+  cijeliOpseg.setBackground(null);
+  cijeliOpseg.setBorder(false, false, false, false, false, false);
   redovi.forEach(function (r) {
     var boja = vakMapa[r.markica] ? BOJE.zelenaBg : BOJE.crvenaBg;
     sheet.getRange(r.redSaLista, 1, 1, lastCol).setBackground(boja);
+  });
+  oznaciDuplikate_(sheet, lastCol, duplikati);
+}
+
+// Zaokruži red(ove) sa ponovljenom markicom debelim zlatnim okvirom, POVRH
+// postojeće pozadinske boje (status vakcinacije se i dalje vidi) — brz
+// vizuelni signal "provjeri ovo" bez oduzimanja postojeće boje.
+function oznaciDuplikate_(sheet, lastCol, duplikati) {
+  (duplikati || []).forEach(function (r) {
+    sheet.getRange(r.redSaLista, 1, 1, lastCol)
+      .setBorder(true, true, true, true, false, false, BOJE.gold, SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
   });
 }
 
@@ -489,21 +526,24 @@ function oznaciListStanja_(sheet, redovi, vakMapa) {
 // nedostaje sa spiska). Grla čija markica JESTE na Stanju nisu greška, pa
 // ostaju bez boje — samo se ističe ono što treba provjeriti. Boji se samo
 // pozadina, i iznova pri svakom pokretanju (staro bojenje se prvo poništi).
-function oznaciListVakcinisanih_(sheet, redovi, stanjeMapa) {
+function oznaciListVakcinisanih_(sheet, redovi, stanjeMapa, duplikati) {
   if (!sheet) return;
   var lastRow = sheet.getLastRow(), lastCol = sheet.getLastColumn();
   if (lastRow < 2 || lastCol < 1) return;
-  sheet.getRange(2, 1, lastRow - 1, lastCol).setBackground(null);
+  var cijeliOpseg = sheet.getRange(2, 1, lastRow - 1, lastCol);
+  cijeliOpseg.setBackground(null);
+  cijeliOpseg.setBorder(false, false, false, false, false, false);
   redovi.forEach(function (r) {
     if (!stanjeMapa[r.markica]) {
       sheet.getRange(r.redSaLista, 1, 1, lastCol).setBackground(BOJE.zutaBg);
     }
   });
+  oznaciDuplikate_(sheet, lastCol, duplikati);
 }
 
 // ---------- ispis rezultata ----------
 
-function upisiRezultat_(ss, listovi, podaci, rezultat, stanjeMapa, vakMapa, preskocenoStanje, preskocenoVak) {
+function upisiRezultat_(ss, listovi, podaci, rezultat, stanjeMapa, vakMapa, preskocenoStanje, preskocenoVak, duplikatiStanje, duplikatiVak) {
   var sheet = ss.getSheetByName(NAZIV_IZLAZNOG_LISTA);
   if (sheet) {
     sheet.clear();
@@ -607,6 +647,16 @@ function upisiRezultat_(ss, listovi, podaci, rezultat, stanjeMapa, vakMapa, pres
     sljedeciRed += 1;
   }
 
+  var ukupnoDuplikata = (duplikatiStanje || 0) + (duplikatiVak || 0);
+  if (ukupnoDuplikata > 0) {
+    var porukaDuplikata = '⚠ ' + ukupnoDuplikata + ' red(ova) ima ponovljenu markicu (ista markica upisana ' +
+      'dva ili više puta na istom listu) — obilježeno zlatnim okvirom direktno na listu Stanje/Vakcinisano.';
+    sheet.getRange(sljedeciRed, 1, 1, brojKolona).merge()
+      .setValue(porukaDuplikata).setFontFamily(FONT_TEKST).setFontColor(BOJE.gold)
+      .setFontStyle('italic').setFontSize(10).setVerticalAlignment('middle');
+    sljedeciRed += 1;
+  }
+
   sljedeciRed += 1;
 
   // ---- pregled po rasponima (Rb) — "4–57, 78–134" umjesto čitanja svakog
@@ -641,6 +691,48 @@ function upisiRezultat_(ss, listovi, podaci, rezultat, stanjeMapa, vakMapa, pres
       sljedeciRed += 1;
     });
     sheet.getRange(prviRaspRed, 1, 2, brojKolona)
+      .setBorder(true, true, true, true, false, true, BOJE.lineStrong, SpreadsheetApp.BorderStyle.SOLID);
+
+    sljedeciRed += 1;
+  }
+
+  // ---- isti pregled po rasponima, ali za sam list Vakcinisano — po
+  // NJEGOVOM vlastitom Rb (ili prirodnoj poziciji reda ako nema tu kolonu),
+  // grupisano po tome je li ta markica i na spisku Stanje (u redu) ili nije
+  // (van spiska, moguća greška u unosu). ----
+  var vakKljucevi = Object.keys(vakMapa);
+  if (vakKljucevi.length) {
+    var vakSortirano = vakKljucevi.slice().sort(function (a, b) {
+      return uporediRedneBrojeve_(vakMapa[a].redniBroj, vakMapa[b].redniBroj);
+    });
+    var stavkeZaRasponeVak = vakSortirano.map(function (m) {
+      return { redniBroj: vakMapa[m].redniBroj, vakcinisano: !!stanjeMapa[m] };
+    });
+    var sviRasponiVak = grupisiURangeve_(stavkeZaRasponeVak);
+    var naSpiskuRasponi = formatirajRaspone_(sviRasponiVak.filter(function (r) { return r.vakcinisano; })) || '— nema —';
+    var vanSpiskaRasponi = formatirajRaspone_(sviRasponiVak.filter(function (r) { return !r.vakcinisano; })) || '— nema —';
+
+    sheet.getRange(sljedeciRed, 1, 1, brojKolona).merge()
+      .setValue('Pregled po rasponima (Rb) — Vakcinisano').setFontFamily(FONT_NASLOV).setFontColor(BOJE.ink)
+      .setFontWeight('bold').setFontSize(12);
+    sheet.setRowHeight(sljedeciRed, 24);
+    sljedeciRed += 1;
+
+    var raspRedoviVak = [
+      { oznaka: '🟢 Na spisku Stanje', tekst: naSpiskuRasponi, bg: BOJE.zelenaBg, fg: BOJE.zelenaFg },
+      { oznaka: '🟡 Van spiska (greška)', tekst: vanSpiskaRasponi, bg: BOJE.zutaBg, fg: BOJE.zutaFg }
+    ];
+    var prviRaspRedVak = sljedeciRed;
+    raspRedoviVak.forEach(function (rr) {
+      sheet.getRange(sljedeciRed, 1).setValue(rr.oznaka)
+        .setFontFamily(FONT_TEKST).setFontWeight('bold').setFontColor(rr.fg).setVerticalAlignment('middle');
+      sheet.getRange(sljedeciRed, 2, 1, brojKolona - 1).merge()
+        .setValue(rr.tekst).setFontFamily(FONT_TEKST).setFontColor(BOJE.ink).setWrap(true).setVerticalAlignment('middle');
+      sheet.getRange(sljedeciRed, 1, 1, brojKolona).setBackground(rr.bg);
+      sheet.setRowHeight(sljedeciRed, 32);
+      sljedeciRed += 1;
+    });
+    sheet.getRange(prviRaspRedVak, 1, 2, brojKolona)
       .setBorder(true, true, true, true, false, true, BOJE.lineStrong, SpreadsheetApp.BorderStyle.SOLID);
 
     sljedeciRed += 1;
