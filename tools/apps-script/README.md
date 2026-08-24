@@ -64,9 +64,8 @@ osvježi, ako već postoji) list **Uporedba markica** sa:
   Stanju ostaju bez boje, tako da se pažnja odmah usmjeri na ono što treba
   provjeriti, direktno na listu gdje je i upisano. Boji se iznova pri svakom
   pokretanju,
-- upozorenjem ako neki red ima markicu u neprepoznatom obliku (očekuje se
-  "BA" + brojevi) — taj red se preskoči i broji, isto kao kod uvoza u web
-  aplikaciju.
+- upozorenjem ako je kolona sa markicom prazna u nekom redu — taj red se
+  preskoči i broji.
 
 List je oblikovan u istoj paleti boja i fontovima kao web aplikacija (tamni
 "ink" naslov sa zlatnom trakom ispod, kartice sa statistikom u boji — kartica

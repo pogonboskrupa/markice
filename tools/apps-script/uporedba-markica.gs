@@ -249,15 +249,15 @@ function ocistiTekst_(s) {
     .toLowerCase().trim();
 }
 
-// Izvlači sve BA+brojevi oznake iz teksta (velika slova, razmaci/tabovi
-// unutar oznake su dozvoljeni pa se uklone) — ista logika kao normalize()
-// u web aplikaciji, da se ista markica upisana sa ili bez razmaka prepozna
-// kao ista, i da zalijepljen sadržaj s više oznaka u jednoj ćeliji ne
-// pokvari poređenje.
+// Uzima cijeli sadržaj ćelije kao markicu, u BILO KOM obliku — ne očekuje se
+// "BA" + brojevi kao u web aplikaciji, može biti i čist broj ili bilo šta
+// drugo što je upisano u koloni. Velika slova i uklonjeni razmaci/tabovi
+// unutar oznake (npr. "BA 4201 184333" i "BA4201184333", ili "4201 184333" i
+// "4201184333", prepoznaju se kao ista markica). Prazna ćelija (ili samo
+// razmaci) vraća praznu listu.
 function izvuciMarkice_(raw) {
-  var text = (raw === null || raw === undefined ? '' : String(raw)).toUpperCase();
-  var matches = text.match(/BA[ \t]*\d[\d \t]{5,15}\d/g) || [];
-  return matches.map(function (m) { return m.replace(/[ \t]+/g, ''); });
+  var tekst = (raw === null || raw === undefined ? '' : String(raw)).toUpperCase().replace(/[ \t]+/g, '').trim();
+  return tekst ? [tekst] : [];
 }
 
 function normalizujPol_(sirovo) {
@@ -599,8 +599,8 @@ function upisiRezultat_(ss, listovi, podaci, rezultat, stanjeMapa, vakMapa, pres
 
   var ukupnoPreskoceno = preskocenoStanje + preskocenoVak;
   if (ukupnoPreskoceno > 0) {
-    var poruka = '⚠ ' + ukupnoPreskoceno + ' red(ova) preskočeno — markica nije prepoznata ' +
-      '(očekuje se "BA" + brojevi), provjeri format u originalnom fajlu.';
+    var poruka = '⚠ ' + ukupnoPreskoceno + ' red(ova) preskočeno — kolona sa markicom je prazna ' +
+      'u tom redu, provjeri original.';
     sheet.getRange(sljedeciRed, 1, 1, brojKolona).merge()
       .setValue(poruka).setFontFamily(FONT_TEKST).setFontColor(BOJE.crvenaFg)
       .setFontStyle('italic').setFontSize(10).setVerticalAlignment('middle');
