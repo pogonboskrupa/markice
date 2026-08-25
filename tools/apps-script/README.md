@@ -140,12 +140,18 @@ Bez ovog koraka, meni javlja grešku sa uputom da prvo dodaš ovu uslugu.
 
 Napomena o tačnosti: dobar je za jasan, otkucan tekst; znatno nepouzdaniji
 za rukopis ili mutne/nakrivo fotografisane obrasce. Redni broj (Rb) se
-pokuša pročitati kao broj na početku linije, pol kao usamljeno slovo M/Ž, a
-vrsta poređenjem sa listom čestih naziva (Govedo, Ovca, Koza, Jagnjad,
-Konj, Svinja...) — sve troje su samo nagađanja i treba ih provjeriti.
-Markica se traži prvo u obliku "BA" + brojevi, a ako toga nema, kao zadnji
-pokušaj bilo koji niz od bar 6 cifara. Linija bez ičeg što liči na markicu
-se preskoči (ne upisuje se kao prazan red).
+traži bilo gdje PRIJE markice u istoj liniji (ne samo na samom početku) —
+OCR zna izmiješati redoslijed kolona (npr. pročita "BA 12 BA 4200571224"
+umjesto "12 BA 4200571224"), pa se Rb i dalje pronađe. Pol se traži kao
+usamljeno slovo M/Ž, a vrsta poređenjem sa listom čestih naziva (Govedo,
+Ovca, Koza, Jagnjad, Konj, Svinja...) — sve troje su samo nagađanja i treba
+ih provjeriti. Markica se traži prvo u obliku "BA" + brojevi; ako OCR
+pročita samo cifre bez slova (slova su na markici obično sitnija/svjetlija
+pa se lakše izgube), ispred se automatski doda "BA" — fizička markica
+skoro uvijek ima taj prefiks, pa je vjerovatnije da ga je OCR ispustio nego
+da stvarno ne postoji (bitno i da se ovako izvučena markica poklopi sa
+"BA..." zapisima na Stanje/Vakcinisano listovima pri poređenju). Linija
+bez ičeg što liči na markicu se preskoči (ne upisuje se kao prazan red).
 
 ## Prepoznavanje listova i kolona
 

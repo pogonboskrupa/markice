@@ -1036,15 +1036,21 @@ function ocrujBlob_(blob) {
 
 // Best-effort izdvajanje jednog reda (Rb, markica, pol, vrsta) iz JEDNE
 // linije OCR teksta — OCR sa fizičkog obrasca često pomiješa razmake i
-// brojeve s tekstom, pa je ovo namjerno permisivno, ne strogo poređenje kao
-// za direktan unos u ćeliju. Vraća null ako linija uopšte ne sadrži nešto
-// što liči na markicu (npr. naslovni/prazan red obrasca).
+// brojeve s tekstom (npr. Rb upadne NASRED linije umjesto na početak, kao
+// "BA 12 BA 4200571224" kad OCR krivo poveže kolone), pa je ovo namjerno
+// permisivno, ne strogo poređenje kao za direktan unos u ćeliju. Vraća null
+// ako linija uopšte ne sadrži nešto što liči na markicu (npr. naslovni/
+// prazan red obrasca).
 function parsirajOcrLiniju_(linija) {
-  var markica = izvuciMarkicuIzOcrTeksta_(linija);
-  if (!markica) return null;
+  var nadjenaMarkica = izvuciMarkicuIzOcrTeksta_(linija);
+  if (!nadjenaMarkica) return null;
 
-  var rbMatch = linija.match(/^\s*(\d{1,4})\D/);
-  var rb = rbMatch ? rbMatch[1] : '';
+  // Rb se traži bilo gdje PRIJE markice u liniji (ne samo na samom početku)
+  // — čest kratak broj (1-4 cifre) prije nego što OCR uopšte stigne do
+  // markice, bez obzira da li ga razdvajaju slova ili razmaci.
+  var prijeMarkice = linija.substring(0, nadjenaMarkica.pozicija);
+  var rbMatch = prijeMarkice.match(/\d{1,4}/);
+  var rb = rbMatch ? rbMatch[0] : '';
 
   var velikaLinija = linija.toUpperCase();
   var pol = '';
@@ -1057,19 +1063,25 @@ function parsirajOcrLiniju_(linija) {
     if (cistaLinija.indexOf(OCR_VRSTE[i]) !== -1) { vrsta = OCR_VRSTE[i]; break; }
   }
 
-  return { rb: rb, markica: markica, pol: pol, vrsta: vrsta, izvor: linija };
+  return { rb: rb, markica: nadjenaMarkica.markica, pol: pol, vrsta: vrsta, izvor: linija };
 }
 
 // Izdvaja markicu iz proizvoljne (šumovite) OCR linije — prvo traži "BA" +
 // brojevi (uobičajen format), a ako toga nema, kao zadnji pokušaj traži bilo
 // koji niz od bar 6 cifara (dovoljno dugačak da ne pokupi Rb ili slično
-// kratak broj kao markicu).
+// kratak broj kao markicu). Fizička markica UVIJEK ima "BA" na sebi — kad
+// OCR pročita samo cifre bez slova (slova "BA" su svjetlija/manja pa se
+// češće izgube), ispred se doda "BA" jer je to skoro sigurno stvarna
+// markica sa ispuštenim prefiksom, ne broj bez prefiksa. Vraća
+// {markica, pozicija} (pozicija = gdje u liniji počinje pronađeni dio, za
+// kasnije traženje Rb ispred njega), ili null ako ništa nije nađeno.
 function izvuciMarkicuIzOcrTeksta_(linija) {
   var tekst = linija.toUpperCase();
   var m = tekst.match(/BA[ \t]*\d[\d \t]{5,15}\d/);
-  if (m) return m[0].replace(/[ \t]+/g, '');
+  if (m) return { markica: m[0].replace(/[ \t]+/g, ''), pozicija: m.index };
   m = tekst.match(/\d{6,}/);
-  return m ? m[0] : null;
+  if (m) return { markica: 'BA' + m[0], pozicija: m.index };
+  return null;
 }
 
 function upisiOcrPregled_(ss, redovi, ukupnoLinija) {
