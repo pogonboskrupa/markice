@@ -126,13 +126,19 @@ koje su preskočene.
 
 Iz prepoznatog teksta skripta best-effort izdvoji Rb, markicu, pol i vrstu
 za svaki red, i upiše to u poseban list **"OCR - pregled"** (zajedno sa
+kolonom **"Slika"** — naziv fajla fotografije sa koje je taj red pročitan,
+korisno za praćenje kad se rezultati gomilaju kroz više pokretanja — i
 sirovom OCR linijom radi provjere), sa dodatnom kolonom **"Napomena"** koja
-upozori na dva čest izvora OCR grešaka:
+upozori na česte izvore OCR grešaka:
 
 - markica čiji broj cifara nije uobičajenih 10 (znak da je OCR vjerovatno
   ispustio ili udvostručio neku cifru),
 - markica koja se u istom OCR rezultatu pojavljuje više od jednom (dupli
-  red, ili slika obrađena dva puta).
+  red, ili slika obrađena dva puta),
+- markica koja je **već upisana** na pravom listu Stanje ("već na listu
+  Stanje") ili Vakcinisano ("već na listu Vakcinisano") — znači da je to
+  grlo vjerovatno slučajno ponovo fotografisano/skenirano; skripta samo
+  upozori, ništa ne dira na tim listovima.
 
 Redovi sa napomenom se dodatno oboje svijetlo žuto na samom listu, da se
 odmah vide bez čitanja svakog reda pojedinačno. Ne piše direktno u Stanje
@@ -140,6 +146,11 @@ ni Vakcinisano — rezultat treba pregledati i po potrebi ispraviti, pa tek
 onda ručno prepisati/zalijepiti u pravi list. OCR sa skeniranog/
 fotografisanog obrasca nije 100% pouzdan (posebno rukopis), zato je ovo
 namjerno odvojen korak za provjeru, ne automatski upis.
+
+Kad se lista "OCR - pregled" previše nagomila (npr. poslije više sezona
+fotografisanja), meni **Markice → "Očisti listu 'OCR - pregled'"** je ručno
+isprazni (zaglavlje ostaje) — ništa se ne briše automatski, samo na
+zahtjev.
 
 Svako pokretanje **DODAJE** nove redove na kraj lista "OCR - pregled" —
 stari redovi iz ranijih pokretanja ostaju netaknuti. Ovo je bitno jer je
@@ -167,8 +178,9 @@ za rukopis ili mutne/nakrivo fotografisane obrasce. Redni broj (Rb) se
 traži bilo gdje PRIJE markice u istoj liniji (ne samo na samom početku) —
 OCR zna izmiješati redoslijed kolona (npr. pročita "BA 12 BA 4200571224"
 umjesto "12 BA 4200571224"), pa se Rb i dalje pronađe. Pol se traži kao
-usamljeno slovo M/Ž, a vrsta poređenjem sa listom čestih naziva (Govedo,
-Ovca, Koza, Jagnjad, Konj, Svinja...) — sve troje su samo nagađanja i treba
+usamljeno slovo M/Ž, a vrsta poređenjem sa širim spiskom čestih naziva
+(govedo/krava/bik/tele/june, ovca/ovan/jagnjad, koza/jarad/jarac,
+konj/kobila/ždrijebe, svinja/prase) — sve troje su samo nagađanja i treba
 ih provjeriti. Markica se traži prvo u obliku "BA" + brojevi; ako OCR
 pročita samo cifre bez slova (slova su na markici obično sitnija/svjetlija
 pa se lakše izgube), ispred se automatski doda "BA" — fizička markica

@@ -49,13 +49,20 @@
  * dodavanje napredne "Drive API" usluge u Apps Script editoru). Obrađene
  * slike se premjeste u podfolder "Obrađeno" da se ne obrade ponovo. Upiše
  * best-effort izdvojene redove (Rb/markica/pol/vrsta nagađanje + Napomena +
- * sirova linija) u poseban list "OCR - pregled", NE direktno u Stanje/
- * Vakcinisano — svako pokretanje DODAJE redove na kraj, ne briše prethodne
- * (prirodno je fotografisati i pokretati OCR jednu sliku po jednu). Napomena
- * upozori (i žuto oboji red) kad markica nema uobičajenih 10 cifara ili kad
- * se ponavlja (i preko ranijih pokretanja) — rezultat treba provjeriti
- * prije ručnog prepisivanja, OCR nije pouzdan za
- * rukopis.
+ * naziv izvorne slike + sirova linija) u poseban list "OCR - pregled", NE
+ * direktno u Stanje/Vakcinisano — svako pokretanje DODAJE redove na kraj, ne
+ * briše prethodne (prirodno je fotografisati i pokretati OCR jednu sliku po
+ * jednu). Kolona "Slika" pamti iz koje je fotografije svaki red pročitan,
+ * korisno kad se rezultati gomilaju kroz više pokretanja. Napomena upozori
+ * (i žuto oboji red) kad markica nema uobičajenih 10 cifara, kad se
+ * ponavlja (i preko ranijih pokretanja), ili kad je ta markica VEĆ upisana
+ * na pravom listu Stanje ili Vakcinisano (samo upozorenje — ništa se ne
+ * dira na tim listovima) — rezultat treba provjeriti prije ručnog
+ * prepisivanja, OCR nije pouzdan za rukopis. Prepoznavanje vrste pokriva
+ * širi spisak ključnih riječi (govedo/krava/bik/tele/june, ovca/ovan/
+ * jagnjad, koza/jarad/jarac, konj/kobila/ždrijebe, svinja/prase). Poseban
+ * meni "Očisti listu 'OCR - pregled'" ručno prazni tu listu (zadrži
+ * zaglavlje) kad se nagomila previše starih redova.
  *
  * Instalacija: Extensions/Proširenja → Apps Script u ovom Google Sheets
  * fajlu, prekopiraj ovaj fajl kao Code.gs (ili dodaj kao novi .gs fajl),
@@ -114,6 +121,7 @@ function onOpen() {
     .addItem('Uporedi / osvježi "Uporedba markica"', 'uporediMarkice')
     .addItem('Izračunaj starost u mjesecima (kolona H)', 'izracunajStarostUMjesecima')
     .addItem('OCR sa slike (besplatno, eksperimentalno)', 'ocrSaSlike')
+    .addItem('Očisti listu "OCR - pregled"', 'ocistiOcrPregled')
     .addToUi();
 }
 
@@ -958,7 +966,13 @@ function parsirajDatum_(vrijednost) {
 var NAZIV_OCR_LISTA = 'OCR - pregled';
 var NAZIV_OCR_FOLDERA = 'OCR ulazne slike';
 var NAZIV_OCR_OBRADJENO_FOLDERA = 'Obrađeno';
-var OCR_VRSTE = ['govedo', 'ovca', 'ovce', 'koza', 'koze', 'jagnjad', 'konj', 'svinja', 'tele', 'june'];
+var OCR_VRSTE = [
+  'govedo', 'krava', 'bik', 'tele', 'june',
+  'ovca', 'ovce', 'ovan', 'jagnjad',
+  'koza', 'koze', 'jarad', 'jarac',
+  'konj', 'kobila', 'zdrijebe',
+  'svinja', 'prase'
+];
 
 function ocrSaSlike() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -985,13 +999,16 @@ function ocrSaSlike() {
 
     var obradjenoFolder = pronadjiIliNapraviFolder_(ulazniFolder, NAZIV_OCR_OBRADJENO_FOLDERA);
 
+    // {tekst, slika} po liniji — čuva se naziv slike odakle je linija
+    // pročitana, da se kasnije, kad redovi iz više pokretanja/slika stoje
+    // zajedno u istom listu, može vidjeti sa koje slike koji red potiče.
     var sveLinije = [];
     var greske = [];
     slike.forEach(function (slikaFajl) {
       try {
         var tekst = ocrujBlob_(slikaFajl.getBlob());
         var linije = tekst.split('\n').map(function (l) { return l.trim(); }).filter(function (l) { return l.length > 0; });
-        sveLinije = sveLinije.concat(linije);
+        linije.forEach(function (l) { sveLinije.push({ tekst: l, slika: slikaFajl.getName() }); });
         slikaFajl.moveTo(obradjenoFolder);
       } catch (e2) {
         greske.push(slikaFajl.getName() + ': ' + e2.message);
@@ -1007,8 +1024,20 @@ function ocrSaSlike() {
       return;
     }
 
-    var redovi = sveLinije.map(parsirajOcrLiniju_).filter(function (r) { return r; });
-    upisiOcrPregled_(ss, redovi, sveLinije.length);
+    var redovi = sveLinije.map(function (stavka) {
+      var red = parsirajOcrLiniju_(stavka.tekst);
+      if (red) red.slika = stavka.slika;
+      return red;
+    }).filter(function (r) { return r; });
+
+    // Uporedi sa Stanje/Vakcinisano da se odmah vidi je li grlo VEĆ upisano
+    // (moguć re-sken iste fotografije/dvostruki rad) — samo za informaciju u
+    // Napomeni, ne mijenja ništa na Stanje/Vakcinisano listovima.
+    var listovi = pronadjiListove_(ss);
+    var stanjeMapa = listovi.stanje ? procitajStanje_(listovi.stanje).mapa : {};
+    var vakMapa = listovi.vak ? procitajVakcinisano_(listovi.vak).mapa : {};
+
+    upisiOcrPregled_(ss, redovi, sveLinije.length, stanjeMapa, vakMapa);
 
     var brojUspjesnihSlika = slike.length - greske.length;
     prikaziPoruku_(
@@ -1113,6 +1142,13 @@ function izvuciMarkicuIzOcrTeksta_(linija) {
   return null;
 }
 
+var OCR_ZAGLAVLJE = ['Rb (nagađanje)', 'Markica', 'Pol (nagađanje)', 'Vrsta (nagađanje)', 'Napomena', 'Slika', 'Sirova OCR linija'];
+
+function upisiZaglavljeOcr_(sheet) {
+  sheet.getRange(1, 1, 1, OCR_ZAGLAVLJE.length).setValues([OCR_ZAGLAVLJE])
+    .setFontWeight('bold').setBackground(BOJE.ink).setFontColor(BOJE.paper).setFontFamily(FONT_TEKST);
+}
+
 // DODAJE nove redove na kraj lista "OCR - pregled" — ne briše prethodne.
 // Prirodan tok je fotografisati/skenirati i pokrenuti OCR više puta (jedna
 // slika u ulaznom folderu, pa druga, itd.) — obrisati stare rezultate pri
@@ -1120,13 +1156,18 @@ function izvuciMarkicuIzOcrTeksta_(linija) {
 // pokretanja, kao da je sve prije toga izgubljeno. Duplikat provjera
 // uzima u obzir i već postojeće redove na listu (ne samo nove iz ovog
 // pokretanja), da se uhvati i markica pročitana u dvije odvojene sesije.
-function upisiOcrPregled_(ss, noviRedovi, ukupnoLinija) {
+// stanjeMapa/vakMapa (mogu biti prazni objekti) se koriste samo da se u
+// Napomeni javi ako je markica VEĆ na Stanje/Vakcinisano listu — koristan
+// signal da je ovo možda ponovljeni sken iste fotografije, ne mijenja
+// ništa na tim listovima.
+function upisiOcrPregled_(ss, noviRedovi, ukupnoLinija, stanjeMapa, vakMapa) {
+  stanjeMapa = stanjeMapa || {};
+  vakMapa = vakMapa || {};
   var sheet = ss.getSheetByName(NAZIV_OCR_LISTA);
   var postojeciRedovi = [];
   if (!sheet) {
     sheet = ss.insertSheet(NAZIV_OCR_LISTA);
-    sheet.getRange(1, 1, 1, 6).setValues([['Rb (nagađanje)', 'Markica', 'Pol (nagađanje)', 'Vrsta (nagađanje)', 'Napomena', 'Sirova OCR linija']])
-      .setFontWeight('bold').setBackground(BOJE.ink).setFontColor(BOJE.paper).setFontFamily(FONT_TEKST);
+    upisiZaglavljeOcr_(sheet);
   } else {
     var zadnjiRed = sheet.getLastRow();
     if (zadnjiRed > 1) {
@@ -1151,15 +1192,34 @@ function upisiOcrPregled_(ss, noviRedovi, ukupnoLinija) {
       var napomene = [];
       if (r.brojCifara !== 10) napomene.push('broj cifara (' + r.brojCifara + ') nije uobičajenih 10 — provjeri');
       if (duplikatSet[r.markica]) napomene.push('markica se ponavlja u OCR rezultatu');
-      return [r.rb, r.markica, r.pol, r.vrsta, napomene.join('; '), r.izvor];
+      if (stanjeMapa[r.markica]) napomene.push('već na listu Stanje');
+      if (vakMapa[r.markica]) napomene.push('već na listu Vakcinisano');
+      return [r.rb, r.markica, r.pol, r.vrsta, napomene.join('; '), r.slika || '', r.izvor];
     });
-    sheet.getRange(pocetniRed, 1, vrijednosti.length, 6).setValues(vrijednosti).setFontFamily(FONT_TEKST);
+    sheet.getRange(pocetniRed, 1, vrijednosti.length, OCR_ZAGLAVLJE.length).setValues(vrijednosti).setFontFamily(FONT_TEKST);
 
     noviRedovi.forEach(function (r, i) {
-      var imaUpozorenje = r.brojCifara !== 10 || duplikatSet[r.markica];
-      if (imaUpozorenje) sheet.getRange(pocetniRed + i, 1, 1, 6).setBackground(BOJE.zutaBg);
+      var imaUpozorenje = r.brojCifara !== 10 || duplikatSet[r.markica] || stanjeMapa[r.markica] || vakMapa[r.markica];
+      if (imaUpozorenje) sheet.getRange(pocetniRed + i, 1, 1, OCR_ZAGLAVLJE.length).setBackground(BOJE.zutaBg);
     });
   }
-  sheet.autoResizeColumns(1, 5);
-  sheet.setColumnWidth(6, 350);
+  sheet.autoResizeColumns(1, OCR_ZAGLAVLJE.length - 1);
+  sheet.setColumnWidth(OCR_ZAGLAVLJE.length, 350);
+}
+
+// Meni "Očisti listu 'OCR - pregled'" — pošto se list više NE briše
+// automatski svako pokretanje (vidi upisiOcrPregled_), ovo je ručna opcija
+// za kad je pregled završen i podaci prepisani u Stanje/Vakcinisano, pa
+// listu treba osvježiti za sljedeću seriju slika.
+function ocistiOcrPregled() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(NAZIV_OCR_LISTA);
+  if (!sheet) {
+    prikaziPoruku_('Nema šta očistiti', 'List "' + NAZIV_OCR_LISTA + '" još ne postoji — pokreni prvo "OCR sa slike".');
+    return;
+  }
+  sheet.clear();
+  sheet.clearFormats();
+  upisiZaglavljeOcr_(sheet);
+  prikaziPoruku_('Gotovo', 'List "' + NAZIV_OCR_LISTA + '" je očišćen — spreman za novu seriju slika.');
 }
