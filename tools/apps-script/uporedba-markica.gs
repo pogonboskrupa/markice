@@ -42,13 +42,16 @@
  * Stanje, starost svakog grla u mjesecima (zaokruženo) od datuma rođenja do
  * datuma koji korisnik izabere kad ga skripta pita (prazno = danas).
  *
- * Treći meni "OCR sa slike (besplatno, eksperimentalno)" pita za link/ID
- * fotografije/skena koju prethodno otpremiš na Google Drive (besplatno,
- * preko Drive/Docs OCR konverzije — zahtijeva jednokratno dodavanje
- * napredne "Drive API" usluge u Apps Script editoru), pa upiše best-effort
- * izdvojene redove (Rb/markica/pol/vrsta nagađanje + sirova linija) u
- * poseban list "OCR - pregled", NE direktno u Stanje/Vakcinisano — rezultat
- * treba provjeriti prije ručnog prepisivanja, OCR nije pouzdan za rukopis.
+ * Treći meni "OCR sa slike (besplatno, eksperimentalno)" pita za link(ove)/
+ * ID(jeve) jedne ili više fotografija/skenova koje prethodno otpremiš na
+ * Google Drive (besplatno, preko Drive/Docs OCR konverzije — zahtijeva
+ * jednokratno dodavanje napredne "Drive API" usluge u Apps Script
+ * editoru), pa upiše best-effort izdvojene redove (Rb/markica/pol/vrsta
+ * nagađanje + Napomena + sirova linija) u poseban list "OCR - pregled", NE
+ * direktno u Stanje/Vakcinisano. Napomena upozori (i žuto oboji red) kad
+ * markica nema uobičajenih 10 cifara ili kad se ponavlja u istom OCR
+ * rezultatu — rezultat treba provjeriti prije ručnog prepisivanja, OCR
+ * nije pouzdan za rukopis.
  *
  * Instalacija: Extensions/Proširenja → Apps Script u ovom Google Sheets
  * fajlu, prekopiraj ovaj fajl kao Code.gs (ili dodaj kao novi .gs fajl),
@@ -955,8 +958,9 @@ function ocrSaSlike() {
   try {
     var odgovor = ui.prompt(
       'OCR sa slike',
-      'Otpremi fotografiju obrasca na svoj Google Drive (bilo gdje), pa ovdje zalijepi link za dijeljenje ' +
-      'ili sam ID fajla (desni klik na sliku u Drive-u → Nabavi link/Get link → zalijepi ovdje).',
+      'Otpremi fotografiju(e) obrasca na svoj Google Drive (bilo gdje), pa ovdje zalijepi link(ove) za ' +
+      'dijeljenje ili ID(jeve) fajla — više slika odjednom odvoji zarezom ili svaku u novi red (desni klik ' +
+      'na sliku u Drive-u → Nabavi link/Get link → zalijepi ovdje).',
       ui.ButtonSet.OK_CANCEL
     );
     if (odgovor.getSelectedButton() !== ui.Button.OK) return;
@@ -966,36 +970,43 @@ function ocrSaSlike() {
       return;
     }
 
-    var idFajla = izvuciDriveId_(unos);
-    if (!idFajla) {
-      prikaziPoruku_('Neprepoznat link', 'Nije prepoznat Drive ID u unesenom tekstu: "' + unos + '". Zalijepi puni link za dijeljenje (Get link) ili sam ID fajla.');
+    var stavke = unos.split(/[\n,]+/).map(function (s) { return s.trim(); }).filter(function (s) { return s.length > 0; });
+    var sveLinije = [];
+    var greske = [];
+    stavke.forEach(function (stavka) {
+      var idFajla = izvuciDriveId_(stavka);
+      if (!idFajla) { greske.push('nije prepoznat link/ID: "' + stavka + '"'); return; }
+      var blob;
+      try {
+        blob = DriveApp.getFileById(idFajla).getBlob();
+      } catch (e2) {
+        greske.push('slika nije pronađena/dostupna: "' + stavka + '"');
+        return;
+      }
+      var tekst = ocrujBlob_(blob);
+      var linije = tekst.split('\n').map(function (l) { return l.trim(); }).filter(function (l) { return l.length > 0; });
+      sveLinije = sveLinije.concat(linije);
+    });
+
+    if (!sveLinije.length) {
+      prikaziPoruku_(
+        'Ništa pročitano',
+        'OCR nije uspio pročitati tekst ni sa jedne slike.' +
+        (greske.length ? ' Problemi: ' + greske.join('; ') + '.' : ' Probaj jasniju/oštriju fotografiju.')
+      );
       return;
     }
 
-    var blob;
-    try {
-      blob = DriveApp.getFileById(idFajla).getBlob();
-    } catch (e2) {
-      prikaziPoruku_('Slika nije pronađena', 'Fajl sa ID-om "' + idFajla + '" nije nađen ili nemaš pristup njemu. Provjeri link i da je slika dijeljena barem sa tobom.');
-      return;
-    }
+    var redovi = sveLinije.map(parsirajOcrLiniju_).filter(function (r) { return r; });
+    upisiOcrPregled_(ss, redovi, sveLinije.length);
 
-    var tekst = ocrujBlob_(blob);
-    var linije = tekst.split('\n').map(function (l) { return l.trim(); }).filter(function (l) { return l.length > 0; });
-
-    if (!linije.length) {
-      prikaziPoruku_('Ništa pročitano', 'OCR nije uspio pročitati tekst sa slike. Probaj jasniju/oštriju fotografiju.');
-      return;
-    }
-
-    var redovi = linije.map(parsirajOcrLiniju_).filter(function (r) { return r; });
-    upisiOcrPregled_(ss, redovi, linije.length);
-
+    var brojUspjesnihSlika = stavke.length - greske.length;
     prikaziPoruku_(
       'Gotovo',
-      'OCR pročitao ' + linije.length + ' linija teksta, izdvojeno ' + redovi.length +
-      ' red(ova) sa nečim što liči na markicu, upisano u list "' + NAZIV_OCR_LISTA + '". ' +
-      '⚠ PROVJERI I ISPRAVI prije nego ručno prepišeš u Stanje/Vakcinisano — OCR nije 100% pouzdan.'
+      'OCR pročitao ' + sveLinije.length + ' linija teksta sa ' + brojUspjesnihSlika + '/' + stavke.length +
+      ' slika(e), izdvojeno ' + redovi.length + ' red(ova) sa nečim što liči na markicu, upisano u list "' +
+      NAZIV_OCR_LISTA + '". ⚠ PROVJERI I ISPRAVI prije nego ručno prepišeš u Stanje/Vakcinisano — OCR nije ' +
+      '100% pouzdan.' + (greske.length ? ' Preskočeno: ' + greske.join('; ') + '.' : '')
     );
   } catch (e) {
     var savjet = e.message && e.message.indexOf('Drive') !== -1
@@ -1063,7 +1074,13 @@ function parsirajOcrLiniju_(linija) {
     if (cistaLinija.indexOf(OCR_VRSTE[i]) !== -1) { vrsta = OCR_VRSTE[i]; break; }
   }
 
-  return { rb: rb, markica: nadjenaMarkica.markica, pol: pol, vrsta: vrsta, izvor: linija };
+  // Prava markica je "BA" + tačno 10 cifara (isti obrazac na svakoj stvarnoj
+  // markici viđenoj do sad) — ako se ovo ne poklapa, OCR je vjerovatno
+  // pogrešno pročitao/preskočio neku cifru, pa se red kasnije posebno
+  // označi da korisnik zna gdje da posebno pazi pri provjeri.
+  var brojCifara = nadjenaMarkica.markica.replace(/\D/g, '').length;
+
+  return { rb: rb, markica: nadjenaMarkica.markica, pol: pol, vrsta: vrsta, izvor: linija, brojCifara: brojCifara };
 }
 
 // Izdvaja markicu iz proizvoljne (šumovite) OCR linije — prvo traži "BA" +
@@ -1089,18 +1106,38 @@ function upisiOcrPregled_(ss, redovi, ukupnoLinija) {
   if (sheet) { sheet.clear(); sheet.clearFormats(); }
   else { sheet = ss.insertSheet(NAZIV_OCR_LISTA); }
 
-  sheet.getRange(1, 1, 1, 5).setValues([['Rb (nagađanje)', 'Markica', 'Pol (nagađanje)', 'Vrsta (nagađanje)', 'Sirova OCR linija']])
+  // Duplikat unutar samog OCR rezultata (npr. isti red pročitan dva puta
+  // zbog preklapanja slika, ili ista markica zaista upisana dva puta) —
+  // pronadjiDuplikate_ radi generički nad bilo kojim spiskom sa `.markica`,
+  // pa se ista logika kao za Stanje/Vakcinisano ovdje ponovo koristi.
+  var duplikati = pronadjiDuplikate_(redovi);
+  var duplikatSet = {};
+  duplikati.forEach(function (r) { duplikatSet[r.markica] = true; });
+
+  sheet.getRange(1, 1, 1, 6).setValues([['Rb (nagađanje)', 'Markica', 'Pol (nagađanje)', 'Vrsta (nagađanje)', 'Napomena', 'Sirova OCR linija']])
     .setFontWeight('bold').setBackground(BOJE.ink).setFontColor(BOJE.paper).setFontFamily(FONT_TEKST);
 
   if (redovi.length) {
-    var vrijednosti = redovi.map(function (r) { return [r.rb, r.markica, r.pol, r.vrsta, r.izvor]; });
-    sheet.getRange(2, 1, vrijednosti.length, 5).setValues(vrijednosti).setFontFamily(FONT_TEKST);
-  }
-  sheet.autoResizeColumns(1, 4);
-  sheet.setColumnWidth(5, 400);
+    var vrijednosti = redovi.map(function (r) {
+      var napomene = [];
+      if (r.brojCifara !== 10) napomene.push('broj cifara (' + r.brojCifara + ') nije uobičajenih 10 — provjeri');
+      if (duplikatSet[r.markica]) napomene.push('markica se ponavlja u OCR rezultatu');
+      return [r.rb, r.markica, r.pol, r.vrsta, napomene.join('; '), r.izvor];
+    });
+    sheet.getRange(2, 1, vrijednosti.length, 6).setValues(vrijednosti).setFontFamily(FONT_TEKST);
 
-  sheet.getRange(redovi.length + 3, 1, 1, 5).merge().setValue(
+    redovi.forEach(function (r, i) {
+      var imaUpozorenje = r.brojCifara !== 10 || duplikatSet[r.markica];
+      if (imaUpozorenje) sheet.getRange(2 + i, 1, 1, 6).setBackground(BOJE.zutaBg);
+    });
+  }
+  sheet.autoResizeColumns(1, 5);
+  sheet.setColumnWidth(6, 350);
+
+  sheet.getRange(redovi.length + 3, 1, 1, 6).merge().setValue(
     '⚠ OCR nije 100% pouzdan — provjeri svaki red (posebno markicu) prije nego prepišeš u Stanje/Vakcinisano. ' +
-    'Pročitano ' + ukupnoLinija + ' linija teksta ukupno, ' + redovi.length + ' sadrži nešto što liči na markicu.'
+    'Žuto obojeni redovi imaju upozorenje u koloni Napomena (neuobičajen broj cifara ili ponovljena markica u ' +
+    'OCR rezultatu). Pročitano ' + ukupnoLinija + ' linija teksta ukupno, ' + redovi.length + ' sadrži nešto ' +
+    'što liči na markicu.'
   ).setFontStyle('italic').setFontColor(BOJE.crvenaFg).setWrap(true);
 }

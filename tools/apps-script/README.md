@@ -108,17 +108,31 @@ koloni H, pa je sigurno pokretati opet sa drugim datumom.
 ## OCR sa slike (besplatno, eksperimentalno)
 
 Meni **Markice → "OCR sa slike (besplatno, eksperimentalno)"** — pita te za
-link (ili sam ID) fotografije/skena fizičkog obrasca koju prvo otpremiš na
-svoj Google Drive (bilo gdje — ne mora biti u ovom fajlu). Slike umetnute
-direktno preko ćelija na listu (Insert → Image) **ne rade** za ovo — Apps
-Script nema pristup njihovom sadržaju, samo do fajlova na samom Drive-u.
+link(ove) (ili sam ID/ID-jeve) fotografije/skena fizičkog obrasca koju prvo
+otpremiš na svoj Google Drive (bilo gdje — ne mora biti u ovom fajlu); može
+i **više slika odjednom** — odvoji ih zarezom ili svaku u svoj red, sve se
+obrađuju i spajaju u isti pregled. Slike umetnute direktno preko ćelija na
+listu (Insert → Image) **ne rade** za ovo — Apps Script nema pristup
+njihovom sadržaju, samo do fajlova na samom Drive-u.
+
 Iz prepoznatog teksta skripta best-effort izdvoji Rb, markicu, pol i vrstu
 za svaki red, i upiše to u poseban list **"OCR - pregled"** (zajedno sa
-sirovom OCR linijom radi provjere). Ne piše direktno u Stanje ni
-Vakcinisano — rezultat treba pregledati i po potrebi ispraviti, pa tek onda
-ručno prepisati/zalijepiti u pravi list. OCR sa skeniranog/fotografisanog
-obrasca nije 100% pouzdan (posebno rukopis), zato je ovo namjerno odvojen
-korak za provjeru, ne automatski upis.
+sirovom OCR linijom radi provjere), sa dodatnom kolonom **"Napomena"** koja
+upozori na dva čest izvora OCR grešaka:
+
+- markica čiji broj cifara nije uobičajenih 10 (znak da je OCR vjerovatno
+  ispustio ili udvostručio neku cifru),
+- markica koja se u istom OCR rezultatu pojavljuje više od jednom (dupli
+  red, ili slika obrađena dva puta).
+
+Redovi sa napomenom se dodatno oboje svijetlo žuto na samom listu, da se
+odmah vide bez čitanja svakog reda pojedinačno. Ne piše direktno u Stanje
+ni Vakcinisano — rezultat treba pregledati i po potrebi ispraviti, pa tek
+onda ručno prepisati/zalijepiti u pravi list. Ako neka od slika ne uspije
+(loš link, nema pristupa), poruka po završetku javi koliko je slika
+uspješno obrađeno i koje su preskočene — ostale se ipak obrade. OCR sa
+skeniranog/fotografisanog obrasca nije 100% pouzdan (posebno rukopis), zato
+je ovo namjerno odvojen korak za provjeru, ne automatski upis.
 
 **Kako pribaviti link:** otpremi sliku na Drive (prevuci fajl u
 drive.google.com, ili Datoteka → Otpremi u bilo kom folderu), zatim desni
