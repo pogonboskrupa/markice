@@ -42,6 +42,15 @@
  * Stanje, starost svakog grla u mjesecima (zaokruženo) od datuma rođenja do
  * datuma koji korisnik izabere kad ga skripta pita (prazno = danas).
  *
+ * Treći meni "OCR sa slike (besplatno, eksperimentalno)" pročita tekst sa
+ * fotografije/skena umetnute direktno na list Stanje ili Vakcinisano
+ * (besplatno, preko Drive/Docs OCR konverzije — zahtijeva jednokratno
+ * dodavanje napredne "Drive API" usluge u Apps Script editoru) i upiše
+ * best-effort izdvojene redove (Rb/markica/pol/vrsta nagađanje + sirova
+ * linija) u poseban list "OCR - pregled", NE direktno u Stanje/Vakcinisano
+ * — rezultat treba provjeriti prije ručnog prepisivanja, OCR nije pouzdan
+ * za rukopis.
+ *
  * Instalacija: Extensions/Proširenja → Apps Script u ovom Google Sheets
  * fajlu, prekopiraj ovaj fajl kao Code.gs (ili dodaj kao novi .gs fajl),
  * sačuvaj, osvježi list — u meniju se pojavi "Markice". Detalji u
@@ -98,6 +107,7 @@ function onOpen() {
     .createMenu('🏷️ Markice')
     .addItem('Uporedi / osvježi "Uporedba markica"', 'uporediMarkice')
     .addItem('Izračunaj starost u mjesecima (kolona H)', 'izracunajStarostUMjesecima')
+    .addItem('OCR sa slike (besplatno, eksperimentalno)', 'ocrSaSlike')
     .addToUi();
 }
 
@@ -920,4 +930,139 @@ function parsirajDatum_(vrijednost) {
   if (m) return new Date(parseInt(m[1], 10), parseInt(m[2], 10) - 1, parseInt(m[3], 10));
   var d = new Date(tekst);
   return isNaN(d.getTime()) ? null : d;
+}
+
+// ---------- OCR sa slike (besplatno, preko Drive/Docs OCR konverzije) ----------
+//
+// Zahtijeva JEDNOKRATNO podešavanje u Apps Script editoru: Services/Usluge
+// (+ dugme) → dodaj "Drive API" (napredna Google usluga) → Sačuvaj. Bez
+// ovoga funkcija javlja grešku sa uputom da ovo prvo uradiš.
+//
+// Kako se koristi: umetni fotografiju fizičkog obrasca direktno na list
+// Stanje ili Vakcinisano (Insert/Umetni → Image/Slika → Insert image over
+// cells/Umetni sliku preko ćelija), pa pokreni "OCR sa slike". Skripta ne
+// piše direktno u Stanje/Vakcinisano — rezultat ide u poseban list "OCR -
+// pregled" da se PRIJE prepisivanja provjeri i ispravi (OCR sa skeniranog/
+// fotografisanog obrasca nije 100% pouzdan, pogotovo za rukopis).
+
+var NAZIV_OCR_LISTA = 'OCR - pregled';
+var OCR_VRSTE = ['govedo', 'ovca', 'ovce', 'koza', 'koze', 'jagnjad', 'konj', 'svinja', 'tele', 'june'];
+
+function ocrSaSlike() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  try {
+    var aktivniList = ss.getActiveSheet();
+    var slike = aktivniList.getImages();
+    if (!slike.length) {
+      prikaziPoruku_(
+        'Nema slika',
+        'Na trenutno otvorenom listu ("' + aktivniList.getName() + '") nije pronađena nijedna umetnuta ' +
+        'slika. Umetni sliku (Insert/Umetni → Image/Slika → Insert image over cells) na list Stanje ili ' +
+        'Vakcinisano, pa pokreni ponovo.'
+      );
+      return;
+    }
+
+    var sveLinije = [];
+    slike.forEach(function (slika) {
+      var tekst = ocrujBlob_(slika.getBlob());
+      var linije = tekst.split('\n').map(function (l) { return l.trim(); }).filter(function (l) { return l.length > 0; });
+      sveLinije = sveLinije.concat(linije);
+    });
+
+    if (!sveLinije.length) {
+      prikaziPoruku_('Ništa pročitano', 'OCR nije uspio pročitati tekst ni sa jedne slike na listu "' + aktivniList.getName() + '". Probaj jasniju/oštriju sliku.');
+      return;
+    }
+
+    var redovi = sveLinije.map(parsirajOcrLiniju_).filter(function (r) { return r; });
+    upisiOcrPregled_(ss, redovi, sveLinije.length);
+
+    prikaziPoruku_(
+      'Gotovo',
+      'OCR pročitao ' + sveLinije.length + ' linija teksta sa ' + slike.length + ' slika(e), izdvojeno ' +
+      redovi.length + ' red(ova) sa nečim što liči na markicu, upisano u list "' + NAZIV_OCR_LISTA + '". ' +
+      '⚠ PROVJERI I ISPRAVI prije nego ručno prepišeš u Stanje/Vakcinisano — OCR nije 100% pouzdan.'
+    );
+  } catch (e) {
+    var savjet = e.message && e.message.indexOf('Drive') !== -1
+      ? ' Provjeri da je "Drive API" dodat kao napredna usluga (Services/Usluge → + → Drive API) u ovom Apps Script projektu.'
+      : '';
+    prikaziPoruku_('Greška', 'OCR nije uspio: ' + e.message + savjet);
+    throw e;
+  }
+}
+
+// Konvertuje sliku u privremeni Google Doc uz OCR (besplatno, koristi Drive/
+// Docs OCR konverziju), vrati prepoznati tekst, pa odmah obriše privremeni
+// fajl. Zahtijeva naprednu Drive uslugu (vidi napomenu na vrhu sekcije).
+function ocrujBlob_(blob) {
+  var resource = { title: 'OCR privremeno', mimeType: MimeType.GOOGLE_DOCS };
+  var opcije = { ocr: true, ocrLanguage: 'hr' };
+  var fajl = Drive.Files.insert(resource, blob, opcije);
+  try {
+    var dokument = DocumentApp.openById(fajl.id);
+    return dokument.getBody().getText();
+  } finally {
+    DriveApp.getFileById(fajl.id).setTrashed(true);
+  }
+}
+
+// Best-effort izdvajanje jednog reda (Rb, markica, pol, vrsta) iz JEDNE
+// linije OCR teksta — OCR sa fizičkog obrasca često pomiješa razmake i
+// brojeve s tekstom, pa je ovo namjerno permisivno, ne strogo poređenje kao
+// za direktan unos u ćeliju. Vraća null ako linija uopšte ne sadrži nešto
+// što liči na markicu (npr. naslovni/prazan red obrasca).
+function parsirajOcrLiniju_(linija) {
+  var markica = izvuciMarkicuIzOcrTeksta_(linija);
+  if (!markica) return null;
+
+  var rbMatch = linija.match(/^\s*(\d{1,4})\D/);
+  var rb = rbMatch ? rbMatch[1] : '';
+
+  var velikaLinija = linija.toUpperCase();
+  var pol = '';
+  if (/(^|[^A-ZŽĆČĐŠ])M([^A-ZŽĆČĐŠ]|$)/.test(velikaLinija)) pol = 'M';
+  else if (/(^|[^A-ZŽĆČĐŠ])Ž([^A-ZŽĆČĐŠ]|$)/.test(velikaLinija)) pol = 'Ž';
+
+  var vrsta = '';
+  var cistaLinija = ocistiTekst_(linija);
+  for (var i = 0; i < OCR_VRSTE.length; i++) {
+    if (cistaLinija.indexOf(OCR_VRSTE[i]) !== -1) { vrsta = OCR_VRSTE[i]; break; }
+  }
+
+  return { rb: rb, markica: markica, pol: pol, vrsta: vrsta, izvor: linija };
+}
+
+// Izdvaja markicu iz proizvoljne (šumovite) OCR linije — prvo traži "BA" +
+// brojevi (uobičajen format), a ako toga nema, kao zadnji pokušaj traži bilo
+// koji niz od bar 6 cifara (dovoljno dugačak da ne pokupi Rb ili slično
+// kratak broj kao markicu).
+function izvuciMarkicuIzOcrTeksta_(linija) {
+  var tekst = linija.toUpperCase();
+  var m = tekst.match(/BA[ \t]*\d[\d \t]{5,15}\d/);
+  if (m) return m[0].replace(/[ \t]+/g, '');
+  m = tekst.match(/\d{6,}/);
+  return m ? m[0] : null;
+}
+
+function upisiOcrPregled_(ss, redovi, ukupnoLinija) {
+  var sheet = ss.getSheetByName(NAZIV_OCR_LISTA);
+  if (sheet) { sheet.clear(); sheet.clearFormats(); }
+  else { sheet = ss.insertSheet(NAZIV_OCR_LISTA); }
+
+  sheet.getRange(1, 1, 1, 5).setValues([['Rb (nagađanje)', 'Markica', 'Pol (nagađanje)', 'Vrsta (nagađanje)', 'Sirova OCR linija']])
+    .setFontWeight('bold').setBackground(BOJE.ink).setFontColor(BOJE.paper).setFontFamily(FONT_TEKST);
+
+  if (redovi.length) {
+    var vrijednosti = redovi.map(function (r) { return [r.rb, r.markica, r.pol, r.vrsta, r.izvor]; });
+    sheet.getRange(2, 1, vrijednosti.length, 5).setValues(vrijednosti).setFontFamily(FONT_TEKST);
+  }
+  sheet.autoResizeColumns(1, 4);
+  sheet.setColumnWidth(5, 400);
+
+  sheet.getRange(redovi.length + 3, 1, 1, 5).merge().setValue(
+    '⚠ OCR nije 100% pouzdan — provjeri svaki red (posebno markicu) prije nego prepišeš u Stanje/Vakcinisano. ' +
+    'Pročitano ' + ukupnoLinija + ' linija teksta ukupno, ' + redovi.length + ' sadrži nešto što liči na markicu.'
+  ).setFontStyle('italic').setFontColor(BOJE.crvenaFg).setWrap(true);
 }

@@ -105,6 +105,42 @@ Redovi bez prepoznatog datuma rođenja se preskoče i broje u poruci po
 završetku, ostaju prazni u koloni H. List se svaki put ponovo prepiše u
 koloni H, pa je sigurno pokretati opet sa drugim datumom.
 
+## OCR sa slike (besplatno, eksperimentalno)
+
+Meni **Markice → "OCR sa slike (besplatno, eksperimentalno)"** — pročita
+tekst sa fotografije ili skena fizičkog obrasca koju umetneš direktno na
+list Stanje ili Vakcinisano (Insert/Umetni → Image/Slika → **Insert image
+over cells** / Umetni sliku preko ćelija — mora biti umetnuta preko ćelija,
+ne kao "u ćeliju"), pa iz prepoznatog teksta best-effort izdvoji Rb, markicu,
+pol i vrstu za svaki red, i upiše to u poseban list **"OCR - pregled"**
+(zajedno sa sirovom OCR linijom radi provjere). Ne piše direktno u Stanje ni
+Vakcinisano — rezultat treba pregledati i po potrebi ispraviti, pa tek onda
+ručno prepisati/zalijepiti u pravi list. OCR sa skeniranog/fotografisanog
+obrasca nije 100% pouzdan (posebno rukopis), zato je ovo namjerno odvojen
+korak za provjeru, ne automatski upis.
+
+Koristi besplatnu Google Docs OCR konverziju (ista tehnologija kao "Otvori
+sa → Google Docs" na slici u samom Drive-u), bez ikakve naplate ili
+posebnog API ključa — ali zahtijeva **jednokratno podešavanje** u Apps
+Script editoru:
+
+1. U Apps Script editoru (Extensions/Proširenja → Apps Script), lijevo u
+   bočnoj traci klikni **Services/Usluge** (ikonica +).
+2. Pronađi i dodaj **Drive API**, ostavi podrazumijevanu verziju, klikni
+   **Add/Dodaj**.
+3. Sačuvaj projekat (Ctrl+S).
+
+Bez ovog koraka, meni javlja grešku sa uputom da prvo dodaš ovu uslugu.
+
+Napomena o tačnosti: dobar je za jasan, otkucan tekst; znatno nepouzdaniji
+za rukopis ili mutne/nakrivo fotografisane obrasce. Redni broj (Rb) se
+pokuša pročitati kao broj na početku linije, pol kao usamljeno slovo M/Ž, a
+vrsta poređenjem sa listom čestih naziva (Govedo, Ovca, Koza, Jagnjad,
+Konj, Svinja...) — sve troje su samo nagađanja i treba ih provjeriti.
+Markica se traži prvo u obliku "BA" + brojevi, a ako toga nema, kao zadnji
+pokušaj bilo koji niz od bar 6 cifara. Linija bez ičeg što liči na markicu
+se preskoči (ne upisuje se kao prazan red).
+
 ## Prepoznavanje listova i kolona
 
 Isto kao u web aplikaciji: listovi se prvo pokušaju prepoznati po **nazivu**
