@@ -50,9 +50,11 @@
  * slike se premjeste u podfolder "Obrađeno" da se ne obrade ponovo. Upiše
  * best-effort izdvojene redove (Rb/markica/pol/vrsta nagađanje + Napomena +
  * sirova linija) u poseban list "OCR - pregled", NE direktno u Stanje/
- * Vakcinisano. Napomena upozori (i žuto oboji red) kad markica nema
- * uobičajenih 10 cifara ili kad se ponavlja u istom OCR rezultatu —
- * rezultat treba provjeriti prije ručnog prepisivanja, OCR nije pouzdan za
+ * Vakcinisano — svako pokretanje DODAJE redove na kraj, ne briše prethodne
+ * (prirodno je fotografisati i pokretati OCR jednu sliku po jednu). Napomena
+ * upozori (i žuto oboji red) kad markica nema uobičajenih 10 cifara ili kad
+ * se ponavlja (i preko ranijih pokretanja) — rezultat treba provjeriti
+ * prije ručnog prepisivanja, OCR nije pouzdan za
  * rukopis.
  *
  * Instalacija: Extensions/Proširenja → Apps Script u ovom Google Sheets
@@ -1013,9 +1015,9 @@ function ocrSaSlike() {
       'Gotovo',
       'OCR pročitao ' + sveLinije.length + ' linija teksta sa ' + brojUspjesnihSlika + '/' + slike.length +
       ' slika(e) iz foldera "' + NAZIV_OCR_FOLDERA + '", izdvojeno ' + redovi.length +
-      ' red(ova) sa nečim što liči na markicu, upisano u list "' + NAZIV_OCR_LISTA + '". Obrađene slike su ' +
-      'premještene u podfolder "' + NAZIV_OCR_OBRADJENO_FOLDERA + '". ⚠ PROVJERI I ISPRAVI prije nego ručno ' +
-      'prepišeš u Stanje/Vakcinisano — OCR nije 100% pouzdan.' +
+      ' red(ova) sa nečim što liči na markicu, DODANO na kraj lista "' + NAZIV_OCR_LISTA + '" (stari redovi iz ' +
+      'ranijih pokretanja ostaju). Obrađene slike su premještene u podfolder "' + NAZIV_OCR_OBRADJENO_FOLDERA +
+      '". ⚠ PROVJERI I ISPRAVI prije nego ručno prepišeš u Stanje/Vakcinisano — OCR nije 100% pouzdan.' +
       (greske.length ? ' Preskočeno: ' + greske.join('; ') + '.' : '')
     );
   } catch (e) {
@@ -1111,43 +1113,53 @@ function izvuciMarkicuIzOcrTeksta_(linija) {
   return null;
 }
 
-function upisiOcrPregled_(ss, redovi, ukupnoLinija) {
+// DODAJE nove redove na kraj lista "OCR - pregled" — ne briše prethodne.
+// Prirodan tok je fotografisati/skenirati i pokrenuti OCR više puta (jedna
+// slika u ulaznom folderu, pa druga, itd.) — obrisati stare rezultate pri
+// svakom pokretanju bi značilo da se vidi samo rezultat POSLJEDNJEG
+// pokretanja, kao da je sve prije toga izgubljeno. Duplikat provjera
+// uzima u obzir i već postojeće redove na listu (ne samo nove iz ovog
+// pokretanja), da se uhvati i markica pročitana u dvije odvojene sesije.
+function upisiOcrPregled_(ss, noviRedovi, ukupnoLinija) {
   var sheet = ss.getSheetByName(NAZIV_OCR_LISTA);
-  if (sheet) { sheet.clear(); sheet.clearFormats(); }
-  else { sheet = ss.insertSheet(NAZIV_OCR_LISTA); }
+  var postojeciRedovi = [];
+  if (!sheet) {
+    sheet = ss.insertSheet(NAZIV_OCR_LISTA);
+    sheet.getRange(1, 1, 1, 6).setValues([['Rb (nagađanje)', 'Markica', 'Pol (nagađanje)', 'Vrsta (nagađanje)', 'Napomena', 'Sirova OCR linija']])
+      .setFontWeight('bold').setBackground(BOJE.ink).setFontColor(BOJE.paper).setFontFamily(FONT_TEKST);
+  } else {
+    var zadnjiRed = sheet.getLastRow();
+    if (zadnjiRed > 1) {
+      var postojeciOpseg = sheet.getRange(2, 1, zadnjiRed - 1, 2).getValues();
+      postojeciRedovi = postojeciOpseg.map(function (r) { return { markica: r[1] }; });
+    }
+  }
 
-  // Duplikat unutar samog OCR rezultata (npr. isti red pročitan dva puta
-  // zbog preklapanja slika, ili ista markica zaista upisana dva puta) —
-  // pronadjiDuplikate_ radi generički nad bilo kojim spiskom sa `.markica`,
-  // pa se ista logika kao za Stanje/Vakcinisano ovdje ponovo koristi.
-  var duplikati = pronadjiDuplikate_(redovi);
+  // Duplikat i preko starih i preko novih redova zajedno (npr. ista markica
+  // pročitana u ovoj sesiji i u prethodnoj) — pronadjiDuplikate_ radi
+  // generički nad bilo kojim spiskom sa `.markica`, ista logika kao za
+  // Stanje/Vakcinisano ovdje ponovo iskorištena. Samo NOVI redovi se boje
+  // sad — postojeći redovi iz ranijih pokretanja se ne diraju (list se ne
+  // briše ni preformatira svaki put).
+  var duplikati = pronadjiDuplikate_(postojeciRedovi.concat(noviRedovi));
   var duplikatSet = {};
   duplikati.forEach(function (r) { duplikatSet[r.markica] = true; });
 
-  sheet.getRange(1, 1, 1, 6).setValues([['Rb (nagađanje)', 'Markica', 'Pol (nagađanje)', 'Vrsta (nagađanje)', 'Napomena', 'Sirova OCR linija']])
-    .setFontWeight('bold').setBackground(BOJE.ink).setFontColor(BOJE.paper).setFontFamily(FONT_TEKST);
-
-  if (redovi.length) {
-    var vrijednosti = redovi.map(function (r) {
+  var pocetniRed = sheet.getLastRow() + 1;
+  if (noviRedovi.length) {
+    var vrijednosti = noviRedovi.map(function (r) {
       var napomene = [];
       if (r.brojCifara !== 10) napomene.push('broj cifara (' + r.brojCifara + ') nije uobičajenih 10 — provjeri');
       if (duplikatSet[r.markica]) napomene.push('markica se ponavlja u OCR rezultatu');
       return [r.rb, r.markica, r.pol, r.vrsta, napomene.join('; '), r.izvor];
     });
-    sheet.getRange(2, 1, vrijednosti.length, 6).setValues(vrijednosti).setFontFamily(FONT_TEKST);
+    sheet.getRange(pocetniRed, 1, vrijednosti.length, 6).setValues(vrijednosti).setFontFamily(FONT_TEKST);
 
-    redovi.forEach(function (r, i) {
+    noviRedovi.forEach(function (r, i) {
       var imaUpozorenje = r.brojCifara !== 10 || duplikatSet[r.markica];
-      if (imaUpozorenje) sheet.getRange(2 + i, 1, 1, 6).setBackground(BOJE.zutaBg);
+      if (imaUpozorenje) sheet.getRange(pocetniRed + i, 1, 1, 6).setBackground(BOJE.zutaBg);
     });
   }
   sheet.autoResizeColumns(1, 5);
   sheet.setColumnWidth(6, 350);
-
-  sheet.getRange(redovi.length + 3, 1, 1, 6).merge().setValue(
-    '⚠ OCR nije 100% pouzdan — provjeri svaki red (posebno markicu) prije nego prepišeš u Stanje/Vakcinisano. ' +
-    'Žuto obojeni redovi imaju upozorenje u koloni Napomena (neuobičajen broj cifara ili ponovljena markica u ' +
-    'OCR rezultatu). Pročitano ' + ukupnoLinija + ' linija teksta ukupno, ' + redovi.length + ' sadrži nešto ' +
-    'što liči na markicu.'
-  ).setFontStyle('italic').setFontColor(BOJE.crvenaFg).setWrap(true);
 }

@@ -141,6 +141,14 @@ onda ručno prepisati/zalijepiti u pravi list. OCR sa skeniranog/
 fotografisanog obrasca nije 100% pouzdan (posebno rukopis), zato je ovo
 namjerno odvojen korak za provjeru, ne automatski upis.
 
+Svako pokretanje **DODAJE** nove redove na kraj lista "OCR - pregled" —
+stari redovi iz ranijih pokretanja ostaju netaknuti. Ovo je bitno jer je
+sasvim prirodno fotografisati i pokretati OCR jednu sliku po jednu (uslikaj,
+pokreni, provjeri, uslikaj sljedeću, pokreni ponovo) umjesto da se sve
+slike moraju odjednom ubaciti u folder — svaki rezultat se nadovezuje na
+prethodni, ništa se ne gubi. Provjera duplikata markice uzima u obzir i
+redove iz ranijih pokretanja, ne samo redove iz trenutnog.
+
 Koristi besplatnu Google Docs OCR konverziju (ista tehnologija kao "Otvori
 sa → Google Docs" na slici u samom Drive-u), bez ikakve naplate ili
 posebnog API ključa — ali zahtijeva **jednokratno podešavanje** u Apps
