@@ -42,14 +42,13 @@
  * Stanje, starost svakog grla u mjesecima (zaokruženo) od datuma rođenja do
  * datuma koji korisnik izabere kad ga skripta pita (prazno = danas).
  *
- * Treći meni "OCR sa slike (besplatno, eksperimentalno)" pročita tekst sa
- * fotografije/skena umetnute direktno na list Stanje ili Vakcinisano
- * (besplatno, preko Drive/Docs OCR konverzije — zahtijeva jednokratno
- * dodavanje napredne "Drive API" usluge u Apps Script editoru) i upiše
- * best-effort izdvojene redove (Rb/markica/pol/vrsta nagađanje + sirova
- * linija) u poseban list "OCR - pregled", NE direktno u Stanje/Vakcinisano
- * — rezultat treba provjeriti prije ručnog prepisivanja, OCR nije pouzdan
- * za rukopis.
+ * Treći meni "OCR sa slike (besplatno, eksperimentalno)" pita za link/ID
+ * fotografije/skena koju prethodno otpremiš na Google Drive (besplatno,
+ * preko Drive/Docs OCR konverzije — zahtijeva jednokratno dodavanje
+ * napredne "Drive API" usluge u Apps Script editoru), pa upiše best-effort
+ * izdvojene redove (Rb/markica/pol/vrsta nagađanje + sirova linija) u
+ * poseban list "OCR - pregled", NE direktno u Stanje/Vakcinisano — rezultat
+ * treba provjeriti prije ručnog prepisivanja, OCR nije pouzdan za rukopis.
  *
  * Instalacija: Extensions/Proširenja → Apps Script u ovom Google Sheets
  * fajlu, prekopiraj ovaj fajl kao Code.gs (ili dodaj kao novi .gs fajl),
@@ -938,50 +937,64 @@ function parsirajDatum_(vrijednost) {
 // (+ dugme) → dodaj "Drive API" (napredna Google usluga) → Sačuvaj. Bez
 // ovoga funkcija javlja grešku sa uputom da ovo prvo uradiš.
 //
-// Kako se koristi: umetni fotografiju fizičkog obrasca direktno na list
-// Stanje ili Vakcinisano (Insert/Umetni → Image/Slika → Insert image over
-// cells/Umetni sliku preko ćelija), pa pokreni "OCR sa slike". Skripta ne
-// piše direktno u Stanje/Vakcinisano — rezultat ide u poseban list "OCR -
-// pregled" da se PRIJE prepisivanja provjeri i ispravi (OCR sa skeniranog/
-// fotografisanog obrasca nije 100% pouzdan, pogotovo za rukopis).
+// Kako se koristi: otpremi fotografiju fizičkog obrasca BILO GDJE na svoj
+// Google Drive (slika ne mora biti u ovom fajlu ni umetnuta u list — slike
+// umetnute direktno preko ćelija na listu nemaju dostupan sadržaj kroz Apps
+// Script API), zatim pokreni "OCR sa slike" i zalijepi link za dijeljenje
+// (ili sam ID fajla) kad te skripta pita. Skripta ne piše direktno u
+// Stanje/Vakcinisano — rezultat ide u poseban list "OCR - pregled" da se
+// PRIJE prepisivanja provjeri i ispravi (OCR sa skeniranog/fotografisanog
+// obrasca nije 100% pouzdan, pogotovo za rukopis).
 
 var NAZIV_OCR_LISTA = 'OCR - pregled';
 var OCR_VRSTE = ['govedo', 'ovca', 'ovce', 'koza', 'koze', 'jagnjad', 'konj', 'svinja', 'tele', 'june'];
 
 function ocrSaSlike() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var ui = SpreadsheetApp.getUi();
   try {
-    var aktivniList = ss.getActiveSheet();
-    var slike = aktivniList.getImages();
-    if (!slike.length) {
-      prikaziPoruku_(
-        'Nema slika',
-        'Na trenutno otvorenom listu ("' + aktivniList.getName() + '") nije pronađena nijedna umetnuta ' +
-        'slika. Umetni sliku (Insert/Umetni → Image/Slika → Insert image over cells) na list Stanje ili ' +
-        'Vakcinisano, pa pokreni ponovo.'
-      );
+    var odgovor = ui.prompt(
+      'OCR sa slike',
+      'Otpremi fotografiju obrasca na svoj Google Drive (bilo gdje), pa ovdje zalijepi link za dijeljenje ' +
+      'ili sam ID fajla (desni klik na sliku u Drive-u → Nabavi link/Get link → zalijepi ovdje).',
+      ui.ButtonSet.OK_CANCEL
+    );
+    if (odgovor.getSelectedButton() !== ui.Button.OK) return;
+    var unos = odgovor.getResponseText().trim();
+    if (!unos) {
+      prikaziPoruku_('Nema unosa', 'Nije unesen link ili ID slike.');
       return;
     }
 
-    var sveLinije = [];
-    slike.forEach(function (slika) {
-      var tekst = ocrujBlob_(slika.getBlob());
-      var linije = tekst.split('\n').map(function (l) { return l.trim(); }).filter(function (l) { return l.length > 0; });
-      sveLinije = sveLinije.concat(linije);
-    });
-
-    if (!sveLinije.length) {
-      prikaziPoruku_('Ništa pročitano', 'OCR nije uspio pročitati tekst ni sa jedne slike na listu "' + aktivniList.getName() + '". Probaj jasniju/oštriju sliku.');
+    var idFajla = izvuciDriveId_(unos);
+    if (!idFajla) {
+      prikaziPoruku_('Neprepoznat link', 'Nije prepoznat Drive ID u unesenom tekstu: "' + unos + '". Zalijepi puni link za dijeljenje (Get link) ili sam ID fajla.');
       return;
     }
 
-    var redovi = sveLinije.map(parsirajOcrLiniju_).filter(function (r) { return r; });
-    upisiOcrPregled_(ss, redovi, sveLinije.length);
+    var blob;
+    try {
+      blob = DriveApp.getFileById(idFajla).getBlob();
+    } catch (e2) {
+      prikaziPoruku_('Slika nije pronađena', 'Fajl sa ID-om "' + idFajla + '" nije nađen ili nemaš pristup njemu. Provjeri link i da je slika dijeljena barem sa tobom.');
+      return;
+    }
+
+    var tekst = ocrujBlob_(blob);
+    var linije = tekst.split('\n').map(function (l) { return l.trim(); }).filter(function (l) { return l.length > 0; });
+
+    if (!linije.length) {
+      prikaziPoruku_('Ništa pročitano', 'OCR nije uspio pročitati tekst sa slike. Probaj jasniju/oštriju fotografiju.');
+      return;
+    }
+
+    var redovi = linije.map(parsirajOcrLiniju_).filter(function (r) { return r; });
+    upisiOcrPregled_(ss, redovi, linije.length);
 
     prikaziPoruku_(
       'Gotovo',
-      'OCR pročitao ' + sveLinije.length + ' linija teksta sa ' + slike.length + ' slika(e), izdvojeno ' +
-      redovi.length + ' red(ova) sa nečim što liči na markicu, upisano u list "' + NAZIV_OCR_LISTA + '". ' +
+      'OCR pročitao ' + linije.length + ' linija teksta, izdvojeno ' + redovi.length +
+      ' red(ova) sa nečim što liči na markicu, upisano u list "' + NAZIV_OCR_LISTA + '". ' +
       '⚠ PROVJERI I ISPRAVI prije nego ručno prepišeš u Stanje/Vakcinisano — OCR nije 100% pouzdan.'
     );
   } catch (e) {
@@ -991,6 +1004,16 @@ function ocrSaSlike() {
     prikaziPoruku_('Greška', 'OCR nije uspio: ' + e.message + savjet);
     throw e;
   }
+}
+
+// Izvlači Drive ID fajla iz punog linka za dijeljenje (npr.
+// ".../file/d/<ID>/view?usp=sharing" ili "...?id=<ID>") ili prihvata sam ID
+// ako je to sve što je zalijepljeno. Drive ID-jevi su dovoljno dugi
+// (25+ znakova slova/brojeva/crtica) da se pouzdano razlikuju od ostatka
+// URL-a (domen, "file", "view" i sl. su svi kraći od toga).
+function izvuciDriveId_(tekst) {
+  var m = String(tekst || '').match(/[-\w]{25,}/);
+  return m ? m[0] : null;
 }
 
 // Konvertuje sliku u privremeni Google Doc uz OCR (besplatno, koristi Drive/

@@ -107,17 +107,23 @@ koloni H, pa je sigurno pokretati opet sa drugim datumom.
 
 ## OCR sa slike (besplatno, eksperimentalno)
 
-Meni **Markice → "OCR sa slike (besplatno, eksperimentalno)"** — pročita
-tekst sa fotografije ili skena fizičkog obrasca koju umetneš direktno na
-list Stanje ili Vakcinisano (Insert/Umetni → Image/Slika → **Insert image
-over cells** / Umetni sliku preko ćelija — mora biti umetnuta preko ćelija,
-ne kao "u ćeliju"), pa iz prepoznatog teksta best-effort izdvoji Rb, markicu,
-pol i vrstu za svaki red, i upiše to u poseban list **"OCR - pregled"**
-(zajedno sa sirovom OCR linijom radi provjere). Ne piše direktno u Stanje ni
+Meni **Markice → "OCR sa slike (besplatno, eksperimentalno)"** — pita te za
+link (ili sam ID) fotografije/skena fizičkog obrasca koju prvo otpremiš na
+svoj Google Drive (bilo gdje — ne mora biti u ovom fajlu). Slike umetnute
+direktno preko ćelija na listu (Insert → Image) **ne rade** za ovo — Apps
+Script nema pristup njihovom sadržaju, samo do fajlova na samom Drive-u.
+Iz prepoznatog teksta skripta best-effort izdvoji Rb, markicu, pol i vrstu
+za svaki red, i upiše to u poseban list **"OCR - pregled"** (zajedno sa
+sirovom OCR linijom radi provjere). Ne piše direktno u Stanje ni
 Vakcinisano — rezultat treba pregledati i po potrebi ispraviti, pa tek onda
 ručno prepisati/zalijepiti u pravi list. OCR sa skeniranog/fotografisanog
 obrasca nije 100% pouzdan (posebno rukopis), zato je ovo namjerno odvojen
 korak za provjeru, ne automatski upis.
+
+**Kako pribaviti link:** otpremi sliku na Drive (prevuci fajl u
+drive.google.com, ili Datoteka → Otpremi u bilo kom folderu), zatim desni
+klik na sliku → **Nabavi link/Get link** → Kopiraj link, i taj link
+zalijepi kad te skripta pita.
 
 Koristi besplatnu Google Docs OCR konverziju (ista tehnologija kao "Otvori
 sa → Google Docs" na slici u samom Drive-u), bez ikakve naplate ili
