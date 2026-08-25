@@ -1018,11 +1018,14 @@ function izvuciDriveId_(tekst) {
 
 // Konvertuje sliku u privremeni Google Doc uz OCR (besplatno, koristi Drive/
 // Docs OCR konverziju), vrati prepoznati tekst, pa odmah obriše privremeni
-// fajl. Zahtijeva naprednu Drive uslugu (vidi napomenu na vrhu sekcije).
+// fajl. Zahtijeva naprednu Drive uslugu (vidi napomenu na vrhu sekcije) —
+// koristi Drive API v3 (Files.create/"name"), ne stariju v2
+// (Files.insert/"title") koju Apps Script editor više ne nudi pri dodavanju
+// usluge.
 function ocrujBlob_(blob) {
-  var resource = { title: 'OCR privremeno', mimeType: MimeType.GOOGLE_DOCS };
-  var opcije = { ocr: true, ocrLanguage: 'hr' };
-  var fajl = Drive.Files.insert(resource, blob, opcije);
+  var resource = { name: 'OCR privremeno', mimeType: MimeType.GOOGLE_DOCS };
+  var opcije = { ocrLanguage: 'hr' };
+  var fajl = Drive.Files.create(resource, blob, opcije);
   try {
     var dokument = DocumentApp.openById(fajl.id);
     return dokument.getBody().getText();
