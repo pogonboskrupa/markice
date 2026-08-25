@@ -107,13 +107,22 @@ koloni H, pa je sigurno pokretati opet sa drugim datumom.
 
 ## OCR sa slike (besplatno, eksperimentalno)
 
-Meni **Markice → "OCR sa slike (besplatno, eksperimentalno)"** — pita te za
-link(ove) (ili sam ID/ID-jeve) fotografije/skena fizičkog obrasca koju prvo
-otpremiš na svoj Google Drive (bilo gdje — ne mora biti u ovom fajlu); može
-i **više slika odjednom** — odvoji ih zarezom ili svaku u svoj red, sve se
-obrađuju i spajaju u isti pregled. Slike umetnute direktno preko ćelija na
-listu (Insert → Image) **ne rade** za ovo — Apps Script nema pristup
-njihovom sadržaju, samo do fajlova na samom Drive-u.
+Meni **Markice → "OCR sa slike (besplatno, eksperimentalno)"** — **ne
+traži nikakav link ni ID.** Skripta sama napravi (kod prvog pokretanja)
+Drive folder **"OCR ulazne slike"**, na istom mjestu na Drive-u gdje je i
+sam Sheets fajl. Samo ubaci fotografiju(e) obrasca u taj folder (koliko god
+odjednom — sve se obrade i spoje u isti pregled) i pokreni meni. Slike
+umetnute direktno preko ćelija na listu (Insert → Image) **ne rade** za
+ovo — Apps Script nema pristup njihovom sadržaju, samo do pravih fajlova
+na Drive-u.
+
+Obrađene slike se automatski premjeste u podfolder **"Obrađeno"** unutar
+istog foldera, da se ne obrađuju ponovo sljedeći put — ako neku sliku
+treba ponovo pročitati (npr. poslije popravke), samo je vrati nazad u
+folder "OCR ulazne slike". Slika koja ne uspije da se pročita (npr.
+oštećen fajl) ostaje u ulaznom folderu za ponovni pokušaj, a ostale se
+ipak obrade — poruka po završetku javi koliko slika je uspješno obrađeno i
+koje su preskočene.
 
 Iz prepoznatog teksta skripta best-effort izdvoji Rb, markicu, pol i vrstu
 za svaki red, i upiše to u poseban list **"OCR - pregled"** (zajedno sa
@@ -128,16 +137,9 @@ upozori na dva čest izvora OCR grešaka:
 Redovi sa napomenom se dodatno oboje svijetlo žuto na samom listu, da se
 odmah vide bez čitanja svakog reda pojedinačno. Ne piše direktno u Stanje
 ni Vakcinisano — rezultat treba pregledati i po potrebi ispraviti, pa tek
-onda ručno prepisati/zalijepiti u pravi list. Ako neka od slika ne uspije
-(loš link, nema pristupa), poruka po završetku javi koliko je slika
-uspješno obrađeno i koje su preskočene — ostale se ipak obrade. OCR sa
-skeniranog/fotografisanog obrasca nije 100% pouzdan (posebno rukopis), zato
-je ovo namjerno odvojen korak za provjeru, ne automatski upis.
-
-**Kako pribaviti link:** otpremi sliku na Drive (prevuci fajl u
-drive.google.com, ili Datoteka → Otpremi u bilo kom folderu), zatim desni
-klik na sliku → **Nabavi link/Get link** → Kopiraj link, i taj link
-zalijepi kad te skripta pita.
+onda ručno prepisati/zalijepiti u pravi list. OCR sa skeniranog/
+fotografisanog obrasca nije 100% pouzdan (posebno rukopis), zato je ovo
+namjerno odvojen korak za provjeru, ne automatski upis.
 
 Koristi besplatnu Google Docs OCR konverziju (ista tehnologija kao "Otvori
 sa → Google Docs" na slici u samom Drive-u), bez ikakve naplate ili
